@@ -222,5 +222,13 @@
   "cmd.renameLink": "Rename Link",
   "links.rename": "Rename link {relation} ({node})",
   "relation.editLabel": "Link name",
-  "graph.renameLinkFailed": "Couldn't rename the link: {error}"
+  "graph.renameLinkFailed": "Couldn't rename the link: {error}",
+  "cmd.toggle3d": "Toggle 3D Graph",
+  "graph.mode": "Graph view",
+  "graph.mode2d": "2D",
+  "graph.mode3d": "3D",
+  "graph3d.label": "3D graph: {nodes} nodes, {links} links",
+  "graph3d.loading": "Loading 3D view…",
+  "graph3d.unsupported": "The 3D view needs WebGL, which this browser can't provide.",
+  "graph3d.loadFailed": "Couldn't open the 3D view. Check the connection and try again."
 }

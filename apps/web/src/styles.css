@@ -654,6 +654,37 @@ button.small {
   height: 100%;
   position: relative;
 }
+.graph-shell {
+  height: 100%;
+  position: relative;
+}
+/* 2D | 3D switch, top-right over either canvas. */
+.graph-mode {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+  background: var(--bg-elev);
+}
+.graph-3d {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.graph-3d-canvas {
+  position: absolute;
+  inset: 0;
+}
+.graph-mode button[aria-pressed='true'] {
+  background: var(--bg-input);
+  color: var(--text);
+}
+.graph-3d-error {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 1;
+}
 .toolbar {
   display: flex;
   flex-wrap: wrap;

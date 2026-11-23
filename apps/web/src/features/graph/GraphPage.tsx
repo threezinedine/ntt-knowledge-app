@@ -16,7 +16,17 @@ import {
   type NodeTypes,
   type OnBeforeDelete,
 } from '@xyflow/react';
-import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react';
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type SubmitEvent,
+} from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
   useCreateEdge,
@@ -27,6 +37,7 @@ import {
   useUpdateEdge,
 } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
+import { readJson, writeJson } from '../../commands/storage';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { revealNodeId, useNodeContextMenu } from '../node/NodeContextMenu';
@@ -40,14 +51,80 @@ import {
   NO_HIGHLIGHT,
   type GraphHighlight,
 } from './highlight';
+import { graph3dFailure, type Graph3DFailure } from './graph3dData';
 import { RelationDialog } from './RelationDialog';
 
+// three.js is big: only fetched when someone switches to 3D (and kept out of
+// the service worker's precache, see vite.config.ts).
+const Graph3D = lazy(() => import('./Graph3D'));
+
+type GraphMode = '2d' | '3d';
+const MODE_KEY = 'km.graph.mode';
+
 export function GraphPage() {
-  return (
-    <ReactFlowProvider>
-      <GraphCanvas />
-    </ReactFlowProvider>
+  const { t } = useI18n();
+  const [mode, setModeState] = useState<GraphMode>(() =>
+    readJson(MODE_KEY) === '3d' ? '3d' : '2d',
   );
+  const setMode = (m: GraphMode) => {
+    setModeState(m);
+    writeJson(MODE_KEY, m);
+  };
+  useCommandHandler('km.graph.toggle3d', () => {
+    setMode(mode === '3d' ? '2d' : '3d');
+  });
+  const tip = useCommandTooltip('km.graph.toggle3d');
+
+  return (
+    <div className="graph-shell">
+      {/* Two toggle buttons, not tabs: no tab panel or arrow keys to promise. */}
+      <div className="segmented graph-mode" role="group" aria-label={t('graph.mode')} {...tip}>
+        {(['2d', '3d'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            aria-pressed={mode === m}
+            onClick={() => {
+              setMode(m);
+            }}
+          >
+            {t(m === '2d' ? 'graph.mode2d' : 'graph.mode3d')}
+          </button>
+        ))}
+      </div>
+      {mode === '3d' ? (
+        <Graph3DBoundary
+          fallback={(kind) => (
+            <p className="empty">
+              {t(kind === 'webgl' ? 'graph3d.unsupported' : 'graph3d.loadFailed')}
+            </p>
+          )}
+        >
+          <Suspense fallback={<p className="empty">{t('graph3d.loading')}</p>}>
+            <Graph3D />
+          </Suspense>
+        </Graph3DBoundary>
+      ) : (
+        <ReactFlowProvider>
+          <GraphCanvas />
+        </ReactFlowProvider>
+      )}
+    </div>
+  );
+}
+
+/** Say why 3D isn't showing (no WebGL vs. anything else, e.g. the chunk didn't load). */
+class Graph3DBoundary extends Component<
+  { fallback: (kind: Graph3DFailure) => ReactNode; children: ReactNode },
+  { failed: Graph3DFailure | null }
+> {
+  override state: { failed: Graph3DFailure | null } = { failed: null };
+  static getDerivedStateFromError(error: unknown) {
+    return { failed: graph3dFailure(error) };
+  }
+  override render() {
+    return this.state.failed ? this.props.fallback(this.state.failed) : this.props.children;
+  }
 }
 
 /** Only edges may be deleted from the canvas; deleting nodes is a deliberate action on the node page. */

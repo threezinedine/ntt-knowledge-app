@@ -222,5 +222,13 @@
   "cmd.renameLink": "Đổi tên liên kết",
   "links.rename": "Đổi tên liên kết {relation} ({node})",
   "relation.editLabel": "Tên liên kết",
-  "graph.renameLinkFailed": "Không đổi được tên liên kết: {error}"
+  "graph.renameLinkFailed": "Không đổi được tên liên kết: {error}",
+  "cmd.toggle3d": "Bật/tắt đồ thị 3D",
+  "graph.mode": "Kiểu xem đồ thị",
+  "graph.mode2d": "2D",
+  "graph.mode3d": "3D",
+  "graph3d.label": "Đồ thị 3D: {nodes} nút, {links} liên kết",
+  "graph3d.loading": "Đang tải chế độ 3D…",
+  "graph3d.unsupported": "Chế độ 3D cần WebGL, trình duyệt này không hỗ trợ.",
+  "graph3d.loadFailed": "Không mở được chế độ 3D. Kiểm tra kết nối rồi thử lại."
 }

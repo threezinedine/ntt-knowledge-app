@@ -158,6 +158,13 @@ export const COMMANDS = [
     when: 'cmdWhen.graph',
   },
   {
+    id: 'km.graph.toggle3d',
+    title: 'cmd.toggle3d',
+    category: 'cmdCategory.graph',
+    keys: ['Shift+3'],
+    when: 'cmdWhen.graph',
+  },
+  {
     id: 'km.graph.fitView',
     title: 'cmd.fitView',
     category: 'cmdCategory.graph',

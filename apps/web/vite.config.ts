@@ -24,6 +24,17 @@ export default defineConfig({
         // Never let the service worker answer API calls from cache.
         navigateFallbackDenylist: [/^\/api\//],
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // The 3D view's three.js chunk (~1.5 MB) is optional: don't make every
+        // install download it. Cached on first use instead. (Data comes from
+        // the server anyway, so the graph isn't usable offline either way.)
+        globIgnores: ['**/Graph3D-*.js'],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/Graph3D-[^/]+\.js$/,
+            handler: 'CacheFirst', // content-hashed name: a new build is a new URL
+            options: { cacheName: 'km-3d', expiration: { maxEntries: 2 } },
+          },
+        ],
       },
     }),
   ],
