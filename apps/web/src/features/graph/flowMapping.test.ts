@@ -11,20 +11,20 @@ const summary = (id: string, position: NodeSummary['position'] = null): NodeSumm
 
 describe('toFlowNodes', () => {
   it('uses stored positions and lays out unplaced nodes on a grid', () => {
-    const nodes = toFlowNodes([summary('a', { x: 5, y: 5 }), summary('b'), summary('c')], []);
+    const nodes = toFlowNodes([summary('a', { x: 5, y: 5 }), summary('b'), summary('c')], [], []);
     expect(nodes.map((n) => n.position)).toEqual([
       { x: 5, y: 5 },
       fallbackPosition(0),
       fallbackPosition(1),
     ]);
-    expect(nodes[0]?.data).toEqual({ label: 'A', nodeType: 'note' });
+    expect(nodes[0]?.data).toMatchObject({ label: 'A', nodeType: 'note', radius: 7 });
   });
 
   it('keeps selection across refetches', () => {
-    const prev = toFlowNodes([summary('a'), summary('b')], []).map((n): KmFlowNode =>
+    const prev = toFlowNodes([summary('a'), summary('b')], [], []).map((n): KmFlowNode =>
       n.id === 'b' ? { ...n, selected: true } : n,
     );
-    const next = toFlowNodes([summary('a'), summary('b')], prev);
+    const next = toFlowNodes([summary('a'), summary('b')], [], prev);
     expect(next.map((n) => n.selected)).toEqual([false, true]);
   });
 });

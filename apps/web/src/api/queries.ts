@@ -4,6 +4,7 @@ import type {
   CreateNodeInput,
   CreateTaskInput,
   GraphSnapshot,
+  UpdateCategoryInput,
   UpdateNodeInput,
   UpdateTaskInput,
 } from '@km/core';
@@ -131,6 +132,15 @@ export function useCreateCategory() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCategoryInput) => api.categories.create(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.categories }),
+  });
+}
+
+export function useUpdateCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateCategoryInput }) =>
+      api.categories.update(id, patch),
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.categories }),
   });
 }

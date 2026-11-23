@@ -8,6 +8,7 @@ import {
 } from '@km/core';
 import { useMemo, useState, type SubmitEvent } from 'react';
 import { errorMessage } from '../../api/client';
+import { DEFAULT_CATEGORY_COLOR } from '../categories/CategoriesPage';
 import {
   useCategories,
   useCreateTask,
@@ -23,8 +24,14 @@ export function TasksPanel({ nodeId }: { nodeId: string }) {
     () => flattenCategoryTree(buildCategoryTree(categories.data ?? [])),
     [categories.data],
   );
-  const pathById = useMemo(
-    () => new Map(flat.map((n) => [n.category.id, n.path.join(' / ')])),
+  const labelById = useMemo(
+    () =>
+      new Map(
+        flat.map((n): [string, CategoryLabel] => [
+          n.category.id,
+          { path: n.path.join(' / '), color: n.category.color },
+        ]),
+      ),
     [flat],
   );
 
@@ -42,7 +49,7 @@ export function TasksPanel({ nodeId }: { nodeId: string }) {
           <TaskItem
             key={task.id}
             task={task}
-            categoryPath={task.categoryId ? pathById.get(task.categoryId) : undefined}
+            category={task.categoryId ? labelById.get(task.categoryId) : undefined}
           />
         ))}
       </ul>
@@ -51,7 +58,12 @@ export function TasksPanel({ nodeId }: { nodeId: string }) {
   );
 }
 
-function TaskItem({ task, categoryPath }: { task: Task; categoryPath: string | undefined }) {
+interface CategoryLabel {
+  path: string;
+  color: string | null;
+}
+
+function TaskItem({ task, category }: { task: Task; category: CategoryLabel | undefined }) {
   const updateTask = useUpdateTask(task.nodeId);
   const deleteTask = useDeleteTask(task.nodeId);
   // Optimistic status, set synchronously so the checkbox reacts instantly
@@ -101,7 +113,15 @@ function TaskItem({ task, categoryPath }: { task: Task; categoryPath: string | u
           {status === 'doing' ? 'Doing' : 'Start'}
         </button>
       )}
-      {categoryPath && <span className="chip">{categoryPath}</span>}
+      {category && (
+        <span className="chip">
+          <span
+            className="color-dot"
+            style={{ background: category.color ?? DEFAULT_CATEGORY_COLOR }}
+          />
+          {category.path}
+        </span>
+      )}
       {updateTask.isError && <span className="error">{errorMessage(updateTask.error)}</span>}
       <button
         type="button"

@@ -410,6 +410,9 @@ button.small {
   color: var(--muted);
 }
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   padding: 1px 8px;
   border-radius: 999px;
@@ -456,9 +459,110 @@ button.small {
 .graph-panel > p {
   margin: 6px 4px 0;
 }
+/* Obsidian-like graph: plain dark canvas, grey dots, thin lines, purple focus. */
+.graph-page {
+  --graph-bg: #1e1e22;
+  --graph-line: #4a4a52;
+  --graph-label: #b9b9c0;
+  --graph-accent: #8b6cf6;
+}
+.graph-page .react-flow {
+  background: var(--graph-bg);
+}
+
+.km-node {
+  position: relative;
+  border-radius: 50%;
+  background: var(--node-color);
+  transition:
+    opacity 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+.km-node--active {
+  background: var(--graph-accent);
+  box-shadow: 0 0 0 4px rgb(139 108 246 / 25%);
+}
+.km-node--neighbor {
+  box-shadow: 0 0 0 2px var(--graph-accent);
+}
+.km-node--dim {
+  opacity: 0.2;
+}
+.km-node.is-selected {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+.km-node-label {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--graph-label);
+  pointer-events: none;
+}
+.km-node--active .km-node-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Target handle: invisible point at the centre (connectionRadius does the snapping). */
+.react-flow__handle.km-handle--target {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1px;
+  height: 1px;
+  min-width: 0;
+  min-height: 0;
+  opacity: 0;
+  border: none;
+  pointer-events: none; /* never steal the mousedown that drags the node */
+}
+/* Source handle: small grip on the rim, shown on hover. */
+.react-flow__handle.km-handle--source {
+  width: 8px;
+  height: 8px;
+  background: var(--graph-accent);
+  border: 1px solid var(--graph-bg);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.react-flow__node:hover .km-handle--source,
+.react-flow__node.selected .km-handle--source {
+  opacity: 1;
+}
+
+.react-flow__edge-path.km-edge {
+  stroke: var(--graph-line);
+  stroke-width: 1.2;
+  transition:
+    stroke 120ms ease,
+    opacity 120ms ease;
+}
+.react-flow__edge-path.km-edge--active,
+.react-flow__edge-path.km-edge.is-selected {
+  stroke: var(--graph-accent);
+  stroke-width: 1.8;
+}
+.react-flow__edge-path.km-edge--dim {
+  opacity: 0.15;
+}
 .react-flow__edge-text {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
+  fill: var(--graph-label);
+}
+
+.graph-page .react-flow__controls button {
+  background: var(--bg-elev);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .dialog {
@@ -503,10 +607,68 @@ button.small {
   margin-left: 6px;
 }
 .category-tree li {
-  padding: 2px 0;
+  padding: 1px 0;
+}
+.category-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+}
+.category-row:hover {
+  background: var(--bg-input);
+}
+.category-row .toggle {
+  width: 22px;
+  color: var(--muted);
+}
+.category-row .toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .category-name {
   margin-right: 4px;
+}
+.category-row .count {
+  font-size: 11px;
+}
+.row-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0.35;
+  transition: opacity 120ms ease;
+}
+.category-row:hover .row-actions,
+.category-row:focus-within .row-actions {
+  opacity: 1;
+}
+.inset {
+  margin: 4px 0 6px 28px;
+}
+.category-edit input[type='color'] {
+  width: 36px;
+  height: 32px;
+  padding: 2px;
+}
+kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+@media (hover: none) {
+  .row-actions {
+    opacity: 1; /* no hover on touch screens */
+  }
 }
 
 /* ---------- responsive (phone) ---------- */
