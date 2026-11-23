@@ -32,10 +32,4 @@ export function registerNodeRoutes(app: FastifyInstance, repos: Repositories): v
     repos.nodes.getOrThrow(id);
     return repos.edges.forNode(id);
   });
-
-  app.get('/api/nodes/:id/tasks', (request) => {
-    const { id } = parse(idParamsSchema, request.params);
-    repos.nodes.getOrThrow(id);
-    return repos.tasks.forNode(id);
-  });
 }

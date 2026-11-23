@@ -44,18 +44,18 @@ test.describe('shortcut tooltips', () => {
 
   test('follows rebinding, and shows on a disabled button', async ({ page, api }) => {
     await page.goto('/shortcuts');
-    const row = page.getByTestId('shortcut-km.node.addTask');
-    await row.getByRole('button', { name: 'Change keybinding of Add Task' }).click();
+    const row = page.getByTestId('shortcut-km.node.addLink');
+    await row.getByRole('button', { name: 'Change keybinding of Add Link' }).click();
     await page.keyboard.press('Alt+9');
     await page.keyboard.press('Enter');
     await expect(row).toContainText('Alt+9');
 
     const node = await api.createNode({ title: 'Tipped' });
     await page.goto(`/nodes/${node.id}`);
-    const add = page.getByRole('form', { name: 'Add task' }).getByRole('button', { name: 'Add' });
+    const add = page.getByRole('form', { name: 'Add link' }).getByRole('button', { name: 'Link' });
     await expect(add).toBeDisabled(); // nothing typed yet
     await add.hover();
-    await expect(page.getByRole('tooltip')).toHaveText(/Add Task\s*Alt\+9/);
+    await expect(page.getByRole('tooltip')).toHaveText(/Add Link\s*Alt\+9/);
   });
 
   test('an unbound command adds no tooltip to a labelled button', async ({ page, api }) => {

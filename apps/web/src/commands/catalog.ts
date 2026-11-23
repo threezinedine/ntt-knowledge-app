@@ -112,14 +112,6 @@ export const COMMANDS = [
     keys: [],
   },
   {
-    id: 'km.node.addTask',
-    title: 'cmd.addTask',
-    category: 'cmdCategory.node',
-    keys: ['Alt+T'],
-    macKeys: ['Ctrl+Alt+T'],
-    when: 'cmdWhen.node',
-  },
-  {
     id: 'km.node.addLink',
     title: 'cmd.addLink',
     category: 'cmdCategory.node',

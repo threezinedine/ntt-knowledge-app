@@ -3,7 +3,7 @@ import { createEdgeRepository } from './edgeRepository.js';
 import { createNodeRepository } from './nodeRepository.js';
 import { createTagLinkRepository } from './tagLinkRepository.js';
 import { createTagRepository } from './tagRepository.js';
-import { createTaskRepository } from './taskRepository.js';
+import { createExpRepository } from './expRepository.js';
 
 export type Repositories = ReturnType<typeof createRepositories>;
 
@@ -17,8 +17,8 @@ export function createRepositories(ctx: RepoContext) {
 
   const nodes = createNodeRepository(ctx, links);
   const edges = createEdgeRepository(ctx, nodes);
-  const tasks = createTaskRepository(ctx, nodes, links);
-  return { nodes, edges, tags, tasks };
+  const exp = createExpRepository(ctx);
+  return { nodes, edges, tags, exp };
 }
 
 export type { RepoContext } from './context.js';

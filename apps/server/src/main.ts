@@ -1,9 +1,12 @@
 import { buildApp } from './app.js';
-import { loadConfig } from './config.js';
+import { levelConfigPath, loadConfig } from './config.js';
 import { openDatabase } from './db/database.js';
+import { loadLevelConfig } from './levelConfig.js';
 import { watchParent } from './watchParent.js';
 
 const config = loadConfig(process.env);
+const levelPath = levelConfigPath(config);
+const level = loadLevelConfig(levelPath); // throws (stops startup) if the file is broken
 const db = openDatabase(config.KM_DB_PATH);
 const app = await buildApp({
   db,
@@ -14,7 +17,9 @@ const app = await buildApp({
     ...(['0.0.0.0', '::'].includes(config.KM_HOST) ? [] : [config.KM_HOST]),
   ],
   logger: { level: config.KM_LOG_LEVEL },
+  levelConfig: level.config,
 });
+app.log.info({ path: levelPath, source: level.source }, 'Level config loaded');
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {

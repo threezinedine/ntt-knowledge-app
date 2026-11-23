@@ -123,12 +123,11 @@ test.describe('drag and drop', () => {
     await expect(page.getByTestId('tag-A').getByTestId('tag-B')).toBeVisible();
   });
 
-  test('drags several tags onto a node and onto a task', async ({ page, api }) => {
+  test('drags several tags onto a node', async ({ page, api }) => {
     const work = await api.createTag('Work');
     await api.createTag('Backend', work.id);
     await api.createTag('Urgent');
     const node = await api.createNode({ title: 'Launch' });
-    await api.createTask(node.id, 'Write API');
     await page.goto(`/nodes/${node.id}`);
 
     const palette = page.getByRole('list', { name: 'Tag palette' });
@@ -138,15 +137,8 @@ test.describe('drag and drop', () => {
     await expect(nodeTags.getByTestId('tag-chip-Backend')).toContainText('Work / Backend');
     await expect(nodeTags.getByTestId('tag-chip-Urgent')).toBeVisible();
 
-    const task = page.getByTestId('task-Write API');
-    await palette.getByTestId('tag-chip-Urgent').dragTo(task);
-    await palette.getByTestId('tag-chip-Work').dragTo(task);
-    await expect(task.getByTestId('tag-chip-Urgent')).toBeVisible();
-    await expect(task.getByTestId('tag-chip-Work')).toBeVisible();
-
     await page.reload();
     await expect(page.getByTestId('tags-of-Launch').locator('.tag-chip')).toHaveCount(2);
-    await expect(page.getByTestId('task-Write API').locator('.tag-chip')).toHaveCount(2);
   });
 });
 
@@ -162,7 +154,7 @@ test.describe('tags without drag (touch / keyboard)', () => {
     await expect(page.getByTestId('tag-Backend')).toBeVisible();
   });
 
-  test('attaches and removes tags via pickers; tasks keep working', async ({ page, api }) => {
+  test('attaches and removes tags via pickers', async ({ page, api }) => {
     await api.createTag('Urgent');
     await api.createTag('Later');
     const node = await api.createNode({ title: 'Launch' });
@@ -179,22 +171,5 @@ test.describe('tags without drag (touch / keyboard)', () => {
 
     await nodeTags.getByRole('button', { name: 'Remove tag Later' }).click();
     await expect(nodeTags.locator('.tag-chip')).toHaveCount(1);
-
-    const taskForm = page.getByRole('form', { name: 'Add task' });
-    await taskForm.getByRole('textbox', { name: 'New task' }).fill('Ship it');
-    await taskForm.getByRole('combobox', { name: 'Initial tag' }).selectOption({ label: 'Urgent' });
-    await taskForm.getByRole('button', { name: 'Add' }).click();
-
-    const task = page.getByTestId('task-Ship it');
-    await expect(task.getByTestId('tag-chip-Urgent')).toBeVisible();
-    await task
-      .getByRole('combobox', { name: 'Add tag to Ship it' })
-      .selectOption({ label: 'Later' });
-    await expect(task.locator('.tag-chip')).toHaveCount(2);
-
-    await task.getByRole('button', { name: 'Start task Ship it' }).click();
-    await expect(task.getByRole('button', { name: 'Pause task Ship it' })).toBeVisible();
-    await task.getByRole('checkbox').check();
-    await expect(page.getByRole('region', { name: 'Tasks' }).getByText('1/1')).toBeVisible();
   });
 });

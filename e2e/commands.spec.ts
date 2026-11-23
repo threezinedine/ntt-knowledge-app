@@ -122,11 +122,10 @@ test.describe('keyboard shortcuts', () => {
     await page.keyboard.press('F2');
     await expect(page.getByRole('textbox', { name: 'Title' })).toBeFocused();
 
-    await page.keyboard.press('Alt+T');
-    await expect(page.getByRole('textbox', { name: 'New task' })).toBeFocused();
-    await page.keyboard.type('From the keyboard');
-    await page.keyboard.press('Enter');
-    await expect(page.getByTestId('task-From the keyboard')).toBeVisible();
+    await page.keyboard.press('Alt+L');
+    await expect(page.getByRole('combobox', { name: 'Relation' })).toBeFocused();
+    await page.keyboard.type('FROM_KEYBOARD');
+    await expect(page.getByRole('combobox', { name: 'Relation' })).toHaveValue('FROM_KEYBOARD');
   });
 
   test('Ctrl+B hides and shows the sidebar; Alt+N creates a node', async ({ page }) => {

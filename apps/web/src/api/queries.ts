@@ -2,14 +2,11 @@ import type {
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
-  CreateTaskInput,
   GraphNode,
   GraphSnapshot,
   TaggableKind,
-  Task,
   UpdateNodeInput,
   UpdateTagInput,
-  UpdateTaskInput,
 } from '@km/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './client';
@@ -25,10 +22,11 @@ export const keys = {
   node: (id: string) => ['nodes', 'detail', id] as const,
   allNodeEdges: ['nodes', 'edges'] as const,
   nodeEdges: (id: string) => ['nodes', 'edges', id] as const,
-  nodeTasks: (id: string) => ['nodes', 'tasks', id] as const,
   graph: ['graph'] as const,
   relations: ['relations'] as const,
   tags: ['tags'] as const,
+  /** Derived from nodes + tags: invalidated by any write to either. */
+  exp: ['exp'] as const,
 };
 
 export const useNodeList = (q: string) =>
@@ -40,8 +38,7 @@ export const useNode = (id: string) =>
 export const useNodeEdges = (id: string) =>
   useQuery({ queryKey: keys.nodeEdges(id), queryFn: () => api.nodes.edges(id) });
 
-export const useNodeTasks = (id: string) =>
-  useQuery({ queryKey: keys.nodeTasks(id), queryFn: () => api.nodes.tasks(id) });
+export const useExp = () => useQuery({ queryKey: keys.exp, queryFn: api.exp });
 
 export const useGraph = () => useQuery({ queryKey: keys.graph, queryFn: api.graph });
 
@@ -50,19 +47,23 @@ export const useRelationNames = () =>
 
 export const useTags = () => useQuery({ queryKey: keys.tags, queryFn: api.tags.list });
 
-/** Anything touching nodes or edges can change lists, the graph and neighbour panels. */
-function useInvalidateGraph() {
+/**
+ * Anything touching nodes or edges can change lists, the graph and neighbour
+ * panels; node creates/deletes also change EXP.
+ */
+function useInvalidateGraph({ exp = false } = {}) {
   const qc = useQueryClient();
   return () =>
     Promise.all([
       qc.invalidateQueries({ queryKey: keys.nodes }),
       qc.invalidateQueries({ queryKey: keys.graph }),
       qc.invalidateQueries({ queryKey: keys.relations }),
+      ...(exp ? [qc.invalidateQueries({ queryKey: keys.exp })] : []),
     ]);
 }
 
 export function useCreateNode() {
-  const invalidate = useInvalidateGraph();
+  const invalidate = useInvalidateGraph({ exp: true });
   return useMutation({
     mutationFn: (input: CreateNodeInput) => api.nodes.create(input),
     onSuccess: invalidate,
@@ -87,6 +88,7 @@ export function useUpdateNode() {
         stale.push(keys.nodeLists);
       }
       if (labelChanged) stale.push(keys.graph, keys.allNodeEdges); // titles shown there
+      if (patch.content !== undefined) stale.push(keys.exp); // longer notes earn more
       if (patch.position !== undefined) {
         qc.setQueryData<GraphSnapshot>(
           keys.graph,
@@ -106,7 +108,7 @@ export function useUpdateNode() {
 
 export function useDeleteNode() {
   const qc = useQueryClient();
-  const invalidate = useInvalidateGraph();
+  const invalidate = useInvalidateGraph({ exp: true });
   return useMutation({
     mutationFn: (id: string) => api.nodes.remove(id),
     onSuccess: async (_, id) => {
@@ -134,7 +136,11 @@ export function useCreateTag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateTagInput) => api.tags.create(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.tags }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.tags }),
+        qc.invalidateQueries({ queryKey: keys.exp }),
+      ]),
   });
 }
 
@@ -143,7 +149,12 @@ export function useUpdateTag() {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: UpdateTagInput }) =>
       api.tags.update(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.tags }),
+    // Moving a tag moves its EXP to the new parents.
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.tags }),
+        qc.invalidateQueries({ queryKey: keys.exp }),
+      ]),
   });
 }
 
@@ -151,11 +162,12 @@ export function useDeleteTag() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.tags.remove(id),
-    // Deleting a tag detaches it from every node and task.
+    // Deleting a tag detaches it from every node.
     onSuccess: () =>
       Promise.all([
         qc.invalidateQueries({ queryKey: keys.tags }),
         qc.invalidateQueries({ queryKey: keys.nodes }),
+        qc.invalidateQueries({ queryKey: keys.exp }),
       ]),
   });
 }
@@ -167,7 +179,7 @@ export interface TagLinkVars {
 }
 
 /**
- * Attach (`attached: true`) or detach a tag on a node or task. The server
+ * Attach (`attached: true`) or detach a tag on a node. The server
  * answers with the updated owner, which is written straight into the cache.
  */
 export function useTagLink(kind: TaggableKind) {
@@ -175,40 +187,12 @@ export function useTagLink(kind: TaggableKind) {
   return useMutation({
     mutationFn: ({ ownerId, tagId, attached }: TagLinkVars) =>
       attached ? api.tags.attach(kind, ownerId, tagId) : api.tags.detach(kind, ownerId, tagId),
-    onSuccess: async (owner: GraphNode | Task) => {
-      if (kind === 'nodes') {
-        qc.setQueryData(keys.node(owner.id), owner);
-        await qc.invalidateQueries({ queryKey: keys.nodeLists });
-      } else {
-        await qc.invalidateQueries({ queryKey: keys.nodeTasks((owner as Task).nodeId) });
-      }
+    onSuccess: async (owner: GraphNode) => {
+      qc.setQueryData(keys.node(owner.id), owner);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: keys.nodeLists }),
+        qc.invalidateQueries({ queryKey: keys.exp }),
+      ]);
     },
   });
-}
-
-function useInvalidateTasks(nodeId: string) {
-  const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: keys.nodeTasks(nodeId) });
-}
-
-export function useCreateTask(nodeId: string) {
-  const invalidate = useInvalidateTasks(nodeId);
-  return useMutation({
-    mutationFn: (input: CreateTaskInput) => api.tasks.create(input),
-    onSuccess: invalidate,
-  });
-}
-
-export function useUpdateTask(nodeId: string) {
-  const invalidate = useInvalidateTasks(nodeId);
-  return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: UpdateTaskInput }) =>
-      api.tasks.update(id, patch),
-    onSettled: invalidate,
-  });
-}
-
-export function useDeleteTask(nodeId: string) {
-  const invalidate = useInvalidateTasks(nodeId);
-  return useMutation({ mutationFn: (id: string) => api.tasks.remove(id), onSuccess: invalidate });
 }

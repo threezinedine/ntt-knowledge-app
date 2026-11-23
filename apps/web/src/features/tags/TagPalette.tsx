@@ -5,7 +5,7 @@ import type { TagIndex } from './useTagIndex';
 
 /**
  * Every tag as a draggable chip, indented by depth. Drag one onto the node's
- * tag zone or onto any task. Clicking attaches to `onPick` (touch fallback).
+ * tag zone. Clicking attaches to `onPick` (touch fallback).
  */
 export function TagPalette({
   index,

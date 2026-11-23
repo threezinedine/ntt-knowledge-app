@@ -9,7 +9,6 @@ import { EdgesPanel } from './EdgesPanel';
 import { NodeEditor } from './NodeEditor';
 import { NodeTagsPanel } from './NodeTagsPanel';
 import { PropsEditor } from './PropsEditor';
-import { TasksPanel } from './TasksPanel';
 
 export function NodePage() {
   const { id = '' } = useParams();
@@ -31,7 +30,6 @@ export function NodePage() {
       <aside className="node-side">
         <NodeTagsPanel node={node.data} />
         <EdgesPanel nodeId={node.data.id} />
-        <TasksPanel nodeId={node.data.id} />
         <PropsEditor node={node.data} />
         <DeleteNodeButton nodeId={node.data.id} />
       </aside>

@@ -3,18 +3,16 @@ import type {
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
-  CreateTaskInput,
   Edge,
+  ExpSnapshot,
   GraphNode,
   GraphSnapshot,
   NodeEdges,
   Tag,
   TaggableKind,
-  Task,
   UpdateEdgeInput,
   UpdateNodeInput,
   UpdateTagInput,
-  UpdateTaskInput,
 } from '@km/core';
 
 export class ApiError extends Error {
@@ -39,7 +37,7 @@ export class NetworkError extends Error {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export type TaggedOwner<K extends TaggableKind> = K extends 'nodes' ? GraphNode : Task;
+export type TaggedOwner<K extends TaggableKind> = K extends 'nodes' ? GraphNode : never;
 
 /** Browsers cap the total in-flight keepalive body at 64 KiB. */
 const KEEPALIVE_MAX_BYTES = 60 * 1024;
@@ -92,7 +90,6 @@ export const api = {
       request<GraphNode>('PATCH', `/nodes/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/nodes/${id}`),
     edges: (id: string) => request<NodeEdges>('GET', `/nodes/${id}/edges`),
-    tasks: (id: string) => request<Task[]>('GET', `/nodes/${id}/tasks`),
   },
   edges: {
     create: (input: CreateEdgeInput) => request<Edge>('POST', '/edges', input),
@@ -106,17 +103,14 @@ export const api = {
     create: (input: CreateTagInput) => request<Tag>('POST', '/tags', input),
     update: (id: string, patch: UpdateTagInput) => request<Tag>('PATCH', `/tags/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/tags/${id}`),
-    /** Idempotent; resolves to the updated node/task. */
+    /** Idempotent; resolves to the updated node. */
     attach: <K extends TaggableKind>(kind: K, ownerId: string, tagId: string) =>
       request<TaggedOwner<K>>('PUT', `/${kind}/${ownerId}/tags/${tagId}`),
     detach: <K extends TaggableKind>(kind: K, ownerId: string, tagId: string) =>
       request<TaggedOwner<K>>('DELETE', `/${kind}/${ownerId}/tags/${tagId}`),
   },
-  tasks: {
-    create: (input: CreateTaskInput) => request<Task>('POST', '/tasks', input),
-    update: (id: string, patch: UpdateTaskInput) => request<Task>('PATCH', `/tasks/${id}`, patch),
-    remove: (id: string) => request<undefined>('DELETE', `/tasks/${id}`),
-  },
+  /** EXP and level per tag (field); read-only. */
+  exp: () => request<ExpSnapshot>('GET', '/exp'),
 };
 
 export function errorMessage(error: unknown): string {

@@ -1,14 +1,14 @@
 import { existsSync } from 'node:fs';
 import fastifyStatic from '@fastify/static';
-import { newId } from '@km/core';
+import { DEFAULT_LEVEL_CONFIG, newId, type LevelConfig } from '@km/core';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { Database } from './db/database.js';
 import { registerErrorHandler } from './http/errorHandler.js';
 import { registerHostGuard } from './http/hostGuard.js';
 import { registerEdgeRoutes } from './http/routes/edgeRoutes.js';
+import { registerExpRoutes } from './http/routes/expRoutes.js';
 import { registerNodeRoutes } from './http/routes/nodeRoutes.js';
 import { registerTagRoutes } from './http/routes/tagRoutes.js';
-import { registerTaskRoutes } from './http/routes/taskRoutes.js';
 import { createRepositories } from './repositories/index.js';
 
 export interface AppOptions {
@@ -20,6 +20,8 @@ export interface AppOptions {
   allowedHosts?: readonly string[];
   now?: () => number;
   newId?: () => string;
+  /** EXP/level table (from the operator's config file). */
+  levelConfig?: LevelConfig;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -36,7 +38,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerNodeRoutes(app, repos);
   registerEdgeRoutes(app, repos);
   registerTagRoutes(app, repos);
-  registerTaskRoutes(app, repos);
+  registerExpRoutes(app, repos, options.levelConfig ?? DEFAULT_LEVEL_CONFIG);
 
   if (options.staticDir !== undefined && existsSync(options.staticDir)) {
     await registerSpa(app, options.staticDir);

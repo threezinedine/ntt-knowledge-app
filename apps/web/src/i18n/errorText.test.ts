@@ -27,7 +27,7 @@ describe('describeError', () => {
   it('fills the tag limit into its message', () => {
     expect(
       describe_(apiError(400, { code: 'VALIDATION_ERROR', reason: 'TAG_LIMIT_REACHED' })),
-    ).toBe('At most 50 tags per node or task.');
+    ).toBe('At most 50 tags per node.');
   });
 
   it('never shows a raw key for a reason or code this bundle does not know', () => {

@@ -6,7 +6,6 @@ import { nextTimestamp, type RepoContext } from './context.js';
 /** Table and owner column per taggable kind. Static strings only, never user input. */
 const LINK_TABLES = {
   nodes: { table: 'node_tags', owner: 'node_id' },
-  tasks: { table: 'task_tags', owner: 'task_id' },
 } as const satisfies Record<TaggableKind, { table: string; owner: string }>;
 
 /**
@@ -62,7 +61,7 @@ function prepareFor(db: Database, kind: TaggableKind) {
 export type TagLinkRepository = ReturnType<typeof createTagLinkRepository>;
 
 /**
- * Many-to-many links between tags and nodes/tasks. One row per pair:
+ * Many-to-many links between tags and nodes. One row per pair:
  * detaching tombstones it, re-attaching revives it, each with its own
  * `updated_at` so links can sync independently of the entities.
  * Callers check that the owner exists; this checks the tag.
@@ -73,13 +72,7 @@ export function createTagLinkRepository(
 ) {
   const statements: Record<TaggableKind, ReturnType<typeof prepareFor>> = {
     nodes: prepareFor(db, 'nodes'),
-    tasks: prepareFor(db, 'tasks'),
   };
-  const detachTasksOfNode = db.prepare(
-    `UPDATE task_tags SET deleted_at = :ts, updated_at = MAX(updated_at + 1, :ts)
-      WHERE deleted_at IS NULL
-        AND task_id IN (SELECT id FROM tasks WHERE node_id = :node AND deleted_at IS NULL)`,
-  );
 
   function attach(kind: TaggableKind, ownerId: string, tagId: string): void {
     transaction(db, () => {
@@ -117,11 +110,6 @@ export function createTagLinkRepository(
 
     detachAllForOwner(kind: TaggableKind, ownerId: string, ts: number): void {
       statements[kind].detachAllForOwner.run({ owner: ownerId, ts });
-    },
-
-    /** Cascade helper for node deletion: unlinks tags from the node's live tasks. */
-    detachAllForTasksOfNode(nodeId: string, ts: number): void {
-      detachTasksOfNode.run({ node: nodeId, ts });
     },
 
     detachAllForTag(tagId: string, ts: number): void {

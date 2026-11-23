@@ -357,70 +357,40 @@ h4 {
   margin-top: 8px;
 }
 .edge-list,
-.task-list,
 .tag-tree {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.edge-list li,
-.task-row {
+.edge-list li {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 2px 0;
-}
-.task-item {
-  padding: 4px 6px;
-  margin: 0 -6px;
-  border-radius: var(--radius);
-  border: 1px dashed transparent;
 }
 .relation {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--warn);
 }
-.edge-list li button,
-.task-row > button:first-of-type {
+.edge-list li button {
   margin-left: auto;
 }
 
-.add-edge-form,
-.add-task-form {
+.add-edge-form {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 6px;
   margin-top: 10px;
 }
 .add-edge-form > :nth-child(3),
-.add-edge-form .error,
-.add-task-form .error {
+.add-edge-form .error {
   grid-column: 1 / -1;
-}
-.add-task-form input {
-  grid-column: 1 / -1;
-}
-
-.task-item label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
 }
 button.small {
   padding: 0 8px;
   font-size: 11px;
   line-height: 1.8;
-}
-.task-item.doing button[aria-pressed='true'] {
-  color: var(--warn);
-  border-color: var(--warn);
-}
-.task-item.done .task-title {
-  text-decoration: line-through;
-  color: var(--muted);
 }
 /* ---------- tags ---------- */
 
@@ -483,11 +453,6 @@ button.small {
   border: 1px dashed var(--border);
   border-radius: var(--radius);
 }
-.owner-tags.compact {
-  min-height: 0;
-  padding: 2px 0 0 26px;
-  border: none;
-}
 .tag-picker {
   font-size: 11px;
   padding: 0 4px;
@@ -495,18 +460,11 @@ button.small {
   color: var(--muted);
   max-width: 110px;
 }
-.owner-tags.compact .tag-picker {
-  opacity: 0.6;
-}
-.task-item:hover .tag-picker,
-.owner-tags.compact .tag-picker:focus {
-  opacity: 1;
-}
 .drop-hint {
   font-size: 12px;
 }
 
-/* Shared drop-target highlight (tag zones, task rows, tag tree rows). */
+/* Shared drop-target highlight (tag zones, tag tree rows). */
 .is-drop-target {
   border-color: var(--accent) !important;
   border-style: dashed;
@@ -1141,4 +1099,86 @@ kbd {
 .keyboard-indicator.warn {
   color: var(--warn);
   border-color: var(--warn);
+}
+
+/* ---------- EXP: fields and levels (sidebar) ---------- */
+
+.node-list {
+  flex: 1 1 auto;
+  min-height: 80px;
+}
+.field-levels {
+  flex: 0 1 auto;
+  max-height: 45%;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+  padding: 8px 6px 12px;
+}
+.field-levels-heading {
+  margin: 0 0 6px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.field-levels > .muted,
+.field-levels > .error {
+  padding: 0 8px;
+  font-size: 12px;
+}
+.field-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'dot name level'
+    'bar bar bar';
+  align-items: center;
+  column-gap: 6px;
+  row-gap: 3px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+}
+.field-row:hover {
+  background: var(--bg-input);
+}
+.field-dot {
+  grid-area: dot;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.field-name {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.field-level {
+  grid-area: level;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.field-bar {
+  grid-area: bar;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-input);
+  overflow: hidden;
+}
+.field-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease;
 }

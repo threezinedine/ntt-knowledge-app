@@ -1,17 +1,14 @@
 {
   "meta.languageName": "English",
-
   "app.nav.graph": "Graph",
   "app.nav.tags": "Tags",
   "app.language": "Language",
   "app.notFound": "Page not found.",
-
   "common.loading": "Loading…",
   "common.add": "Add",
   "common.save": "Save",
   "common.delete": "Delete",
   "common.cancel": "Cancel",
-
   "sidebar.searchLabel": "Search nodes",
   "sidebar.searchPlaceholder": "Search nodes…",
   "sidebar.new": "+ New",
@@ -19,7 +16,6 @@
   "sidebar.listLabel": "Nodes",
   "sidebar.empty": "No nodes.",
   "sidebar.noMatch": "No nodes match.",
-
   "graph.newNodeForm": "New node",
   "graph.newNodeTitle": "New node title",
   "graph.newNodePlaceholder": "New node title…",
@@ -28,17 +24,14 @@
   "graph.savePositionFailed": "Could not save position: {error}",
   "graph.deleteLinkFailed": "Could not delete link: {error}",
   "graph.empty": "Empty graph. Add a node, then hover a dot and drag from its small grip onto another dot.",
-
   "relation.dialog": "New relation",
   "relation.name": "Relation name",
   "relation.placeholder": "RELATION",
   "relation.create": "Create link",
-
   "node.notFound": "This node does not exist.",
   "node.delete": "Delete node",
-  "node.deleteConfirm": "Delete node, its links and tasks?",
+  "node.deleteConfirm": "Delete node and its links?",
   "node.deleteConfirmButton": "Confirm delete",
-
   "editor.title": "Title",
   "editor.type": "Type",
   "editor.content": "Content",
@@ -63,18 +56,15 @@
   "editor.status.error": "Save failed",
   "editor.titleInvalid": "Title is required (max 200 characters). Content is still saved.",
   "editor.typeInvalid": "Type is required (max 32 characters).",
-
   "markdown.modes": "Editor mode",
   "markdown.mode.edit": "Edit",
   "markdown.mode.split": "Split",
   "markdown.mode.preview": "Preview",
   "markdown.placeholder": "Write markdown…",
-
   "props.heading": "Properties",
   "props.label": "Properties JSON",
   "props.invalidJson": "Invalid JSON: {detail}",
   "props.invalidShape": "Properties must be a JSON object with short, non-empty keys.",
-
   "links.heading": "Links",
   "links.outgoing": "Outgoing",
   "links.incoming": "Incoming",
@@ -89,21 +79,8 @@
   "links.selectNode": "Select node…",
   "links.self": "{title} (self)",
   "links.submit": "Link",
-
-  "tasks.heading": "Tasks",
-  "tasks.start": "Start",
-  "tasks.doing": "Doing",
-  "tasks.startLabel": "Start task {title}",
-  "tasks.pauseLabel": "Pause task {title}",
-  "tasks.delete": "Delete task {title}",
-  "tasks.addForm": "Add task",
-  "tasks.new": "New task",
-  "tasks.newPlaceholder": "New task…",
-  "tasks.initialTag": "Initial tag",
-  "tasks.noTag": "No tag",
-
   "tags.heading": "Tags",
-  "tags.help": "One tag tree shared by nodes and tasks; each can carry many tags. Drag a tag onto another to nest it; drop it anywhere else on this page (or press {top}) to make it top-level. {add} adds a child, {edit} renames / recolours / moves.",
+  "tags.help": "One tag tree shared by nodes; a node can carry many tags. Drag a tag onto another to nest it; drop it anywhere else on this page (or press {top}) to make it top-level. {add} adds a child, {edit} renames / recolours / moves.",
   "tags.newTopLevel": "New top-level tag",
   "tags.newChild": "New child tag of {name}",
   "tags.empty": "No tags yet.",
@@ -116,7 +93,7 @@
   "tags.edit": "Edit tag {name}",
   "tags.delete": "Delete tag {name}",
   "tags.deleteBlocked": "Delete or move its child tags first",
-  "tags.deleteConfirm": "Delete “{name}”? It is removed from every node and task.",
+  "tags.deleteConfirm": "Delete “{name}”? It is removed from every node.",
   "tags.editForm": "Edit {name}",
   "tags.name": "Tag name",
   "tags.color": "Tag colour",
@@ -134,7 +111,6 @@
   "tags.paletteCreate": "Create some",
   "tags.paletteShow": "Show all tags",
   "tags.paletteHide": "Hide all tags",
-
   "cmd.showCommands": "Show All Commands",
   "cmd.quickOpen": "Go to Node…",
   "cmd.openKeybindings": "Open Keyboard Shortcuts",
@@ -148,7 +124,6 @@
   "cmd.focusTitle": "Focus Title",
   "cmd.focusContent": "Focus Content",
   "cmd.toggleVim": "Toggle Vim Mode",
-  "cmd.addTask": "Add Task",
   "cmd.addLink": "Add Link",
   "cmd.addTag": "Add Tag to Node",
   "cmd.deleteNode": "Delete Node…",
@@ -203,7 +178,6 @@
   "shortcuts.clear": "Clear",
   "shortcuts.chordWaiting": "({keys}) was pressed. Waiting for second key of chord…",
   "shortcuts.chordMiss": "The key combination ({keys}) is not a command.",
-
   "error.network": "Cannot reach the server. Is it running?",
   "error.status": "Request failed (HTTP {status}).",
   "error.code.VALIDATION_ERROR": "Some input is invalid.",
@@ -217,5 +191,12 @@
   "error.reason.TAG_NAME_TAKEN": "A tag with this name already exists at that level.",
   "error.reason.TAG_HAS_CHILDREN": "Delete or move the child tags first.",
   "error.reason.TAG_CYCLE": "A tag cannot be moved under itself or its own child tags.",
-  "error.reason.TAG_LIMIT_REACHED": "At most {max} tags per node or task."
+  "error.reason.TAG_LIMIT_REACHED": "At most {max} tags per node.",
+  "exp.heading": "Fields",
+  "exp.empty": "No tags yet. Tag your nodes to grow a field.",
+  "exp.level": "Lv {level}",
+  "exp.levelMax": "Lv {level} · max",
+  "exp.detail": "{exp} / {next} EXP · {nodes} nodes",
+  "exp.detailMax": "{exp} EXP · {nodes} nodes · top level",
+  "exp.barLabel": "{name}: level {level}"
 }

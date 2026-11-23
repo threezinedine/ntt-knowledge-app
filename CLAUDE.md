@@ -2,10 +2,14 @@
 
 Local-first personal knowledge graph. Property-graph model: **nodes** (type/label,
 title, markdown content, JSON props, canvas position) connected by **named, directed
-edges** (also with JSON props). Nodes carry **tasks**. One shared **tag tree** attaches
-many-to-many to both nodes and tasks (`node_tags` / `task_tags` link tables, tombstoned
-like everything else). An EXP system built on task completion is planned
-(`tasks.completed_at` exists for it).
+edges** (also with JSON props). One shared **tag tree** attaches many-to-many to nodes
+(`node_tags`, tombstoned like everything else). Each tag is a **field** of knowledge
+with EXP and a level, derived on read from the nodes tagged with it or a descendant
+(`packages/core/src/exp.ts`, `GET /api/exp`). The level table is a server-side JSON
+file (`KM_LEVEL_CONFIG`, default `level-config.json` next to the DB): the operator
+edits it and restarts; there is deliberately no API or UI to change it. Tasks were
+removed (migration 4 tombstones them; the `tasks` / `task_tags` tables stay, as
+migrations are append-only).
 
 ## Layout
 

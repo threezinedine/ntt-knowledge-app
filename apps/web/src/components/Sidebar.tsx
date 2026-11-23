@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router';
 import { useCreateNode, useNodeList } from '../api/queries';
 import { useCommandHandler } from '../commands/registry';
 import { useCommandTooltip } from '../commands/useCommandTooltip';
+import { FieldLevels } from '../features/exp/FieldLevels';
 import { NEW_NODE_STATE } from '../features/node/navState';
 import { useI18n } from '../i18n/context';
 
@@ -62,6 +63,7 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
           </NavLink>
         ))}
       </nav>
+      <FieldLevels />
     </aside>
   );
 }

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { entityMetaShape, positionSchema, propsSchema } from './common.js';
-import { tagIdsSchema } from './task.js';
+import { tagIdsSchema } from './tag.js';
 
 export const NODE_TITLE_MAX = 200;
 export const NODE_CONTENT_MAX = 1_000_000;

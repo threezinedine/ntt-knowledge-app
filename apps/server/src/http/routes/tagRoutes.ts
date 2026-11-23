@@ -35,12 +35,4 @@ export function registerTagRoutes(app: FastifyInstance, repos: Repositories): vo
     const { id, tagId } = parse(linkParamsSchema, request.params);
     return repos.nodes.detachTag(id, tagId);
   });
-  app.put('/api/tasks/:id/tags/:tagId', (request) => {
-    const { id, tagId } = parse(linkParamsSchema, request.params);
-    return repos.tasks.attachTag(id, tagId);
-  });
-  app.delete('/api/tasks/:id/tags/:tagId', (request) => {
-    const { id, tagId } = parse(linkParamsSchema, request.params);
-    return repos.tasks.detachTag(id, tagId);
-  });
 }

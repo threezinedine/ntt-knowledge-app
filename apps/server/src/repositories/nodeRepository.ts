@@ -83,9 +83,6 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
     `UPDATE edges SET deleted_at = :ts, updated_at = :ts
       WHERE (from_id = :id OR to_id = :id) AND deleted_at IS NULL`,
   );
-  const softDeleteTasks = db.prepare(
-    'UPDATE tasks SET deleted_at = :ts, updated_at = :ts WHERE node_id = :id AND deleted_at IS NULL',
-  );
   const selectAllSummaries = db.prepare(
     `SELECT n.id, n.type, n.title, l.pos_x, l.pos_y
        FROM nodes n LEFT JOIN node_layouts l ON l.node_id = n.id
@@ -213,7 +210,7 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
     },
 
     /**
-     * Soft-deletes the node with its edges, tasks and all their tag links,
+     * Soft-deletes the node with its edges and tag links,
      * sharing one tombstone timestamp.
      */
     remove(id: string): void {
@@ -222,8 +219,6 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
         const { changes } = softDeleteNode.run({ id, ts });
         if (changes === 0) throw new NotFoundError('Node', id);
         softDeleteEdges.run({ id, ts });
-        links.detachAllForTasksOfNode(id, ts); // before the tasks themselves
-        softDeleteTasks.run({ id, ts });
         links.detachAllForOwner('nodes', id, ts);
       });
     },

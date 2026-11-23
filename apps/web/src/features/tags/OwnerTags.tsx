@@ -8,29 +8,17 @@ import { sortTagIds, type TagIndex } from './useTagIndex';
 interface Props {
   kind: TaggableKind;
   ownerId: string;
-  /** For accessible names, e.g. the node or task title. */
+  /** For accessible names, e.g. the node title. */
   ownerLabel: string;
   tagIds: readonly string[];
   index: TagIndex;
-  /** Compact = inline on a task row (no empty-state hint). */
-  compact?: boolean;
-  /** Set false when an enclosing element (e.g. the task row) is the drop target. */
-  droppable?: boolean;
 }
 
 /**
- * The tags on one node/task: chips with ×, a drop zone for dragged tags, and
+ * The tags on one node: chips with ×, a drop zone for dragged tags, and
  * a select as the touch/keyboard fallback for attaching.
  */
-export function OwnerTags({
-  kind,
-  ownerId,
-  ownerLabel,
-  tagIds,
-  index,
-  compact = false,
-  droppable = true,
-}: Props) {
+export function OwnerTags({ kind, ownerId, ownerLabel, tagIds, index }: Props) {
   const link = useTagLink(kind);
   const { t, errorText } = useI18n();
   const attached = new Set(tagIds);
@@ -43,25 +31,23 @@ export function OwnerTags({
 
   return (
     <div
-      className={`owner-tags${compact ? ' compact' : ''}${isOver ? ' is-drop-target' : ''}`}
+      className={`owner-tags${isOver ? ' is-drop-target' : ''}`}
       role="group"
       aria-label={t('tags.of', { owner: ownerLabel })}
       data-testid={`tags-of-${ownerLabel}`}
-      {...(droppable ? dropProps : {})}
+      {...dropProps}
     >
       {chips.map((node) => (
         <TagChip
           key={node.tag.id}
           node={node}
-          showPath={!compact}
+          showPath
           onRemove={() => {
             link.mutate({ ownerId, tagId: node.tag.id, attached: false });
           }}
         />
       ))}
-      {!compact && chips.length === 0 && (
-        <span className="muted drop-hint">{t('tags.dropHint')}</span>
-      )}
+      {chips.length === 0 && <span className="muted drop-hint">{t('tags.dropHint')}</span>}
       {available.length > 0 && (
         <select
           className="tag-picker"

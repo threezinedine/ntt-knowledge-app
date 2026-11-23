@@ -1,5 +1,5 @@
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 
@@ -20,6 +20,8 @@ const envSchema = z.object({
     ),
   /** Exit when this process exits (set by the e2e config; see watchParent.ts). */
   KM_PARENT_PID: z.coerce.number().int().positive().optional(),
+  /** EXP/level table (JSON). Default: level-config.json next to the database. */
+  KM_LEVEL_CONFIG: z.string().optional(),
   KM_LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),
@@ -29,4 +31,8 @@ export type Config = z.output<typeof envSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
   return envSchema.parse(env);
+}
+
+export function levelConfigPath(config: Config): string {
+  return config.KM_LEVEL_CONFIG ?? join(dirname(config.KM_DB_PATH), 'level-config.json');
 }

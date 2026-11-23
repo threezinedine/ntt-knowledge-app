@@ -1,10 +1,4 @@
-import {
-  MAX_TAGS_PER_ITEM,
-  type ApiErrorBody,
-  type GraphNode,
-  type Tag,
-  type Task,
-} from '@km/core';
+import { MAX_TAGS_PER_ITEM, type ApiErrorBody, type GraphNode, type Tag } from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../../testing/testApp.js';
 
@@ -62,18 +56,9 @@ describe('tags API (tree)', () => {
     expect(refused.status).toBe(409);
     expect(refused.body.error.reason).toBe('TAG_HAS_CHILDREN');
 
-    const task = (
-      await t.request<Task>('POST', '/api/tasks', {
-        nodeId: node.id,
-        title: 'x',
-        tagIds: [child.id],
-      })
-    ).body;
     await t.request('PUT', `/api/nodes/${node.id}/tags/${child.id}`);
     expect((await t.request('DELETE', `/api/tags/${child.id}`)).status).toBe(204);
 
-    const tasks = (await t.request<Task[]>('GET', `/api/nodes/${node.id}/tasks`)).body;
-    expect(tasks.find((x) => x.id === task.id)?.tagIds).toEqual([]);
     expect((await t.request<GraphNode>('GET', `/api/nodes/${node.id}`)).body.tagIds).toEqual([]);
   });
 
@@ -124,20 +109,6 @@ describe('attaching tags', () => {
     expect(again.body.tagIds).toEqual([b.id]);
   });
 
-  it('the same tag can sit on a node and on its tasks independently', async () => {
-    const tag = await createTag('Shared');
-    const task = (await t.request<Task>('POST', '/api/tasks', { nodeId: node.id, title: 'x' }))
-      .body;
-
-    await t.request('PUT', `/api/nodes/${node.id}/tags/${tag.id}`);
-    const tagged = await t.request<Task>('PUT', `/api/tasks/${task.id}/tags/${tag.id}`);
-    expect(tagged.body.tagIds).toEqual([tag.id]);
-
-    await t.request('DELETE', `/api/nodes/${node.id}/tags/${tag.id}`);
-    const tasks = (await t.request<Task[]>('GET', `/api/nodes/${node.id}/tasks`)).body;
-    expect(tasks[0]?.tagIds).toEqual([tag.id]);
-  });
-
   it('lists nodes with their tags', async () => {
     const tag = await createTag('T');
     await t.request('PUT', `/api/nodes/${node.id}/tags/${tag.id}`);
@@ -148,7 +119,6 @@ describe('attaching tags', () => {
   it('404s for a missing owner or tag, 400 for malformed ids', async () => {
     const tag = await createTag('T');
     expect((await t.request('PUT', `/api/nodes/${MISSING}/tags/${tag.id}`)).status).toBe(404);
-    expect((await t.request('PUT', `/api/tasks/${MISSING}/tags/${tag.id}`)).status).toBe(404);
     expect((await t.request('PUT', `/api/nodes/${node.id}/tags/${MISSING}`)).status).toBe(404);
     expect((await t.request('PUT', `/api/nodes/${node.id}/tags/nope`)).status).toBe(400);
   });

@@ -1,4 +1,4 @@
-import type { ApiErrorBody, Edge, GraphNode, NodeEdges, Task } from '@km/core';
+import type { ApiErrorBody, Edge, GraphNode, NodeEdges } from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../../testing/testApp.js';
 
@@ -99,11 +99,10 @@ describe('nodes API', () => {
     expect(missing.body.error.code).toBe('NOT_FOUND');
   });
 
-  it('soft-deletes a node and cascades to its edges and tasks', async () => {
+  it('soft-deletes a node and cascades to its edges', async () => {
     const a = await createNode('A');
     const b = await createNode('B');
     await t.request<Edge>('POST', '/api/edges', { fromId: a.id, toId: b.id, name: 'LINKS' });
-    await t.request<Task>('POST', '/api/tasks', { nodeId: a.id, title: 'Do it' });
 
     expect((await t.request('DELETE', `/api/nodes/${a.id}`)).status).toBe(204);
     expect((await t.request('GET', `/api/nodes/${a.id}`)).status).toBe(404);
@@ -114,6 +113,12 @@ describe('nodes API', () => {
     const graph = await t.request<{ nodes: unknown[]; edges: unknown[] }>('GET', '/api/graph');
     expect(graph.body.nodes).toHaveLength(1);
     expect(graph.body.edges).toHaveLength(0);
+  });
+
+  it('the task endpoints are gone', async () => {
+    const a = await createNode('A');
+    expect((await t.request('GET', `/api/nodes/${a.id}/tasks`)).status).toBe(404);
+    expect((await t.request('POST', '/api/tasks', { nodeId: a.id, title: 'x' })).status).toBe(404);
   });
 
   it('returns JSON 404 for unknown API routes', async () => {

@@ -35,8 +35,9 @@ describe('migration 2: categories → shared tags', () => {
       { id: 'c2', name: 'Backend', parent_id: 'c1' },
     ]);
     expect(db.prepare('SELECT id, title, status FROM tasks ORDER BY id').all()).toHaveLength(3);
-    expect(db.prepare('SELECT task_id, tag_id, updated_at FROM task_tags').all()).toEqual([
-      { task_id: 't1', tag_id: 'c2', updated_at: 7 },
+    // Copied by migration 2 (then tombstoned by 4, which keeps the row).
+    expect(db.prepare('SELECT task_id, tag_id FROM task_tags').all()).toEqual([
+      { task_id: 't1', tag_id: 'c2' },
     ]);
     expect(db.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     const taskColumns = (db.prepare('PRAGMA table_info(tasks)').all() as { name: string }[]).map(
@@ -74,6 +75,36 @@ describe('migration 3: no live links to deleted tags', () => {
       deleted_at: 9,
       updated_at: 9,
     });
+    db.close();
+  });
+});
+
+describe('migration 4: tasks are gone', () => {
+  it('tombstones live tasks and task links, keeping the rows and older tombstones', () => {
+    const db = v1Database();
+    db.exec(`
+      INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ('n1', 'note', 'N', 1, 1);
+      INSERT INTO task_categories (id, name, created_at, updated_at) VALUES ('c1', 'Work', 1, 1);
+      INSERT INTO tasks (id, node_id, category_id, title, status, created_at, updated_at)
+        VALUES ('live', 'n1', 'c1', 'live', 'todo', 1, 3);
+      INSERT INTO tasks (id, node_id, category_id, title, status, created_at, updated_at, deleted_at)
+        VALUES ('old', 'n1', NULL, 'old', 'todo', 1, 5, 5);
+    `);
+    const before = Date.now();
+
+    migrate(db);
+
+    const rows = db.prepare('SELECT id, deleted_at, updated_at FROM tasks ORDER BY id').all() as {
+      id: string;
+      deleted_at: number;
+      updated_at: number;
+    }[];
+    expect(rows.find((r) => r.id === 'old')).toEqual({ id: 'old', deleted_at: 5, updated_at: 5 });
+    const live = rows.find((r) => r.id === 'live');
+    expect(live?.deleted_at).toBeGreaterThanOrEqual(before - 1000);
+    expect(live?.updated_at).toBe(live?.deleted_at);
+    const link = db.prepare('SELECT deleted_at FROM task_tags').get() as { deleted_at: number };
+    expect(link.deleted_at).toBeGreaterThanOrEqual(before - 1000);
     db.close();
   });
 });

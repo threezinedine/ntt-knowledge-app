@@ -23,12 +23,7 @@ export class Api {
     return (await res.json()) as Tag;
   }
 
-  async createTask(nodeId: string, title: string): Promise<void> {
-    const res = await this.request.post('/api/tasks', { data: { nodeId, title } });
-    expect(res.status()).toBe(201);
-  }
-
-  /** Deletes every node (cascading edges/tasks) and every tag, leaves first. */
+  /** Deletes every node (cascading edges) and every tag, leaves first. */
   async reset(): Promise<void> {
     const nodes = (await (await this.request.get('/api/nodes?limit=500')).json()) as GraphNode[];
     for (const node of nodes) await this.request.delete(`/api/nodes/${node.id}`);

@@ -1,8 +1,8 @@
 # Knowledge Manager
 
 A personal, local-first knowledge graph: nodes and **named, directed links**
-(graph-database style), a markdown editor, a visual graph editor, and tasks filed
-under nested categories. Runs as a local server + installable PWA (desktop and Android).
+(graph-database style), a markdown editor, a visual graph editor, and a tag tree
+whose tags are fields of knowledge that level up as you write nodes about them. Runs as a local server + installable PWA (desktop and Android).
 
 ## Quick start (Docker, one command)
 
@@ -46,14 +46,27 @@ npm start            # http://127.0.0.1:4317
 
 Data lives in `~/.knowledge-manager/km.sqlite` by default.
 
-| Env var            | Default                          | Purpose                                                                                                                           |
-| ------------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `KM_HOST`          | `127.0.0.1`                      | Bind address (`0.0.0.0` to reach it on LAN)                                                                                       |
-| `KM_PORT`          | `4317`                           | HTTP port                                                                                                                         |
-| `KM_DB_PATH`       | `~/.knowledge-manager/km.sqlite` | SQLite file (`:memory:` for throwaway)                                                                                            |
-| `KM_STATIC_DIR`    | `apps/web/dist`                  | Built UI to serve                                                                                                                 |
-| `KM_LOG_LEVEL`     | `info`                           | Pino log level                                                                                                                    |
-| `KM_ALLOWED_HOSTS` | _(empty)_                        | Extra hostnames accepted in `Host` (comma-separated). Loopback is always allowed; everything else gets 403 (DNS-rebinding guard). |
+| Env var            | Default                            | Purpose                                                                                                                           |
+| ------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `KM_HOST`          | `127.0.0.1`                        | Bind address (`0.0.0.0` to reach it on LAN)                                                                                       |
+| `KM_PORT`          | `4317`                             | HTTP port                                                                                                                         |
+| `KM_DB_PATH`       | `~/.knowledge-manager/km.sqlite`   | SQLite file (`:memory:` for throwaway)                                                                                            |
+| `KM_STATIC_DIR`    | `apps/web/dist`                    | Built UI to serve                                                                                                                 |
+| `KM_LOG_LEVEL`     | `info`                             | Pino log level                                                                                                                    |
+| `KM_ALLOWED_HOSTS` | _(empty)_                          | Extra hostnames accepted in `Host` (comma-separated). Loopback is always allowed; everything else gets 403 (DNS-rebinding guard). |
+| `KM_LEVEL_CONFIG`  | `level-config.json` next to the DB | EXP / level table (see below)                                                                                                     |
+
+### Fields, EXP and levels
+
+Every tag is a field. A field's EXP is the sum over the distinct nodes tagged with it
+or with any tag below it: each node is worth `expPerNode` plus one per `wordsPerExp`
+words of content (at most `maxContentExpPerNode`). `levelThresholds` lists the total
+EXP for level 2, 3, ... The sidebar shows each field's level under the node list.
+
+The table is set by whoever runs the server, not from the app: copy
+[`level-config.example.json`](level-config.example.json) to `level-config.json` next to
+the database (`/data/level-config.json` in Docker), edit, restart. Missing keys use the
+defaults; a broken file stops the server with a message saying what is wrong.
 
 ### Using it on Android
 

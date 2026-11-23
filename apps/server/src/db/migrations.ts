@@ -143,4 +143,16 @@ export const migrations: readonly string[] = [
    WHERE deleted_at IS NULL
      AND tag_id IN (SELECT id FROM tags WHERE deleted_at IS NOT NULL);
   `,
+
+  /* 4: tasks are gone (nodes are knowledge; EXP comes from them): tombstone
+        every live task and task tag link. Tables stay (append-only history). */ `
+  UPDATE task_tags
+     SET deleted_at = CAST(unixepoch('subsec') * 1000 AS INTEGER),
+         updated_at = MAX(updated_at + 1, CAST(unixepoch('subsec') * 1000 AS INTEGER))
+   WHERE deleted_at IS NULL;
+  UPDATE tasks
+     SET deleted_at = CAST(unixepoch('subsec') * 1000 AS INTEGER),
+         updated_at = MAX(updated_at + 1, CAST(unixepoch('subsec') * 1000 AS INTEGER))
+   WHERE deleted_at IS NULL;
+  `,
 ];

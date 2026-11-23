@@ -1,4 +1,4 @@
-import type { ApiErrorBody, Tag, Edge, GraphNode, Task } from '@km/core';
+import type { ApiErrorBody, Tag, Edge, GraphNode } from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../testing/testApp.js';
 import { hostnameOf } from './hostGuard.js';
@@ -47,18 +47,16 @@ describe('error codes', () => {
 });
 
 describe('writes against deleted rows', () => {
-  it('404s for PATCH on tombstoned node, edge and task', async () => {
+  it('404s for PATCH on tombstoned node and edge', async () => {
     const a = (await t.request<GraphNode>('POST', '/api/nodes', { title: 'A' })).body;
     const b = (await t.request<GraphNode>('POST', '/api/nodes', { title: 'B' })).body;
     const edge = (
       await t.request<Edge>('POST', '/api/edges', { fromId: a.id, toId: b.id, name: 'R' })
     ).body;
-    const task = (await t.request<Task>('POST', '/api/tasks', { nodeId: a.id, title: 't' })).body;
     await t.request('DELETE', `/api/nodes/${a.id}`);
 
     expect((await t.request('PATCH', `/api/nodes/${a.id}`, { title: 'z' })).status).toBe(404);
     expect((await t.request('PATCH', `/api/edges/${edge.id}`, { name: 'Z' })).status).toBe(404);
-    expect((await t.request('PATCH', `/api/tasks/${task.id}`, { title: 'z' })).status).toBe(404);
     const list = (await t.request<GraphNode[]>('GET', '/api/nodes')).body;
     expect(list.map((n) => n.title)).toEqual(['B']);
   });

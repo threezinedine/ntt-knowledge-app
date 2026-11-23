@@ -146,7 +146,7 @@ export function createTagRepository(
 
     /**
      * Refuses to delete a tag that still has children (explicit is better than
-     * a surprise cascade). Its links to nodes/tasks are tombstoned.
+     * a surprise cascade). Its links to nodes are tombstoned.
      */
     remove(id: string): void {
       transaction(db, () => {

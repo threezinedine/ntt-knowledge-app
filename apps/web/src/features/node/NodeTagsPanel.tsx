@@ -9,7 +9,7 @@ import { useTagIndex } from '../tags/useTagIndex';
 
 /**
  * The node's own tags (a drop zone) plus a palette of every tag to drag onto
- * the node or onto any task below. Clicking a palette chip tags the node.
+ * the node. Clicking a palette chip tags the node.
  */
 export function NodeTagsPanel({ node }: { node: GraphNode }) {
   const index = useTagIndex();

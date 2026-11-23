@@ -44,16 +44,14 @@ test.describe('localization', () => {
       await title.fill('Đồ thị tri thức');
       await expect(page.getByTestId('save-status')).toHaveText('Đã lưu');
 
-      const tasks = page.getByRole('region', { name: 'Nhiệm vụ' });
-      await tasks.getByRole('textbox', { name: 'Nhiệm vụ mới' }).fill('Đọc sách');
-      await tasks.getByRole('button', { name: 'Thêm' }).click();
-      await expect(tasks.getByRole('button', { name: 'Bắt đầu nhiệm vụ Đọc sách' })).toBeVisible();
-
       const tags = page.getByRole('region', { name: 'Thẻ' });
       await tags.getByRole('button', { name: 'Gắn thẻ Học' }).click();
       await expect(
         page.getByRole('group', { name: 'Thẻ của Đồ thị tri thức' }).getByText('Học'),
       ).toBeVisible();
+      // The field gains EXP and shows its level in Vietnamese.
+      const fields = page.getByRole('region', { name: 'Lĩnh vực' });
+      await expect(fields.getByTestId('field-Học')).toContainText('Cấp 1');
 
       await page.getByRole('tab', { name: 'Xem trước' }).click();
       await expect(page.getByTestId('markdown-preview')).toBeVisible();
