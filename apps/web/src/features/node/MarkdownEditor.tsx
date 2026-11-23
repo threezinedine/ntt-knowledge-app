@@ -10,7 +10,7 @@ import { useCommandTooltip, type TooltipProps } from '../../commands/useCommandT
 import { useI18n } from '../../i18n/context';
 import type { FieldHandle } from './TitleField';
 import { useCodeMirrorFocus } from './cmFocus';
-import { onFirstLine, vimCtrlBracket, vimExitKey } from './vim';
+import { onFirstLine, relativeLineNumbers, vimCtrlBracket, vimExitKey } from './vim';
 
 interface Props {
   value: string;
@@ -32,7 +32,7 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
   const extensions = useMemo(
     () => [
       // Vim first, so it sees keys before the other keymaps.
-      ...(vim ? [Prec.highest(vimKeys({ status: true }))] : []),
+      ...(vim ? [Prec.highest(vimKeys({ status: true })), relativeLineNumbers] : []),
       markdown(),
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({ 'aria-label': label }),
@@ -108,7 +108,8 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
             extensions={extensions}
             theme="dark"
             placeholder={t('markdown.placeholder')}
-            basicSetup={{ foldGutter: false, highlightActiveLine: false }}
+            // Under vim, relative numbers replace the absolute ones.
+            basicSetup={{ foldGutter: false, highlightActiveLine: false, lineNumbers: !vim }}
           />
         )}
         {mode !== 'edit' && (

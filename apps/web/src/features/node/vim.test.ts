@@ -1,7 +1,7 @@
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { describe, expect, it } from 'vitest';
-import { singleLine } from './vim';
+import { relativeLineLabel, singleLine } from './vim';
 
 describe('singleLine (vim title)', () => {
   const state = EditorState.create({ doc: 'Title', extensions: [singleLine] });
@@ -25,5 +25,13 @@ describe('singleLine paste', () => {
     const filters = state.facet(EditorView.clipboardInputFilter);
     const pasted = filters.reduce((text, f) => f(text, state), 'one\n  two\r\nthree');
     expect(pasted).toBe('one two three');
+  });
+});
+
+describe('relativeLineLabel', () => {
+  it('shows the cursor line itself and distances elsewhere', () => {
+    expect(relativeLineLabel(7, 7)).toBe('7');
+    expect(relativeLineLabel(4, 7)).toBe('3');
+    expect(relativeLineLabel(9, 7)).toBe('2');
   });
 });

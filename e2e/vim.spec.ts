@@ -10,7 +10,8 @@ async function saved(page: Page, id: string): Promise<GraphNode> {
 }
 
 test.describe('jumping between title and content', () => {
-  test('the page shows how, with the current keys', async ({ page, api }) => {
+  test('the page shows how, with the current keys', async ({ page, api, isMobile }) => {
+    test.skip(isMobile, 'Hidden on touch screens (no Alt keys there).');
     const node = await api.createNode({ title: 'Hinted' });
     await page.goto(`/nodes/${node.id}`);
     const hint = page.getByTestId('jump-hint');
@@ -159,6 +160,19 @@ test.describe('vim mode', () => {
     await page.getByRole('textbox', { name: 'Type' }).focus();
     await page.keyboard.press('Control+B');
     await expect(page.getByRole('searchbox', { name: 'Search nodes' })).toBeHidden();
+  });
+
+  test('line numbers are relative to the cursor', async ({ page, api }) => {
+    const node = await api.createNode({ title: 'Numbers', content: 'a\nb\nc\nd' });
+    await page.goto(`/nodes/${node.id}`);
+    await enableVim(page);
+    await page.keyboard.press('Alt+J');
+    const numbers = page
+      .locator('.markdown-source .cm-lineNumbers .cm-gutterElement')
+      .filter({ visible: true }); // not the hidden width spacer
+    await expect(numbers).toHaveText(['1', '1', '2', '3']);
+    await page.keyboard.type('2j'); // to line 3
+    await expect(numbers).toHaveText(['2', '1', '3', '1']);
   });
 
   test('toggling vim keeps the caret in the title', async ({ page, api }) => {

@@ -1,5 +1,5 @@
 import { EditorState, type Extension } from '@codemirror/state';
-import { EditorView } from '@codemirror/view';
+import { EditorView, gutter, GutterMarker } from '@codemirror/view';
 import { getCM, Vim } from '@replit/codemirror-vim';
 
 /**
@@ -63,3 +63,38 @@ export function vimCtrlBracket(
   Vim.handleKey(cm, '<Esc>', 'user');
   return true;
 }
+
+/** Hybrid relative numbering (vim's `number relativenumber`). */
+export function relativeLineLabel(line: number, cursorLine: number): string {
+  return String(line === cursorLine ? line : Math.abs(line - cursorLine));
+}
+
+class LineNumber extends GutterMarker {
+  constructor(readonly label: string) {
+    super();
+  }
+  override eq(other: LineNumber): boolean {
+    return other.label === this.label;
+  }
+  override toDOM(): Node {
+    return document.createTextNode(this.label);
+  }
+}
+
+/**
+ * Line numbers relative to the cursor line, which shows its own number, so
+ * counts for `5j` / `3dk` can be read off the gutter. Replaces the default
+ * line numbers (styled the same via `cm-lineNumbers`).
+ */
+export const relativeLineNumbers: Extension = gutter({
+  class: 'cm-lineNumbers',
+  lineMarker: (view, block) => {
+    const { doc, selection } = view.state;
+    return new LineNumber(
+      relativeLineLabel(doc.lineAt(block.from).number, doc.lineAt(selection.main.head).number),
+    );
+  },
+  lineMarkerChange: (update) => update.selectionSet || update.docChanged,
+  initialSpacer: (view) => new LineNumber(String(view.state.doc.lines)),
+  updateSpacer: (_spacer, update) => new LineNumber(String(update.state.doc.lines)),
+});

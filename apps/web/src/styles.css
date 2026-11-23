@@ -1113,3 +1113,8 @@ kbd {
     display: none;
   }
 }
+@media (pointer: coarse) {
+  .editor-hint {
+    display: none; /* keyboard shortcuts; phones have no Alt+J */
+  }
+}

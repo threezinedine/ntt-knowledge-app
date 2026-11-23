@@ -16,7 +16,7 @@ export function JumpHint({ vim }: { vim: boolean }) {
   const parts: ReactNode[] = [];
   if (toTitle) parts.push(tx('editor.hintTitle', { keys: <Keys binding={toTitle} /> }));
   if (toContent) parts.push(tx('editor.hintContent', { keys: <Keys binding={toContent} /> }));
-  parts.push(tx('editor.hintEnter', { enter: <kbd>Enter</kbd> }));
+  parts.push(tx('editor.hintEnter', { enter: <Keys binding="Enter" /> }));
   if (vim) {
     parts.push(
       tx('editor.hintVim', {

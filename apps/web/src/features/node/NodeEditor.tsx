@@ -42,6 +42,9 @@ export function NodeEditor({ node }: { node: GraphNode }) {
     if (!changed || !titleWasLast.current) return;
     // After the palette (if that's where it came from) has restored focus.
     const frame = requestAnimationFrame(() => {
+      // Only if focus was dropped (or is still here), not moved elsewhere.
+      const active = document.activeElement;
+      if (active && active !== document.body && !active.closest('.node-editor')) return;
       titleRef.current?.focus();
     });
     return () => {

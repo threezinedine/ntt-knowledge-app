@@ -99,9 +99,10 @@ const CHORD_TIMEOUT_MS = 3000;
 const MISS_DISPLAY_MS = 2000;
 
 /**
- * Ctrl keys vim uses in Normal mode (page/half-page scroll, jumps, redo,
- * visual block, increment). Inside a vim editor (`data-km-vim`) they are
- * vim's, even when a command is bound to them (Ctrl+B = sidebar). Ctrl+P
+ * Ctrl keys vim uses (page/half-page scroll, jumps, redo, visual block,
+ * increment). Inside a vim editor (`data-km-vim`), in any vim mode (as VS
+ * Code Vim does), they are vim's, even when a command is bound to them
+ * (Ctrl+B = sidebar; in Insert mode it then does nothing). Ctrl+P
  * (quick open) and Ctrl+K (chords) stay ours: vim has k/j for those moves.
  */
 const VIM_CTRL_KEYS = /^Ctrl\+[BFDUEYORVAX]$/;
