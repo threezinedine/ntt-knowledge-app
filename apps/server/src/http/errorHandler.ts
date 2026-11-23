@@ -3,12 +3,18 @@ import type { FastifyError, FastifyInstance } from 'fastify';
 import { ZodError, z } from 'zod';
 import { AppError } from '../errors.js';
 
+type ErrorFields = ApiErrorBody['error'];
+
 function body(
-  code: ApiErrorBody['error']['code'],
+  code: ErrorFields['code'],
   message: string,
   details?: unknown,
+  reason?: ErrorFields['reason'],
 ): ApiErrorBody {
-  return { error: details === undefined ? { code, message } : { code, message, details } };
+  const error: ErrorFields = { code, message };
+  if (reason !== undefined) error.reason = reason;
+  if (details !== undefined) error.details = details;
+  return { error };
 }
 
 export function registerErrorHandler(app: FastifyInstance): void {
@@ -19,7 +25,9 @@ export function registerErrorHandler(app: FastifyInstance): void {
         .send(body('VALIDATION_ERROR', 'Invalid request', z.flattenError(error)));
     }
     if (error instanceof AppError) {
-      return reply.status(error.statusCode).send(body(error.code, error.message, error.details));
+      return reply
+        .status(error.statusCode)
+        .send(body(error.code, error.message, error.details, error.reason));
     }
     // Fastify's own 4xx errors (malformed JSON, body too large, ...).
     const statusCode = 'statusCode' in error ? error.statusCode : undefined;

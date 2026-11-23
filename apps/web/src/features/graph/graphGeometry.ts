@@ -20,7 +20,12 @@ export function radiusForDegree(degree: number): number {
   return Math.min(MAX_RADIUS, MIN_RADIUS + Math.sqrt(Math.max(0, degree)) * 3);
 }
 
-/** Plain notes stay neutral grey; other types get a stable colour (Obsidian "groups"). */
+/**
+ * Plain notes stay neutral grey; other types get palette colours.
+ * Trade-off (deliberate): colours are *distinct* for up to 8 types present,
+ * not *stable*. Adding/removing a type can shift others. Hashing would be
+ * stable but collides often; a persisted type→colour map is the real fix.
+ */
 export const DEFAULT_NODE_COLOR = '#a3a3a3';
 const TYPE_PALETTE = [
   '#e0af68',
@@ -33,10 +38,7 @@ const TYPE_PALETTE = [
   '#2ac3de',
 ] as const;
 
-/**
- * Assigns palette colours to the distinct non-note types present, in sorted
- * order, so up to eight types never collide (hashing would).
- */
+/** Distinct palette colours for the non-note types present, assigned in sorted order. */
 export function typeColors(types: Iterable<string>): Map<string, string> {
   const distinct = [...new Set(types)].filter((t) => t !== 'note').sort();
   const colors = new Map<string, string>([['note', DEFAULT_NODE_COLOR]]);
@@ -46,13 +48,28 @@ export function typeColors(types: Iterable<string>): Map<string, string> {
   return colors;
 }
 
+/** Gap between parallel edges of the same node pair, in flow units. */
+export const PARALLEL_EDGE_SPACING = 28;
+
+export interface EdgeLane {
+  /** Perpendicular bend (signed, flow units) for parallel/reciprocal edges; 0 = straight. */
+  offset: number;
+  /** n-th self-loop on the same node (0-based); each one is drawn larger. */
+  loopIndex: number;
+}
+
 /**
- * Straight line between the two circle borders (not centers), so the arrow
- * head of a directed edge lands on the target's rim. A self-loop is drawn as
- * a teardrop above the node.
+ * Edge from rim to rim (not centre to centre), so a directed edge's arrow head
+ * lands on the target's border. Parallel edges between the same pair bend
+ * apart by `lane.offset`; self-loops are teardrops above the node.
  */
-export function edgeGeometry(source: Circle, target: Circle, isSelfLoop: boolean): EdgeGeometry {
-  if (isSelfLoop) return selfLoop(source);
+export function edgeGeometry(
+  source: Circle,
+  target: Circle,
+  isSelfLoop: boolean,
+  lane: EdgeLane = { offset: 0, loopIndex: 0 },
+): EdgeGeometry {
+  if (isSelfLoop) return selfLoop(source, lane.loopIndex);
 
   const dx = target.cx - source.cx;
   const dy = target.cy - source.cy;
@@ -65,22 +82,45 @@ export function edgeGeometry(source: Circle, target: Circle, isSelfLoop: boolean
       labelY: source.cy,
     };
   }
-  const ux = dx / length;
-  const uy = dy / length;
-  const sx = source.cx + ux * source.r;
-  const sy = source.cy + uy * source.r;
-  const tx = target.cx - ux * target.r;
-  const ty = target.cy - uy * target.r;
-  return { path: `M ${sx},${sy} L ${tx},${ty}`, labelX: (sx + tx) / 2, labelY: (sy + ty) / 2 };
+
+  if (lane.offset === 0) {
+    const ux = dx / length;
+    const uy = dy / length;
+    const sx = source.cx + ux * source.r;
+    const sy = source.cy + uy * source.r;
+    const tx = target.cx - ux * target.r;
+    const ty = target.cy - uy * target.r;
+    return { path: `M ${sx},${sy} L ${tx},${ty}`, labelX: (sx + tx) / 2, labelY: (sy + ty) / 2 };
+  }
+
+  // Quadratic curve whose apex sits `offset` away from the centre line
+  // (control point at twice the offset, since a quadratic's apex is half-way).
+  const nx = -dy / length;
+  const ny = dx / length;
+  const cx = (source.cx + target.cx) / 2 + nx * lane.offset * 2;
+  const cy = (source.cy + target.cy) / 2 + ny * lane.offset * 2;
+  const [sx, sy] = towards(source, cx, cy);
+  const [tx, ty] = towards(target, cx, cy);
+  return {
+    path: `M ${sx},${sy} Q ${cx},${cy} ${tx},${ty}`,
+    labelX: 0.25 * sx + 0.5 * cx + 0.25 * tx,
+    labelY: 0.25 * sy + 0.5 * cy + 0.25 * ty,
+  };
 }
 
-function selfLoop({ cx, cy, r }: Circle): EdgeGeometry {
+/** Point on the circle's rim in the direction of (x, y). */
+function towards({ cx, cy, r }: Circle, x: number, y: number): [number, number] {
+  const len = Math.hypot(x - cx, y - cy) || 1;
+  return [cx + ((x - cx) / len) * r, cy + ((y - cy) / len) * r];
+}
+
+function selfLoop({ cx, cy, r }: Circle, loopIndex: number): EdgeGeometry {
   const angle = Math.PI / 5; // leave/enter 36° either side of the top
   const sx = cx - Math.sin(angle) * r;
   const ex = cx + Math.sin(angle) * r;
   const y = cy - Math.cos(angle) * r;
-  const height = r * 2 + 28;
-  const spread = r + 18;
+  const height = r * 2 + 28 + loopIndex * 22;
+  const spread = r + 18 + loopIndex * 10;
   return {
     path: `M ${sx},${y} C ${cx - spread},${y - height} ${cx + spread},${y - height} ${ex},${y}`,
     labelX: cx,

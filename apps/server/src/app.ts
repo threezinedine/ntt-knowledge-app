@@ -7,6 +7,7 @@ import { registerErrorHandler } from './http/errorHandler.js';
 import { registerHostGuard } from './http/hostGuard.js';
 import { registerEdgeRoutes } from './http/routes/edgeRoutes.js';
 import { registerNodeRoutes } from './http/routes/nodeRoutes.js';
+import { registerTagRoutes } from './http/routes/tagRoutes.js';
 import { registerTaskRoutes } from './http/routes/taskRoutes.js';
 import { createRepositories } from './repositories/index.js';
 
@@ -34,6 +35,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   app.get('/api/health', () => ({ ok: true }));
   registerNodeRoutes(app, repos);
   registerEdgeRoutes(app, repos);
+  registerTagRoutes(app, repos);
   registerTaskRoutes(app, repos);
 
   if (options.staticDir !== undefined && existsSync(options.staticDir)) {

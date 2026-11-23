@@ -16,6 +16,7 @@ import {
   sameJson,
   type RepoContext,
 } from './context.js';
+import { parseTagIds, tagIdsSubquery, type TagLinkRepository } from './tagLinkRepository.js';
 
 interface NodeRow {
   id: string;
@@ -27,6 +28,7 @@ interface NodeRow {
   pos_y: number | null;
   created_at: number;
   updated_at: number;
+  tag_ids: string;
 }
 
 type SummaryRow = Pick<NodeRow, 'id' | 'type' | 'title' | 'pos_x' | 'pos_y'>;
@@ -47,16 +49,18 @@ const toNode = (row: NodeRow): GraphNode => ({
   props: parseJsonObject(row.props) as Props,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  tagIds: parseTagIds(row.tag_ids),
 });
 
-/** Nodes joined with their (optional) canvas layout. */
+/** Nodes joined with their (optional) canvas layout and live tag ids. */
 const SELECT_NODE = `
-  SELECT n.id, n.type, n.title, n.content, n.props, l.pos_x, l.pos_y, n.created_at, n.updated_at
+  SELECT n.id, n.type, n.title, n.content, n.props, l.pos_x, l.pos_y, n.created_at, n.updated_at,
+         ${tagIdsSubquery('nodes', 'n.id')} AS tag_ids
     FROM nodes n LEFT JOIN node_layouts l ON l.node_id = n.id`;
 
 export type NodeRepository = ReturnType<typeof createNodeRepository>;
 
-export function createNodeRepository({ db, now, newId }: RepoContext) {
+export function createNodeRepository({ db, now, newId }: RepoContext, links: TagLinkRepository) {
   const selectById = db.prepare(`${SELECT_NODE} WHERE n.id = ? AND n.deleted_at IS NULL`);
   const insert = db.prepare(
     `INSERT INTO nodes (id, type, title, content, props, created_at, updated_at)
@@ -141,17 +145,18 @@ export function createNodeRepository({ db, now, newId }: RepoContext) {
     create(data: CreateNodeData): GraphNode {
       return transaction(db, () => {
         const ts = now();
-        const node: GraphNode = { id: newId(), ...data, createdAt: ts, updatedAt: ts };
+        const id = newId();
         insert.run({
-          id: node.id,
-          type: node.type,
-          title: node.title,
-          content: node.content,
-          props: JSON.stringify(node.props),
+          id,
+          type: data.type,
+          title: data.title,
+          content: data.content,
+          props: JSON.stringify(data.props),
           ts,
         });
-        if (node.position) writeLayout(node.id, node.position);
-        return node;
+        if (data.position) writeLayout(id, data.position);
+        links.attachAll('nodes', id, data.tagIds);
+        return getOrThrow(id);
       });
     },
 
@@ -191,14 +196,35 @@ export function createNodeRepository({ db, now, newId }: RepoContext) {
       });
     },
 
-    /** Soft-deletes the node together with its edges and tasks (one shared tombstone ts). */
+    attachTag(id: string, tagId: string): GraphNode {
+      return transaction(db, () => {
+        getOrThrow(id);
+        links.attach('nodes', id, tagId);
+        return getOrThrow(id);
+      });
+    },
+
+    detachTag(id: string, tagId: string): GraphNode {
+      return transaction(db, () => {
+        getOrThrow(id);
+        links.detach('nodes', id, tagId);
+        return getOrThrow(id);
+      });
+    },
+
+    /**
+     * Soft-deletes the node with its edges, tasks and all their tag links,
+     * sharing one tombstone timestamp.
+     */
     remove(id: string): void {
       transaction(db, () => {
         const ts = now();
         const { changes } = softDeleteNode.run({ id, ts });
         if (changes === 0) throw new NotFoundError('Node', id);
         softDeleteEdges.run({ id, ts });
+        links.detachAllForTasksOfNode(id, ts); // before the tasks themselves
         softDeleteTasks.run({ id, ts });
+        links.detachAllForOwner('nodes', id, ts);
       });
     },
   };

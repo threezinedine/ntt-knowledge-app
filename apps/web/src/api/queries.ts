@@ -1,11 +1,14 @@
 import type {
-  CreateCategoryInput,
   CreateEdgeInput,
   CreateNodeInput,
+  CreateTagInput,
   CreateTaskInput,
+  GraphNode,
   GraphSnapshot,
-  UpdateCategoryInput,
+  TaggableKind,
+  Task,
   UpdateNodeInput,
+  UpdateTagInput,
   UpdateTaskInput,
 } from '@km/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,7 +28,7 @@ export const keys = {
   nodeTasks: (id: string) => ['nodes', 'tasks', id] as const,
   graph: ['graph'] as const,
   relations: ['relations'] as const,
-  categories: ['categories'] as const,
+  tags: ['tags'] as const,
 };
 
 export const useNodeList = (q: string) =>
@@ -45,8 +48,7 @@ export const useGraph = () => useQuery({ queryKey: keys.graph, queryFn: api.grap
 export const useRelationNames = () =>
   useQuery({ queryKey: keys.relations, queryFn: api.relations });
 
-export const useCategories = () =>
-  useQuery({ queryKey: keys.categories, queryFn: api.categories.list });
+export const useTags = () => useQuery({ queryKey: keys.tags, queryFn: api.tags.list });
 
 /** Anything touching nodes or edges can change lists, the graph and neighbour panels. */
 function useInvalidateGraph() {
@@ -128,33 +130,59 @@ export function useDeleteEdge() {
   return useMutation({ mutationFn: (id: string) => api.edges.remove(id), onSettled: invalidate });
 }
 
-export function useCreateCategory() {
+export function useCreateTag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: CreateCategoryInput) => api.categories.create(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.categories }),
+    mutationFn: (input: CreateTagInput) => api.tags.create(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.tags }),
   });
 }
 
-export function useUpdateCategory() {
+export function useUpdateTag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, patch }: { id: string; patch: UpdateCategoryInput }) =>
-      api.categories.update(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.categories }),
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateTagInput }) =>
+      api.tags.update(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.tags }),
   });
 }
 
-export function useDeleteCategory() {
+export function useDeleteTag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => api.categories.remove(id),
-    // Deleting a category un-categorises tasks, so task lists are stale too.
+    mutationFn: (id: string) => api.tags.remove(id),
+    // Deleting a tag detaches it from every node and task.
     onSuccess: () =>
       Promise.all([
-        qc.invalidateQueries({ queryKey: keys.categories }),
+        qc.invalidateQueries({ queryKey: keys.tags }),
         qc.invalidateQueries({ queryKey: keys.nodes }),
       ]),
+  });
+}
+
+export interface TagLinkVars {
+  ownerId: string;
+  tagId: string;
+  attached: boolean;
+}
+
+/**
+ * Attach (`attached: true`) or detach a tag on a node or task. The server
+ * answers with the updated owner, which is written straight into the cache.
+ */
+export function useTagLink(kind: TaggableKind) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ownerId, tagId, attached }: TagLinkVars) =>
+      attached ? api.tags.attach(kind, ownerId, tagId) : api.tags.detach(kind, ownerId, tagId),
+    onSuccess: async (owner: GraphNode | Task) => {
+      if (kind === 'nodes') {
+        qc.setQueryData(keys.node(owner.id), owner);
+        await qc.invalidateQueries({ queryKey: keys.nodeLists });
+      } else {
+        await qc.invalidateQueries({ queryKey: keys.nodeTasks((owner as Task).nodeId) });
+      }
+    },
   });
 }
 

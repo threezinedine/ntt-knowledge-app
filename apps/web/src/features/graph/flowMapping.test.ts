@@ -1,6 +1,12 @@
 import type { Edge, NodeSummary } from '@km/core';
 import { describe, expect, it } from 'vitest';
-import { fallbackPosition, toFlowEdges, toFlowNodes, type KmFlowNode } from './flowMapping';
+import {
+  edgeLanes,
+  fallbackPosition,
+  toFlowEdges,
+  toFlowNodes,
+  type KmFlowNode,
+} from './flowMapping';
 
 const summary = (id: string, position: NodeSummary['position'] = null): NodeSummary => ({
   id,
@@ -43,5 +49,51 @@ describe('toFlowEdges', () => {
     const [flow] = toFlowEdges([edge], []);
     expect(flow).toMatchObject({ source: 'a', target: 'b', label: 'R', selected: false });
     expect(flow?.markerEnd).toBeDefined();
+  });
+});
+
+const mkEdge = (id: string, fromId: string, toId: string): Edge => ({
+  id,
+  fromId,
+  toId,
+  name: id,
+  props: {},
+  createdAt: 0,
+  updatedAt: 0,
+});
+
+describe('edgeLanes', () => {
+  it('keeps a lone edge straight', () => {
+    expect(edgeLanes([mkEdge('e1', 'a', 'b')]).get('e1')).toEqual({ offset: 0, loopIndex: 0 });
+  });
+
+  it('fans out parallel edges symmetrically', () => {
+    const lanes = edgeLanes([mkEdge('e1', 'a', 'b'), mkEdge('e2', 'a', 'b')]);
+    const o1 = lanes.get('e1')?.offset ?? 0;
+    const o2 = lanes.get('e2')?.offset ?? 0;
+    expect(o1).toBe(-o2);
+    expect(o1).not.toBe(0);
+  });
+
+  it('puts reciprocal edges on different sides in screen space', () => {
+    // A→B and B→A: same canonical lane magnitude, sign flipped for the reversed
+    // edge, which (with its flipped normal) lands it on the other side.
+    const lanes = edgeLanes([mkEdge('e1', 'a', 'b'), mkEdge('e2', 'b', 'a')]);
+    expect(lanes.get('e1')?.offset).toBe(lanes.get('e2')?.offset);
+  });
+
+  it('numbers self-loops per node', () => {
+    const lanes = edgeLanes([mkEdge('l1', 'a', 'a'), mkEdge('l2', 'a', 'a')]);
+    expect([lanes.get('l1')?.loopIndex, lanes.get('l2')?.loopIndex]).toEqual([0, 1]);
+  });
+});
+
+describe('toFlowNodes while dragging', () => {
+  it('keeps the dragged position when a snapshot arrives mid-drag', () => {
+    const [prev] = toFlowNodes([summary('a', { x: 0, y: 0 })], [], []);
+    if (!prev) throw new Error('expected a node');
+    const dragged: KmFlowNode = { ...prev, position: { x: 50, y: 60 }, dragging: true };
+    const [next] = toFlowNodes([summary('a', { x: 0, y: 0 })], [], [dragged]);
+    expect(next?.position).toEqual({ x: 50, y: 60 });
   });
 });

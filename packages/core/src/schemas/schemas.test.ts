@@ -11,6 +11,7 @@ describe('createNodeInputSchema', () => {
       content: '',
       props: {},
       position: null,
+      tagIds: [],
     });
   });
 

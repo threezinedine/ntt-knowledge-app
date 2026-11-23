@@ -1,21 +1,29 @@
-import type { ApiErrorCode } from '@km/core';
+import type { ApiErrorCode, ApiErrorReason } from '@km/core';
 
 /** Errors that map to a well-defined HTTP response. Anything else is a 500. */
 export class AppError extends Error {
   readonly statusCode: number;
   readonly code: ApiErrorCode;
   readonly details: unknown;
+  readonly reason: ApiErrorReason | undefined;
 
-  constructor(statusCode: number, code: ApiErrorCode, message: string, details?: unknown) {
+  constructor(
+    statusCode: number,
+    code: ApiErrorCode,
+    message: string,
+    details?: unknown,
+    reason?: ApiErrorReason,
+  ) {
     super(message);
     this.name = new.target.name;
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
+    this.reason = reason;
   }
 }
 
-export type EntityName = 'Node' | 'Edge' | 'Category' | 'Task';
+export type EntityName = 'Node' | 'Edge' | 'Tag' | 'Task';
 
 export class NotFoundError extends AppError {
   constructor(entity: EntityName, id: string) {
@@ -24,13 +32,13 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string, details?: unknown) {
-    super(409, 'CONFLICT', message, details);
+  constructor(reason: ApiErrorReason, message: string, details?: unknown) {
+    super(409, 'CONFLICT', message, details, reason);
   }
 }
 
 export class DomainValidationError extends AppError {
-  constructor(message: string, details?: unknown) {
-    super(400, 'VALIDATION_ERROR', message, details);
+  constructor(reason: ApiErrorReason, message: string, details?: unknown) {
+    super(400, 'VALIDATION_ERROR', message, details, reason);
   }
 }

@@ -20,6 +20,8 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     // The PWA service worker would otherwise cache assets across runs.
     serviceWorkers: 'block',
+    // Specs use English labels; i18n.spec.ts overrides this per test.
+    locale: 'en-US',
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },

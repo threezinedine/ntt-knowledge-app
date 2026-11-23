@@ -1,4 +1,4 @@
-import type { Category, CreateNodeInput, Edge, GraphNode } from '@km/core';
+import type { CreateNodeInput, Edge, GraphNode, Tag } from '@km/core';
 import { test as base, expect, type APIRequestContext } from '@playwright/test';
 
 /** Thin typed wrapper over the public REST API for arranging test data. */
@@ -17,17 +17,28 @@ export class Api {
     return (await res.json()) as Edge;
   }
 
-  /** Deletes every node (cascading edges/tasks) and every category, leaves first. */
+  async createTag(name: string, parentId: string | null = null): Promise<Tag> {
+    const res = await this.request.post('/api/tags', { data: { name, parentId } });
+    expect(res.status()).toBe(201);
+    return (await res.json()) as Tag;
+  }
+
+  async createTask(nodeId: string, title: string): Promise<void> {
+    const res = await this.request.post('/api/tasks', { data: { nodeId, title } });
+    expect(res.status()).toBe(201);
+  }
+
+  /** Deletes every node (cascading edges/tasks) and every tag, leaves first. */
   async reset(): Promise<void> {
     const nodes = (await (await this.request.get('/api/nodes?limit=500')).json()) as GraphNode[];
     for (const node of nodes) await this.request.delete(`/api/nodes/${node.id}`);
 
     for (;;) {
-      const cats = (await (await this.request.get('/api/categories')).json()) as Category[];
-      if (cats.length === 0) break;
-      const parents = new Set(cats.map((c) => c.parentId));
-      for (const leaf of cats.filter((c) => !parents.has(c.id))) {
-        await this.request.delete(`/api/categories/${leaf.id}`);
+      const tags = (await (await this.request.get('/api/tags')).json()) as Tag[];
+      if (tags.length === 0) break;
+      const parents = new Set(tags.map((c) => c.parentId));
+      for (const leaf of tags.filter((c) => !parents.has(c.id))) {
+        await this.request.delete(`/api/tags/${leaf.id}`);
       }
     }
   }

@@ -38,3 +38,30 @@ describe('edgeGeometry', () => {
     expect(g.path).not.toContain('NaN');
   });
 });
+
+describe('edgeGeometry lanes', () => {
+  const a = { cx: 0, cy: 0, r: 10 };
+  const b = { cx: 100, cy: 0, r: 10 };
+
+  it('bends offset edges to opposite sides with labels apart', () => {
+    const up = edgeGeometry(a, b, false, { offset: 20, loopIndex: 0 });
+    const down = edgeGeometry(a, b, false, { offset: -20, loopIndex: 0 });
+    expect(up.path).toContain(' Q ');
+    // Apex is roughly `offset` from the centre line (endpoints shift slightly toward it).
+    expect(up.labelY).toBeGreaterThan(15);
+    expect(down.labelY).toBeCloseTo(-up.labelY, 6);
+  });
+
+  it('starts and ends curved edges on the rims', () => {
+    const g = edgeGeometry(a, b, false, { offset: 20, loopIndex: 0 });
+    const match = /^M ([-\d.e]+),([-\d.e]+)/.exec(g.path);
+    const [sx, sy] = [Number(match?.[1]), Number(match?.[2])];
+    expect(Math.hypot(sx - a.cx, sy - a.cy)).toBeCloseTo(a.r, 5);
+  });
+
+  it('nests repeated self-loops', () => {
+    const first = edgeGeometry(a, a, true, { offset: 0, loopIndex: 0 });
+    const second = edgeGeometry(a, a, true, { offset: 0, loopIndex: 1 });
+    expect(second.labelY).toBeLessThan(first.labelY);
+  });
+});

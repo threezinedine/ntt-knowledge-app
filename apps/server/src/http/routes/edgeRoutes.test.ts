@@ -48,7 +48,7 @@ describe('edges API', () => {
 
     const dup = await link(a.id, b.id, 'R');
     expect(dup.status).toBe(409);
-    expect(dup.body.error.code).toBe('CONFLICT');
+    expect(dup.body.error).toMatchObject({ code: 'CONFLICT', reason: 'EDGE_EXISTS' });
   });
 
   it('allows recreating an edge after it was deleted', async () => {

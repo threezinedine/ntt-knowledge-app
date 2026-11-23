@@ -2,12 +2,14 @@
 
 Local-first personal knowledge graph. Property-graph model: **nodes** (type/label,
 title, markdown content, JSON props, canvas position) connected by **named, directed
-edges** (also with JSON props). Nodes carry **tasks**, filed under a **category tree**.
-An EXP system built on task completion is planned (`tasks.completed_at` exists for it).
+edges** (also with JSON props). Nodes carry **tasks**. One shared **tag tree** attaches
+many-to-many to both nodes and tasks (`node_tags` / `task_tags` link tables, tombstoned
+like everything else). An EXP system built on task completion is planned
+(`tasks.completed_at` exists for it).
 
 ## Layout
 
-- `packages/core`: zod schemas, shared types, pure domain logic (category tree, cycle
+- `packages/core`: zod schemas, shared types, pure domain logic (tag tree, cycle
   check). No I/O. Both server and web import it as TS source.
 - `apps/server`: Fastify + `node:sqlite` (Node ≥ 24, no native deps).
   `db/` (migrations, transaction helper) → `repositories/` (all SQL lives here) →
@@ -42,6 +44,11 @@ a `dependencies` entry of `@km/server` or `@km/core`, or the image breaks.
 - PATCH semantics: `undefined` = leave as is, `null` = clear.
 - Multi-statement writes go through `transaction(db, fn)`.
 - Web: no `fetch` outside `api/client.ts`; mutations invalidate via the `keys` factory.
+- Web i18n: no user-visible literal strings in components (text, `aria-label`, `placeholder`,
+  `title`). Add the key to `i18n/locales/en.json` **and** `vi.json`, use `useI18n().t`/`tx`.
+  Show errors with `errorText(err)`, never the raw server message. API errors that need a
+  specific message get an `ApiErrorReason` (`@km/core`) instead of client-side string matching.
+  E2E runs with `locale: en-US`; English labels in specs are intentional.
 - Tests: every new endpoint gets API tests (`app.inject` via `createTestApp`); every
   user-facing flow gets an e2e spec using role/label locators, not CSS, where possible.
 

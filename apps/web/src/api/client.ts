@@ -1,18 +1,19 @@
 import type {
   ApiErrorBody,
-  Category,
-  CreateCategoryInput,
   CreateEdgeInput,
   CreateNodeInput,
+  CreateTagInput,
   CreateTaskInput,
   Edge,
   GraphNode,
   GraphSnapshot,
   NodeEdges,
+  Tag,
+  TaggableKind,
   Task,
-  UpdateCategoryInput,
   UpdateEdgeInput,
   UpdateNodeInput,
+  UpdateTagInput,
   UpdateTaskInput,
 } from '@km/core';
 
@@ -28,7 +29,17 @@ export class ApiError extends Error {
   }
 }
 
-type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+/** The request never got an HTTP response (server down, offline, CORS, ...). */
+export class NetworkError extends Error {
+  constructor(cause: unknown) {
+    super(errorMessage(cause), { cause });
+    this.name = 'NetworkError';
+  }
+}
+
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export type TaggedOwner<K extends TaggableKind> = K extends 'nodes' ? GraphNode : Task;
 
 /** Browsers cap the total in-flight keepalive body at 64 KiB. */
 const KEEPALIVE_MAX_BYTES = 60 * 1024;
@@ -37,19 +48,33 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   const headers: Record<string, string> = { Accept: 'application/json' };
   const payload = body === undefined ? null : JSON.stringify(body);
   if (payload !== null) headers['Content-Type'] = 'application/json';
-  const res = await fetch(`/api${path}`, {
-    method,
-    headers,
-    body: payload,
-    // Lets writes issued while the page is closing (autosave flush) complete.
-    keepalive: method !== 'GET' && (payload?.length ?? 0) < KEEPALIVE_MAX_BYTES,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, {
+      method,
+      headers,
+      body: payload,
+      // Lets writes issued while the page is closing (autosave flush) complete.
+      keepalive: method !== 'GET' && (payload?.length ?? 0) < KEEPALIVE_MAX_BYTES,
+    });
+  } catch (error) {
+    throw new NetworkError(error);
+  }
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
-  const json: unknown = text ? JSON.parse(text) : undefined;
-  if (!res.ok) throw new ApiError(res.status, json as ApiErrorBody | undefined);
-  return json as T;
+  if (!res.ok) throw new ApiError(res.status, parseErrorBody(text));
+  return (text ? JSON.parse(text) : undefined) as T;
+}
+
+/** Our server always sends ApiErrorBody JSON; a proxy's HTML 502 does not. */
+function parseErrorBody(text: string): ApiErrorBody | undefined {
+  try {
+    const json = JSON.parse(text) as Partial<ApiErrorBody> | null;
+    return typeof json?.error?.code === 'string' ? (json as ApiErrorBody) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 const qs = (params: Record<string, string | undefined>): string => {
@@ -76,12 +101,16 @@ export const api = {
   },
   graph: () => request<GraphSnapshot>('GET', '/graph'),
   relations: () => request<string[]>('GET', '/relations'),
-  categories: {
-    list: () => request<Category[]>('GET', '/categories'),
-    create: (input: CreateCategoryInput) => request<Category>('POST', '/categories', input),
-    update: (id: string, patch: UpdateCategoryInput) =>
-      request<Category>('PATCH', `/categories/${id}`, patch),
-    remove: (id: string) => request<undefined>('DELETE', `/categories/${id}`),
+  tags: {
+    list: () => request<Tag[]>('GET', '/tags'),
+    create: (input: CreateTagInput) => request<Tag>('POST', '/tags', input),
+    update: (id: string, patch: UpdateTagInput) => request<Tag>('PATCH', `/tags/${id}`, patch),
+    remove: (id: string) => request<undefined>('DELETE', `/tags/${id}`),
+    /** Idempotent; resolves to the updated node/task. */
+    attach: <K extends TaggableKind>(kind: K, ownerId: string, tagId: string) =>
+      request<TaggedOwner<K>>('PUT', `/${kind}/${ownerId}/tags/${tagId}`),
+    detach: <K extends TaggableKind>(kind: K, ownerId: string, tagId: string) =>
+      request<TaggedOwner<K>>('DELETE', `/${kind}/${ownerId}/tags/${tagId}`),
   },
   tasks: {
     create: (input: CreateTaskInput) => request<Task>('POST', '/tasks', input),

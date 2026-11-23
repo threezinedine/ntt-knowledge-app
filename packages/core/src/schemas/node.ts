@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { entityMetaShape, positionSchema, propsSchema } from './common.js';
+import { tagIdsSchema } from './task.js';
 
 export const NODE_TITLE_MAX = 200;
 export const NODE_CONTENT_MAX = 1_000_000;
@@ -19,6 +20,8 @@ export const nodeSchema = z.object({
   props: propsSchema,
   /** Position on the graph canvas; `null` until the user places it. */
   position: positionSchema.nullable(),
+  /** Attached tags (attach/detach via the tag endpoints). */
+  tagIds: tagIdsSchema,
 });
 /** Named `GraphNode` to avoid clashing with the DOM `Node` type. */
 export type GraphNode = z.infer<typeof nodeSchema>;
@@ -32,6 +35,7 @@ export const createNodeInputSchema = z.strictObject({
   content: nodeContentSchema.default(''),
   props: propsSchema.default({}),
   position: positionSchema.nullable().default(null),
+  tagIds: tagIdsSchema.default([]),
 });
 export type CreateNodeInput = z.input<typeof createNodeInputSchema>;
 export type CreateNodeData = z.output<typeof createNodeInputSchema>;

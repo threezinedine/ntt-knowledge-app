@@ -20,9 +20,11 @@ test.describe('graph editor', () => {
 
     const source = page.locator('.react-flow__node', { hasText: 'Source' });
     const target = page.locator('.react-flow__node', { hasText: 'Target' });
+    await source.hover(); // reveals the grip
     const from = await source.locator('.react-flow__handle-bottom').boundingBox();
-    const to = await target.locator('.react-flow__handle-top').boundingBox();
-    if (!from || !to) throw new Error('handles not rendered');
+    // Drop on the target's *label*, i.e. where a user aims, not on a hidden handle.
+    const to = await target.locator('.km-node-label').boundingBox();
+    if (!from || !to) throw new Error('grip or label not rendered');
 
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
     await page.mouse.down();
@@ -36,6 +38,44 @@ test.describe('graph editor', () => {
 
     await expect(dialog).toBeHidden();
     await expect(page.locator('.react-flow__edge-text', { hasText: 'LEADS_TO' })).toBeVisible();
+  });
+
+  test('a short drag from the grip does not create a self-loop', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Pointer drag; covered on desktop.');
+    await api.createNode({ title: 'Lonely', position: { x: 0, y: 0 } });
+    await api.createNode({ title: 'Far away', position: { x: -500, y: -400 } });
+    await page.goto('/');
+
+    const node = page.locator('.react-flow__node', { hasText: 'Lonely' });
+    await node.hover();
+    const grip = await node.locator('.react-flow__handle-bottom').boundingBox();
+    if (!grip) throw new Error('grip not rendered');
+    await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(grip.x + 15, grip.y + 10, { steps: 5 });
+    await page.mouse.up();
+
+    await expect(page.getByRole('dialog', { name: 'New relation' })).toHaveCount(0);
+  });
+
+  test('draws parallel links between the same pair separately', async ({ page, api }) => {
+    const a = await api.createNode({ title: 'Alice', position: { x: 0, y: 0 } });
+    const b = await api.createNode({ title: 'Bob', position: { x: 400, y: 0 } });
+    await api.createEdge(a.id, b.id, 'KNOWS');
+    await api.createEdge(a.id, b.id, 'WORKS_WITH');
+    await api.createEdge(b.id, a.id, 'MENTORS');
+    await page.goto('/');
+
+    const labels = page.locator('.react-flow__edge-text');
+    await expect(labels).toHaveCount(3);
+    const ys = await Promise.all(
+      (await labels.all()).map(async (l) => (await l.boundingBox())?.y ?? 0),
+    );
+    expect(new Set(ys.map(Math.round)).size).toBe(3);
   });
 
   test('persists node position after dragging', async ({ page, api, isMobile }) => {

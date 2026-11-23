@@ -50,6 +50,7 @@ export function FloatingEdge({
   label,
   markerEnd,
   selected,
+  data,
 }: EdgeProps<KmFlowEdge>) {
   const sourceNode = useInternalNode<KmFlowNode>(source);
   const targetNode = useInternalNode<KmFlowNode>(target);
@@ -60,6 +61,7 @@ export function FloatingEdge({
     toCircle(sourceNode),
     toCircle(targetNode),
     source === target,
+    data?.lane,
   );
 
   return (

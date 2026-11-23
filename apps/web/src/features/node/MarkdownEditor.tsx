@@ -3,6 +3,7 @@ import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useI18n } from '../../i18n/context';
 
 const extensions = [markdown(), EditorView.lineWrapping];
 
@@ -15,10 +16,11 @@ type Mode = 'edit' | 'preview' | 'split';
 
 export function MarkdownEditor({ value, onChange }: Props) {
   const [mode, setMode] = useState<Mode>('edit');
+  const { t } = useI18n();
 
   return (
     <div className={`markdown-editor mode-${mode}`}>
-      <div className="segmented" role="tablist" aria-label="Editor mode">
+      <div className="segmented" role="tablist" aria-label={t('markdown.modes')}>
         {(['edit', 'split', 'preview'] as const).map((m) => (
           <button
             key={m}
@@ -29,8 +31,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
               setMode(m);
             }}
           >
-            {m[0]?.toUpperCase()}
-            {m.slice(1)}
+            {t(`markdown.mode.${m}`)}
           </button>
         ))}
       </div>
@@ -42,7 +43,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
             onChange={onChange}
             extensions={extensions}
             theme="dark"
-            placeholder="Write markdown…"
+            placeholder={t('markdown.placeholder')}
             basicSetup={{ foldGutter: false, highlightActiveLine: false }}
           />
         )}

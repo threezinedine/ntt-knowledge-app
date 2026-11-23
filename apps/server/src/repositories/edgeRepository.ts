@@ -110,7 +110,11 @@ export function createEdgeRepository(
   }
 
   function duplicate(edge: Pick<Edge, 'fromId' | 'toId' | 'name'>): ConflictError {
-    return new ConflictError(`Edge "${edge.name}" already exists between these nodes`, edge);
+    return new ConflictError(
+      'EDGE_EXISTS',
+      `Edge "${edge.name}" already exists between these nodes`,
+      edge,
+    );
   }
 
   return {

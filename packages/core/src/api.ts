@@ -16,10 +16,18 @@ export type ApiErrorCode =
   | 'BAD_REQUEST'
   | 'INTERNAL_ERROR';
 
+/**
+ * Finer-grained, stable cause for errors whose code alone is too vague to show
+ * a user. Clients translate it; `message` stays English (logs, curl).
+ */
+export type ApiErrorReason =
+  'EDGE_EXISTS' | 'TAG_NAME_TAKEN' | 'TAG_HAS_CHILDREN' | 'TAG_CYCLE' | 'TAG_LIMIT_REACHED';
+
 /** Shape of every non-2xx JSON response body. */
 export interface ApiErrorBody {
   error: {
     code: ApiErrorCode;
+    reason?: ApiErrorReason;
     message: string;
     details?: unknown;
   };

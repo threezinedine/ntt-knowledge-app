@@ -1,4 +1,4 @@
-import type { ApiErrorBody, Category, Edge, GraphNode, Task } from '@km/core';
+import type { ApiErrorBody, Tag, Edge, GraphNode, Task } from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../testing/testApp.js';
 import { hostnameOf } from './hostGuard.js';
@@ -86,17 +86,17 @@ describe('ordering and patches', () => {
     expect(res.body.props).toEqual({ w: 3 });
   });
 
-  it('renames and recolours a category; sibling names are unique case-insensitively', async () => {
-    const work = (await t.request<Category>('POST', '/api/categories', { name: 'Work' })).body;
-    const dup = await t.request<ApiErrorBody>('POST', '/api/categories', { name: 'work ' });
+  it('renames and recolours a tag; sibling names are unique case-insensitively', async () => {
+    const work = (await t.request<Tag>('POST', '/api/tags', { name: 'Work' })).body;
+    const dup = await t.request<ApiErrorBody>('POST', '/api/tags', { name: 'work ' });
     expect(dup.status).toBe(409);
 
     // Same name under a different parent is fine.
-    expect(
-      (await t.request('POST', '/api/categories', { name: 'Work', parentId: work.id })).status,
-    ).toBe(201);
+    expect((await t.request('POST', '/api/tags', { name: 'Work', parentId: work.id })).status).toBe(
+      201,
+    );
 
-    const renamed = await t.request<Category>('PATCH', `/api/categories/${work.id}`, {
+    const renamed = await t.request<Tag>('PATCH', `/api/tags/${work.id}`, {
       name: 'Job',
       color: '#ff0000',
     });

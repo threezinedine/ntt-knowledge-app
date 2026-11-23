@@ -1,3 +1,7 @@
+import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import { IN_MEMORY, migrate, openDatabase, transaction } from './database.js';
 import { migrations } from './migrations.js';
@@ -41,5 +45,44 @@ describe('database', () => {
       );
     }).toThrow(/CHECK constraint/);
     db.close();
+  });
+});
+
+describe('backup before migrate', () => {
+  it('copies a file database at its old version before upgrading it', () => {
+    const dir = mkdtempSync(join(tmpdir(), "km-backup-'quote-"));
+    try {
+      const path = join(dir, 'km.sqlite');
+      const v1 = new DatabaseSync(path);
+      v1.exec(migrations[0] ?? '');
+      v1.exec(
+        "INSERT INTO nodes (id, type, title, created_at, updated_at) VALUES ('n', 'note', 'N', 1, 1)",
+      );
+      v1.exec('PRAGMA user_version = 1;');
+      v1.close();
+
+      openDatabase(path).close();
+
+      const backups = readdirSync(dir).filter((f) => f.startsWith('km.sqlite.backup-v1-'));
+      expect(backups).toHaveLength(1);
+      const copy = new DatabaseSync(join(dir, backups[0] ?? ''), { readOnly: true });
+      expect(copy.prepare('PRAGMA user_version').get()).toEqual({ user_version: 1 });
+      expect(copy.prepare('SELECT COUNT(*) AS n FROM nodes').get()).toEqual({ n: 1 });
+      copy.close();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not back up a brand-new or already-current database', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'km-backup-'));
+    try {
+      const path = join(dir, 'km.sqlite');
+      openDatabase(path).close(); // new → migrated, no backup
+      openDatabase(path).close(); // current → nothing to do
+      expect(readdirSync(dir).filter((f) => f.includes('backup'))).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

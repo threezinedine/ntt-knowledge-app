@@ -1,16 +1,10 @@
 import { nodeTitleSchema, nodeTypeSchema, type GraphNode } from '@km/core';
 import { useCallback, useState } from 'react';
 import { useUpdateNode } from '../../api/queries';
-import { useAutosave, type SaveStatus } from '../../hooks/useAutosave';
+import { useAutosave } from '../../hooks/useAutosave';
+import { useI18n } from '../../i18n/context';
 import { MarkdownEditor } from './MarkdownEditor';
 import { draftToPatch, type NodeDraft as Draft } from './nodeDraft';
-
-const STATUS_LABEL: Record<SaveStatus, string> = {
-  saved: 'Saved',
-  dirty: 'Unsaved',
-  saving: 'Saving…',
-  error: 'Save failed',
-};
 
 /**
  * Owns the local draft. It is initialised from the server once (the parent
@@ -29,6 +23,7 @@ export function NodeEditor({ node }: { node: GraphNode }) {
     [node.id, updateNode],
   );
   const autosave = useAutosave(save);
+  const { t } = useI18n();
 
   const titleValid = nodeTitleSchema.safeParse(draft.title).success;
   const typeValid = nodeTypeSchema.safeParse(draft.type).success;
@@ -44,7 +39,7 @@ export function NodeEditor({ node }: { node: GraphNode }) {
       <div className="node-editor-header">
         <input
           className="title-input"
-          aria-label="Title"
+          aria-label={t('editor.title')}
           aria-invalid={!titleValid}
           value={draft.title}
           onChange={(e) => {
@@ -52,13 +47,13 @@ export function NodeEditor({ node }: { node: GraphNode }) {
           }}
         />
         <span className={`save-status ${autosave.status}`} data-testid="save-status">
-          {STATUS_LABEL[autosave.status]}
+          {t(`editor.status.${autosave.status}`)}
         </span>
       </div>
       <label className="inline-field">
-        Type
+        {t('editor.type')}
         <input
-          aria-label="Type"
+          aria-label={t('editor.type')}
           aria-invalid={!typeValid}
           value={draft.type}
           onChange={(e) => {
@@ -66,10 +61,8 @@ export function NodeEditor({ node }: { node: GraphNode }) {
           }}
         />
       </label>
-      {!titleValid && (
-        <p className="error">Title is required (max 200 characters). Content is still saved.</p>
-      )}
-      {!typeValid && <p className="error">Type is required (max 32 characters).</p>}
+      {!titleValid && <p className="error">{t('editor.titleInvalid')}</p>}
+      {!typeValid && <p className="error">{t('editor.typeInvalid')}</p>}
       <MarkdownEditor
         value={draft.content}
         onChange={(content) => {

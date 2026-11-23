@@ -16,8 +16,17 @@ export function openDatabase(path: string): Database {
   db.exec('PRAGMA busy_timeout = 5000;');
   if (path !== IN_MEMORY) db.exec('PRAGMA journal_mode = WAL;');
 
+  const current = userVersion(db);
+  if (path !== IN_MEMORY && current > 0 && current < migrations.length) {
+    backup(db, `${path}.backup-v${current}-${Date.now()}`);
+  }
   migrate(db);
   return db;
+}
+
+/** Consistent point-in-time copy (works under WAL), taken before schema upgrades. */
+export function backup(db: Database, targetPath: string): void {
+  db.exec(`VACUUM INTO '${targetPath.replaceAll("'", "''")}'`);
 }
 
 export function migrate(db: Database): void {

@@ -159,6 +159,10 @@ h4 {
   color: var(--text);
   font-weight: 600;
 }
+.language-picker {
+  margin-left: auto;
+  width: auto;
+}
 
 .sidebar {
   grid-area: sidebar;
@@ -351,17 +355,23 @@ h4 {
 }
 .edge-list,
 .task-list,
-.category-tree {
+.tag-tree {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 .edge-list li,
-.task-item {
+.task-row {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 2px 0;
+}
+.task-item {
+  padding: 4px 6px;
+  margin: 0 -6px;
+  border-radius: var(--radius);
+  border: 1px dashed transparent;
 }
 .relation {
   font-family: var(--mono);
@@ -369,7 +379,7 @@ h4 {
   color: var(--warn);
 }
 .edge-list li button,
-.task-item button {
+.task-row > button:first-of-type {
   margin-left: auto;
 }
 
@@ -409,6 +419,149 @@ button.small {
   text-decoration: line-through;
   color: var(--muted);
 }
+/* ---------- tags ---------- */
+
+.tag-chip {
+  --tag-color: #8b929c;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.6;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tag-color) 16%, var(--bg-input));
+  border: 1px solid color-mix(in srgb, var(--tag-color) 45%, transparent);
+  color: var(--text);
+  padding: 0 4px 0 7px;
+  white-space: nowrap;
+}
+.tag-chip .color-dot {
+  background: var(--tag-color);
+  width: 8px;
+  height: 8px;
+  margin-right: 4px;
+}
+.tag-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag-chip.is-draggable {
+  cursor: grab;
+}
+.tag-chip.is-draggable:active {
+  cursor: grabbing;
+}
+.tag-chip button.tag-chip-main {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.tag-chip button.tag-chip-remove {
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  padding: 0 3px;
+  font-weight: 400;
+  line-height: 1;
+}
+.tag-chip button.tag-chip-remove:hover {
+  color: var(--danger);
+}
+
+.owner-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 30px;
+  padding: 4px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.owner-tags.compact {
+  min-height: 0;
+  padding: 2px 0 0 26px;
+  border: none;
+}
+.tag-picker {
+  font-size: 11px;
+  padding: 0 4px;
+  height: 22px;
+  color: var(--muted);
+  max-width: 110px;
+}
+.owner-tags.compact .tag-picker {
+  opacity: 0.6;
+}
+.task-item:hover .tag-picker,
+.owner-tags.compact .tag-picker:focus {
+  opacity: 1;
+}
+.drop-hint {
+  font-size: 12px;
+}
+
+/* Shared drop-target highlight (tag zones, task rows, tag tree rows). */
+.is-drop-target {
+  border-color: var(--accent) !important;
+  border-style: dashed;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.tag-palette {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.palette-toggle {
+  margin-top: 8px;
+}
+
+/* The whole Tags page is the "top level" drop target while dragging. */
+.tags-page {
+  min-height: 100%;
+  border: 1px dashed transparent;
+}
+.tags-page.is-root-target {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.tags-page.is-root-target .root-drop {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.root-drop {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.root-drop {
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 12px;
+}
+.drag-grip {
+  color: var(--muted);
+  cursor: grab;
+  font-size: 12px;
+  user-select: none;
+}
+.tag-row {
+  border: 1px dashed transparent;
+}
+.tag-row[draggable='true'] {
+  cursor: grab;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -594,36 +747,39 @@ button.small {
 
 /* ---------- categories ---------- */
 
-.categories-page {
+.tags-page {
   padding: 16px;
+}
+/* Content stays readable; the page itself spans the full width as a drop target. */
+.tags-page > * {
   max-width: 720px;
 }
-.categories-page .toolbar {
+.tags-page .toolbar {
   margin: 12px 0 16px;
 }
-.category-tree .category-tree {
+.tag-tree .tag-tree {
   padding-left: 20px;
   border-left: 1px solid var(--border);
   margin-left: 6px;
 }
-.category-tree li {
+.tag-tree li {
   padding: 1px 0;
 }
-.category-row {
+.tag-row {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 2px 4px;
   border-radius: var(--radius);
 }
-.category-row:hover {
+.tag-row:hover {
   background: var(--bg-input);
 }
-.category-row .toggle {
+.tag-row .toggle {
   width: 22px;
   color: var(--muted);
 }
-.category-row .toggle:disabled {
+.tag-row .toggle:disabled {
   opacity: 0.4;
   cursor: default;
 }
@@ -633,10 +789,10 @@ button.small {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.category-name {
+.tag-name {
   margin-right: 4px;
 }
-.category-row .count {
+.tag-row .count {
   font-size: 11px;
 }
 .row-actions {
@@ -646,14 +802,14 @@ button.small {
   opacity: 0.35;
   transition: opacity 120ms ease;
 }
-.category-row:hover .row-actions,
-.category-row:focus-within .row-actions {
+.tag-row:hover .row-actions,
+.tag-row:focus-within .row-actions {
   opacity: 1;
 }
 .inset {
   margin: 4px 0 6px 28px;
 }
-.category-edit input[type='color'] {
+.tag-edit input[type='color'] {
   width: 36px;
   height: 32px;
   padding: 2px;

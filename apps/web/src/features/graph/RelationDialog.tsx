@@ -1,6 +1,7 @@
 import { relationNameSchema } from '@km/core';
 import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { useRelationNames } from '../../api/queries';
+import { useI18n } from '../../i18n/context';
 
 interface Props {
   sourceTitle: string;
@@ -24,6 +25,7 @@ export function RelationDialog({
   const [name, setName] = useState('');
   const relations = useRelationNames();
   const listId = useId();
+  const { t } = useI18n();
   const valid = relationNameSchema.safeParse(name).success;
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function RelationDialog({
     <dialog
       ref={dialogRef}
       className="dialog"
-      aria-label="New relation"
+      aria-label={t('relation.dialog')}
       onCancel={(e) => {
         e.preventDefault();
         onCancel();
@@ -51,8 +53,8 @@ export function RelationDialog({
         </p>
         <input
           autoFocus
-          aria-label="Relation name"
-          placeholder="RELATION"
+          aria-label={t('relation.name')}
+          placeholder={t('relation.placeholder')}
           list={listId}
           value={name}
           onChange={(e) => {
@@ -67,10 +69,10 @@ export function RelationDialog({
         {error && <p className="error">{error}</p>}
         <div className="dialog-actions">
           <button type="button" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button type="submit" disabled={!valid || pending}>
-            Create link
+            {t('relation.create')}
           </button>
         </div>
       </form>

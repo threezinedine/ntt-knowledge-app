@@ -1,5 +1,6 @@
 import { nodeTitleSchema } from '@km/core';
 import {
+  ConnectionMode,
   Controls,
   MiniMap,
   Panel,
@@ -10,12 +11,12 @@ import {
   useReactFlow,
   type Connection,
   type EdgeTypes,
+  type FitViewOptions,
   type NodeTypes,
   type OnBeforeDelete,
 } from '@xyflow/react';
 import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react';
 import { useNavigate } from 'react-router';
-import { errorMessage } from '../../api/client';
 import {
   useCreateEdge,
   useCreateNode,
@@ -23,6 +24,7 @@ import {
   useGraph,
   useUpdateNode,
 } from '../../api/queries';
+import { useI18n } from '../../i18n/context';
 import { CircleNode } from './CircleNode';
 import { FloatingEdge, GraphMarkers } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
@@ -48,6 +50,12 @@ const onlyEdges: OnBeforeDelete<KmFlowNode, KmFlowEdge> = ({ edges }) =>
 
 // Module-level so React Flow sees stable references (it warns otherwise).
 const nodeTypes: NodeTypes = { circle: CircleNode };
+const nodeOrigin: [number, number] = [0.5, 0.5];
+/** Keep dots clear of the toolbar panel (top), minimap/controls (bottom) and labels. */
+const fitViewOptions: FitViewOptions = {
+  maxZoom: 1.5,
+  padding: { top: '110px', bottom: '170px', left: '60px', right: '60px' },
+};
 const edgeTypes: EdgeTypes = { floating: FloatingEdge };
 
 function GraphCanvas() {
@@ -61,6 +69,7 @@ function GraphCanvas() {
   const createEdge = useCreateEdge();
   const deleteEdge = useDeleteEdge();
   const navigate = useNavigate();
+  const { t, errorText } = useI18n();
 
   // React Flow owns interactive state (dragging, selection); the server is the
   // source of truth, so re-sync whenever a fresh snapshot arrives.
@@ -102,7 +111,16 @@ function GraphCanvas() {
           onNodeMouseLeave={() => {
             setHoveredId(null);
           }}
+          // Loose: ending on *any* handle of another node connects (the dot's own
+          // grip included), so the whole dot and its label are a drop target.
+          connectionMode={ConnectionMode.Loose}
           connectionRadius={40}
+          // Self-loops come from the node page; on the canvas a short drag from the
+          // grip would otherwise snap back onto the same node.
+          isValidConnection={(c) => c.source !== c.target}
+          // Stored position = circle centre, so it doesn't drift as the radius
+          // (which grows with link count) changes.
+          nodeOrigin={nodeOrigin}
           connectionLineStyle={{ stroke: 'var(--graph-accent)', strokeWidth: 1.5 }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -118,7 +136,7 @@ function GraphCanvas() {
           }}
           onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
           fitView
-          fitViewOptions={{ maxZoom: 1.5, padding: 0.2 }}
+          fitViewOptions={fitViewOptions}
           minZoom={0.1}
         >
           <Controls showInteractive={false} />
@@ -133,16 +151,18 @@ function GraphCanvas() {
           {/* One stacked panel: separate panels overlap (and steal taps) on narrow screens. */}
           <Panel position="top-left" className="graph-panel">
             <NewNodeForm />
-            {graph.isError && <p className="error">{errorMessage(graph.error)}</p>}
-            {deleteEdge.isError && (
-              <p className="error">Could not delete link: {errorMessage(deleteEdge.error)}</p>
-            )}
-            {graph.data?.nodes.length === 0 && (
-              <p className="muted">
-                Empty graph. Add a node, then hover a dot and drag from its small grip onto another
-                dot.
+            {graph.isError && <p className="error">{errorText(graph.error)}</p>}
+            {updateNode.isError && (
+              <p className="error">
+                {t('graph.savePositionFailed', { error: errorText(updateNode.error) })}
               </p>
             )}
+            {deleteEdge.isError && (
+              <p className="error">
+                {t('graph.deleteLinkFailed', { error: errorText(deleteEdge.error) })}
+              </p>
+            )}
+            {graph.data?.nodes.length === 0 && <p className="muted">{t('graph.empty')}</p>}
           </Panel>
         </ReactFlow>
       </GraphHighlightContext>
@@ -152,7 +172,7 @@ function GraphCanvas() {
           sourceTitle={titleOf(pendingConnection.source)}
           targetTitle={titleOf(pendingConnection.target)}
           pending={createEdge.isPending}
-          error={createEdge.isError ? errorMessage(createEdge.error) : null}
+          error={createEdge.isError ? errorText(createEdge.error) : null}
           onCancel={closeDialog}
           onSubmit={(name) => {
             createEdge.mutate(
@@ -171,6 +191,7 @@ function NewNodeForm() {
   const createNode = useCreateNode();
   const { screenToFlowPosition } = useReactFlow();
   const formRef = useRef<HTMLFormElement>(null);
+  const { t, errorText } = useI18n();
   const valid = nodeTitleSchema.safeParse(title).success;
 
   const submit = (e: SubmitEvent) => {
@@ -195,19 +216,19 @@ function NewNodeForm() {
   };
 
   return (
-    <form ref={formRef} className="toolbar" onSubmit={submit} aria-label="New node">
+    <form ref={formRef} className="toolbar" onSubmit={submit} aria-label={t('graph.newNodeForm')}>
       <input
-        aria-label="New node title"
-        placeholder="New node title…"
+        aria-label={t('graph.newNodeTitle')}
+        placeholder={t('graph.newNodePlaceholder')}
         value={title}
         onChange={(e) => {
           setTitle(e.target.value);
         }}
       />
       <button type="submit" disabled={!valid || createNode.isPending}>
-        Add node
+        {t('graph.addNode')}
       </button>
-      {createNode.isError && <span className="error">{errorMessage(createNode.error)}</span>}
+      {createNode.isError && <span className="error">{errorText(createNode.error)}</span>}
     </form>
   );
 }

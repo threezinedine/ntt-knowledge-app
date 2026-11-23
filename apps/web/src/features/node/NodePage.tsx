@@ -1,22 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ApiError, errorMessage } from '../../api/client';
+import { ApiError } from '../../api/client';
 import { useDeleteNode, useNode } from '../../api/queries';
+import { useI18n } from '../../i18n/context';
 import { EdgesPanel } from './EdgesPanel';
 import { NodeEditor } from './NodeEditor';
+import { NodeTagsPanel } from './NodeTagsPanel';
 import { PropsEditor } from './PropsEditor';
 import { TasksPanel } from './TasksPanel';
 
 export function NodePage() {
   const { id = '' } = useParams();
   const node = useNode(id);
+  const { t, errorText } = useI18n();
 
-  if (node.isPending) return <p className="muted">Loading…</p>;
+  if (node.isPending) return <p className="muted">{t('common.loading')}</p>;
   if (node.isError) {
     const notFound = node.error instanceof ApiError && node.error.status === 404;
-    return (
-      <p className="empty">{notFound ? 'This node does not exist.' : errorMessage(node.error)}</p>
-    );
+    return <p className="empty">{notFound ? t('node.notFound') : errorText(node.error)}</p>;
   }
 
   // Keyed by id so local drafts reset cleanly when switching nodes.
@@ -26,6 +27,7 @@ export function NodePage() {
         <NodeEditor node={node.data} />
       </section>
       <aside className="node-side">
+        <NodeTagsPanel node={node.data} />
         <EdgesPanel nodeId={node.data.id} />
         <TasksPanel nodeId={node.data.id} />
         <PropsEditor node={node.data} />
@@ -39,6 +41,7 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
   const [confirming, setConfirming] = useState(false);
   const deleteNode = useDeleteNode();
   const navigate = useNavigate();
+  const { t, errorText } = useI18n();
 
   if (!confirming) {
     return (
@@ -49,13 +52,13 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
           setConfirming(true);
         }}
       >
-        Delete node
+        {t('node.delete')}
       </button>
     );
   }
   return (
     <div className="confirm-row">
-      <span>Delete node, its links and tasks?</span>
+      <span>{t('node.deleteConfirm')}</span>
       <button
         type="button"
         className="danger"
@@ -64,7 +67,7 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
           deleteNode.mutate(nodeId, { onSuccess: () => void navigate('/') });
         }}
       >
-        Confirm delete
+        {t('node.deleteConfirmButton')}
       </button>
       <button
         type="button"
@@ -72,9 +75,9 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
           setConfirming(false);
         }}
       >
-        Cancel
+        {t('common.cancel')}
       </button>
-      {deleteNode.isError && <p className="error">{errorMessage(deleteNode.error)}</p>}
+      {deleteNode.isError && <p className="error">{errorText(deleteNode.error)}</p>}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import type { CreateNodeData } from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { IN_MEMORY, openDatabase, type Database } from '../db/database.js';
 import { createRepositories, type Repositories } from './index.js';
@@ -20,122 +21,120 @@ afterEach(() => {
   db.close();
 });
 
+const nodeData = (title: string, extra: Partial<CreateNodeData> = {}): CreateNodeData => ({
+  type: 'note',
+  title,
+  content: '',
+  props: {},
+  position: null,
+  tagIds: [],
+  ...extra,
+});
+
 const raw = (table: string, id: string) =>
   db.prepare(`SELECT deleted_at, updated_at FROM ${table} WHERE id = ?`).get(id) as
     { deleted_at: number | null; updated_at: number } | undefined;
 
+const rawLink = (table: 'node_tags' | 'task_tags', ownerId: string, tagId: string) => {
+  const owner = table === 'node_tags' ? 'node_id' : 'task_id';
+  return db
+    .prepare(`SELECT deleted_at, updated_at FROM ${table} WHERE ${owner} = ? AND tag_id = ?`)
+    .get(ownerId, tagId) as { deleted_at: number | null; updated_at: number } | undefined;
+};
+
 describe('tombstones', () => {
-  it('node delete keeps rows and cascades one shared ts to edges and tasks', () => {
-    const a = repos.nodes.create({
-      type: 'note',
-      title: 'A',
-      content: '',
-      props: {},
-      position: null,
-    });
-    const b = repos.nodes.create({
-      type: 'note',
-      title: 'B',
-      content: '',
-      props: {},
-      position: null,
-    });
+  it('node delete cascades one shared ts to edges, tasks and all tag links', () => {
+    const tag = repos.tags.create({ name: 'T', parentId: null, color: null });
+    const a = repos.nodes.create(nodeData('A', { tagIds: [tag.id] }));
+    const b = repos.nodes.create(nodeData('B'));
     const edge = repos.edges.create({ fromId: b.id, toId: a.id, name: 'R', props: {} });
-    const task = repos.tasks.create({ nodeId: a.id, categoryId: null, title: 't', status: 'todo' });
+    const task = repos.tasks.create({ nodeId: a.id, title: 't', status: 'todo', tagIds: [tag.id] });
 
     clock = 5_000;
     repos.nodes.remove(a.id);
 
-    expect(raw('nodes', a.id)).toEqual({ deleted_at: 5_000, updated_at: 5_000 });
-    expect(raw('edges', edge.id)).toEqual({ deleted_at: 5_000, updated_at: 5_000 });
-    expect(raw('tasks', task.id)).toEqual({ deleted_at: 5_000, updated_at: 5_000 });
+    const tomb = { deleted_at: 5_000, updated_at: 5_000 };
+    expect(raw('nodes', a.id)).toEqual(tomb);
+    expect(raw('edges', edge.id)).toEqual(tomb);
+    expect(raw('tasks', task.id)).toEqual(tomb);
+    expect(rawLink('node_tags', a.id, tag.id)).toEqual(tomb);
+    expect(rawLink('task_tags', task.id, tag.id)).toEqual(tomb);
     expect(raw('nodes', b.id)?.deleted_at).toBeNull();
   });
 
-  it('edge, task and category deletes are soft', () => {
-    const n = repos.nodes.create({
-      type: 'note',
-      title: 'N',
-      content: '',
-      props: {},
-      position: null,
-    });
+  it('edge, task and tag deletes are soft; tag delete tombstones its links', () => {
+    const n = repos.nodes.create(nodeData('N'));
     const edge = repos.edges.create({ fromId: n.id, toId: n.id, name: 'SELF', props: {} });
-    const cat = repos.categories.create({ name: 'C', parentId: null, color: null });
-    const task = repos.tasks.create({
-      nodeId: n.id,
-      categoryId: cat.id,
-      title: 't',
-      status: 'todo',
-    });
+    const tag = repos.tags.create({ name: 'C', parentId: null, color: null });
+    const task = repos.tasks.create({ nodeId: n.id, title: 't', status: 'todo', tagIds: [tag.id] });
+    repos.nodes.attachTag(n.id, tag.id);
 
     clock = 9_000;
     repos.edges.remove(edge.id);
-    repos.categories.remove(cat.id);
-    repos.tasks.remove(task.id);
+    repos.tags.remove(tag.id);
 
     expect(raw('edges', edge.id)?.deleted_at).toBe(9_000);
-    expect(raw('task_categories', cat.id)?.deleted_at).toBe(9_000);
-    expect(raw('tasks', task.id)?.deleted_at).toBe(9_000);
+    expect(raw('tags', tag.id)?.deleted_at).toBe(9_000);
+    expect(rawLink('node_tags', n.id, tag.id)?.deleted_at).toBe(9_000);
+    expect(rawLink('task_tags', task.id, tag.id)?.deleted_at).toBe(9_000);
+    expect(repos.tasks.get(task.id)?.tagIds).toEqual([]);
+
+    clock = 9_500;
+    repos.tasks.remove(task.id);
+    expect(raw('tasks', task.id)?.deleted_at).toBe(9_500);
   });
 
-  it('category delete bumps updated_at on the tasks it detaches', () => {
-    const n = repos.nodes.create({
-      type: 'note',
-      title: 'N',
-      content: '',
-      props: {},
-      position: null,
-    });
-    const cat = repos.categories.create({ name: 'C', parentId: null, color: null });
-    const task = repos.tasks.create({
-      nodeId: n.id,
-      categoryId: cat.id,
-      title: 't',
-      status: 'todo',
-    });
+  it('detach tombstones the link and re-attach revives the same row', () => {
+    const n = repos.nodes.create(nodeData('N'));
+    const tag = repos.tags.create({ name: 'T', parentId: null, color: null });
 
-    clock = 7_000;
-    repos.categories.remove(cat.id);
-    expect(repos.tasks.get(task.id)).toMatchObject({ categoryId: null, updatedAt: 7_000 });
+    repos.nodes.attachTag(n.id, tag.id);
+    clock = 2_000;
+    repos.nodes.detachTag(n.id, tag.id);
+    expect(rawLink('node_tags', n.id, tag.id)).toEqual({ deleted_at: 2_000, updated_at: 2_000 });
+
+    clock = 1_500; // clock went backwards
+    expect(repos.nodes.attachTag(n.id, tag.id).tagIds).toEqual([tag.id]);
+    expect(rawLink('node_tags', n.id, tag.id)).toEqual({ deleted_at: null, updated_at: 2_001 });
   });
 });
 
 describe('timestamps', () => {
+  it('a detach is never older than the attach it undoes, even if the clock steps back', () => {
+    const n = repos.nodes.create(nodeData('N'));
+    const tag = repos.tags.create({ name: 'T', parentId: null, color: null });
+    clock = 2_000;
+    repos.nodes.attachTag(n.id, tag.id);
+    clock = 1_500;
+    repos.nodes.detachTag(n.id, tag.id);
+    expect(rawLink('node_tags', n.id, tag.id)?.updated_at).toBe(2_001);
+  });
+
+  it('never exposes a deleted tag through a stale live link', () => {
+    const n = repos.nodes.create(nodeData('N'));
+    const tag = repos.tags.create({ name: 'T', parentId: null, color: null });
+    repos.nodes.attachTag(n.id, tag.id);
+    // Simulate a writer that tombstoned the tag but forgot the link.
+    db.prepare('UPDATE tags SET deleted_at = 5 WHERE id = ?').run(tag.id);
+    expect(repos.nodes.get(n.id)?.tagIds).toEqual([]);
+  });
+
   it('never go backwards when the clock does', () => {
-    const n = repos.nodes.create({
-      type: 'note',
-      title: 'N',
-      content: '',
-      props: {},
-      position: null,
-    });
-    clock = 500; // clock stepped back
+    const n = repos.nodes.create(nodeData('N'));
+    clock = 500;
     const updated = repos.nodes.update(n.id, { title: 'N2' });
     expect(updated.updatedAt).toBe(n.updatedAt + 1);
   });
 
   it('a no-op patch writes nothing', () => {
-    const n = repos.nodes.create({
-      type: 'note',
-      title: 'N',
-      content: 'c',
-      props: { a: 1 },
-      position: null,
-    });
+    const n = repos.nodes.create(nodeData('N', { content: 'c', props: { a: 1 } }));
     clock = 2_000;
     expect(repos.nodes.update(n.id, { title: 'N', props: { a: 1 } }).updatedAt).toBe(n.updatedAt);
     expect(raw('nodes', n.id)?.updated_at).toBe(n.updatedAt);
   });
 
   it('moving a node only touches its layout row', () => {
-    const n = repos.nodes.create({
-      type: 'note',
-      title: 'N',
-      content: '',
-      props: {},
-      position: null,
-    });
+    const n = repos.nodes.create(nodeData('N'));
     clock = 3_000;
     const moved = repos.nodes.update(n.id, { position: { x: 5, y: 6 } });
     expect(moved.position).toEqual({ x: 5, y: 6 });
@@ -143,5 +142,12 @@ describe('timestamps', () => {
     expect(db.prepare('SELECT updated_at FROM node_layouts WHERE node_id = ?').get(n.id)).toEqual({
       updated_at: 3_000,
     });
+  });
+
+  it('attaching a tag does not bump the owner (links have their own timestamps)', () => {
+    const n = repos.nodes.create(nodeData('N'));
+    const tag = repos.tags.create({ name: 'T', parentId: null, color: null });
+    clock = 4_000;
+    expect(repos.nodes.attachTag(n.id, tag.id).updatedAt).toBe(n.updatedAt);
   });
 });
