@@ -4,6 +4,9 @@
 #   KM_PORT=4317                  host port
 #   KM_PUBLISH_ADDR=127.0.0.1     set to 0.0.0.0 to reach it from your phone on the LAN
 #   KM_ALLOWED_HOSTS=192.168.1.20 required with 0.0.0.0: the PC's LAN IP / hostname
+#
+# Sign-in (on by default): KM_TOTP_SECRET from the same .env, created on the
+# host with `npm run auth:setup`. KM_AUTH=off turns it off (local only).
 services:
   km:
     build: .
@@ -16,6 +19,10 @@ services:
     environment:
       KM_ALLOWED_HOSTS: ${KM_ALLOWED_HOSTS:-}
       KM_LOG_LEVEL: ${KM_LOG_LEVEL:-info}
+      KM_AUTH: ${KM_AUTH:-totp}
+      KM_TOTP_SECRET: ${KM_TOTP_SECRET:-}
+      KM_SESSION_HOURS: ${KM_SESSION_HOURS:-168}
+      KM_COOKIE_SECURE: ${KM_COOKIE_SECURE:-false}
     volumes:
       - km-data:/data
 

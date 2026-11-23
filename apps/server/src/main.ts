@@ -1,10 +1,14 @@
 import { buildApp } from './app.js';
-import { levelConfigPath, loadConfig } from './config.js';
+import { authSettings, levelConfigPath, loadConfig } from './config.js';
 import { openDatabase } from './db/database.js';
 import { loadLevelConfig } from './levelConfig.js';
+import { DEFAULT_ENV_FILE, loadEnvFile } from './envFile.js';
 import { watchParent } from './watchParent.js';
 
+// Secrets live in the repo-root .env (gitignored); real env vars win over it.
+const envFile = loadEnvFile(process.env.KM_ENV_FILE ?? DEFAULT_ENV_FILE);
 const config = loadConfig(process.env);
+const auth = authSettings(config); // throws (stops startup) if half-configured
 const levelPath = levelConfigPath(config);
 const level = loadLevelConfig(levelPath); // throws (stops startup) if the file is broken
 const db = openDatabase(config.KM_DB_PATH);
@@ -18,7 +22,14 @@ const app = await buildApp({
   ],
   logger: { level: config.KM_LOG_LEVEL },
   levelConfig: level.config,
+  auth: auth ?? undefined,
 });
+if (envFile) app.log.info({ path: envFile }, 'Loaded .env');
+if (auth) {
+  app.log.info({ sessionHours: config.KM_SESSION_HOURS }, 'Sign-in on (authenticator code)');
+} else {
+  app.log.warn('Sign-in is OFF (KM_AUTH=off): anyone who can reach this server can use it');
+}
 app.log.info({ path: levelPath, source: level.source }, 'Level config loaded');
 
 let shuttingDown = false;

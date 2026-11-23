@@ -12,6 +12,8 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'CONFLICT'
   | 'FORBIDDEN_HOST'
+  | 'UNAUTHORIZED'
+  | 'TOO_MANY_REQUESTS'
   | 'PAYLOAD_TOO_LARGE'
   | 'BAD_REQUEST'
   | 'INTERNAL_ERROR';
@@ -21,7 +23,14 @@ export type ApiErrorCode =
  * a user. Clients translate it; `message` stays English (logs, curl).
  */
 export type ApiErrorReason =
-  'EDGE_EXISTS' | 'TAG_NAME_TAKEN' | 'TAG_HAS_CHILDREN' | 'TAG_CYCLE' | 'TAG_LIMIT_REACHED';
+  | 'EDGE_EXISTS'
+  | 'TAG_NAME_TAKEN'
+  | 'TAG_HAS_CHILDREN'
+  | 'TAG_CYCLE'
+  | 'TAG_LIMIT_REACHED'
+  | 'CODE_INVALID'
+  | 'CODE_USED'
+  | 'LOCKED_OUT';
 
 /** Shape of every non-2xx JSON response body. */
 export interface ApiErrorBody {

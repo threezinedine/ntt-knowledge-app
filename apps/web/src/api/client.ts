@@ -1,5 +1,6 @@
 import type {
   ApiErrorBody,
+  AuthStatus,
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
@@ -113,6 +114,12 @@ export const api = {
   },
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),
+  auth: {
+    status: () => request<AuthStatus>('GET', '/auth/status'),
+    /** The 6-digit authenticator code; sets the session cookie. */
+    login: (code: string) => request<AuthStatus>('POST', '/auth/login', { code }),
+    signOut: () => request<undefined>('POST', '/auth/logout'),
+  },
 };
 
 export function errorMessage(error: unknown): string {

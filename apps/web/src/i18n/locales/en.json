@@ -230,5 +230,19 @@
   "graph3d.label": "3D graph: {nodes} nodes, {links} links",
   "graph3d.loading": "Loading 3D view…",
   "graph3d.unsupported": "The 3D view needs WebGL, which this browser can't provide.",
-  "graph3d.loadFailed": "Couldn't open the 3D view. Check the connection and try again."
+  "graph3d.loadFailed": "Couldn't open the 3D view. Check the connection and try again.",
+  "error.code.UNAUTHORIZED": "Please sign in again.",
+  "cmd.signOut": "Sign Out",
+  "cmdCategory.account": "Account",
+  "auth.title": "Knowledge Manager",
+  "auth.subtitle": "Enter the 6-digit code from your authenticator app.",
+  "auth.codeLabel": "6-digit code",
+  "auth.signIn": "Sign in",
+  "auth.expiredTitle": "Signed out",
+  "auth.expired": "Your sign-in has ended. Enter a new code to carry on; unsaved changes are kept.",
+  "auth.lockedOut": "Too many wrong codes. Try again in {minutes} min.",
+  "error.reason.CODE_INVALID": "Wrong or expired code. Use the one the app shows now.",
+  "error.reason.LOCKED_OUT": "Too many wrong codes. Try again later.",
+  "error.code.TOO_MANY_REQUESTS": "Too many attempts. Try again later.",
+  "error.reason.CODE_USED": "That code was just used. Wait for the next one."
 }

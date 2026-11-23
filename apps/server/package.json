@@ -6,13 +6,19 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "auth:setup": "tsx src/cli/authSetup.ts"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.5",
     "@fastify/static": "^10.1.12",
     "@km/core": "*",
     "fastify": "^5.12.8",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.6",
+    "qrcode": "^1.5.4"
   }
 }

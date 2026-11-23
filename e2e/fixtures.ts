@@ -11,6 +11,12 @@ export class Api {
     return (await res.json()) as GraphNode;
   }
 
+  async getNode(id: string): Promise<GraphNode> {
+    const res = await this.request.get(`/api/nodes/${id}`);
+    expect(res.status()).toBe(200);
+    return (await res.json()) as GraphNode;
+  }
+
   async createEdge(fromId: string, toId: string, name: string): Promise<Edge> {
     const res = await this.request.post('/api/edges', { data: { fromId, toId, name } });
     expect(res.status()).toBe(201);

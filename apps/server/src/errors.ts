@@ -37,6 +37,18 @@ export class ConflictError extends AppError {
   }
 }
 
+export class UnauthorizedError extends AppError {
+  constructor(reason?: ApiErrorReason, message = 'Sign in required') {
+    super(401, 'UNAUTHORIZED', message, undefined, reason);
+  }
+}
+
+export class TooManyRequestsError extends AppError {
+  constructor(reason: ApiErrorReason, message: string, retryAfterMs: number) {
+    super(429, 'TOO_MANY_REQUESTS', message, { retryAfterMs }, reason);
+  }
+}
+
 export class DomainValidationError extends AppError {
   constructor(reason: ApiErrorReason, message: string, details?: unknown) {
     super(400, 'VALIDATION_ERROR', message, details, reason);

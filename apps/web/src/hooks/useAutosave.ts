@@ -2,6 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type SaveStatus = 'saved' | 'dirty' | 'saving' | 'error';
 
+/** Every mounted autosave's flush, so the app can save everything now. */
+const flushers = new Set<() => Promise<void>>();
+
+/**
+ * Saves every pending edit now, skipping debounce and retry backoff: right
+ * after signing in again (a save failed while signed out), and before
+ * signing out (a save after that would be refused).
+ */
+export async function flushAllAutosaves(): Promise<void> {
+  await Promise.all([...flushers].map((flush) => flush()));
+}
+
 export interface AutosaveOptions {
   /** Debounce after the last edit. */
   delayMs?: number;
@@ -82,11 +94,13 @@ export function useAutosave<T>(
       if (document.visibilityState === 'hidden') void flush();
     };
     const onPageHide = () => void flush();
+    flushers.add(flush);
     document.addEventListener('visibilitychange', onHide);
     window.addEventListener('pagehide', onPageHide);
     return () => {
       document.removeEventListener('visibilitychange', onHide);
       window.removeEventListener('pagehide', onPageHide);
+      flushers.delete(flush);
       clearTimeout(timer.current);
       void flush(); // unmount (e.g. navigating to another node)
     };

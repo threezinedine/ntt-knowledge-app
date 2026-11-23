@@ -1,6 +1,6 @@
 import type { LevelConfig } from '@km/core';
 import type { FastifyInstance, InjectOptions } from 'fastify';
-import { buildApp } from '../app.js';
+import { buildApp, type AppOptions } from '../app.js';
 import { IN_MEMORY, openDatabase } from '../db/database.js';
 
 export interface TestApp {
@@ -16,7 +16,9 @@ export interface TestApp {
 }
 
 /** A fresh in-memory app with a deterministic clock. */
-export async function createTestApp(options: { levelConfig?: LevelConfig } = {}): Promise<TestApp> {
+export async function createTestApp(
+  options: { levelConfig?: LevelConfig; auth?: AppOptions['auth'] } = {},
+): Promise<TestApp> {
   const db = openDatabase(IN_MEMORY);
   let clock = 1_700_000_000_000;
   const app = await buildApp({ db, now: () => clock, ...options });

@@ -11,6 +11,7 @@ import type {
   UpdateTagInput,
 } from '@km/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { flushAllAutosaves } from '../hooks/useAutosave';
 import { api } from './client';
 
 /**
@@ -29,6 +30,7 @@ export const keys = {
   tags: ['tags'] as const,
   /** Derived from nodes + tags: invalidated by any write to either. */
   exp: ['exp'] as const,
+  auth: ['auth'] as const,
 };
 
 export const useNodeList = (q: string) =>
@@ -39,6 +41,46 @@ export const useNode = (id: string) =>
 
 export const useNodeEdges = (id: string) =>
   useQuery({ queryKey: keys.nodeEdges(id), queryFn: () => api.nodes.edges(id) });
+
+export const useAuthStatus = () =>
+  useQuery({ queryKey: keys.auth, queryFn: api.auth.status, staleTime: 60_000 });
+
+/**
+ * Signs in with an authenticator code, then refetches what failed while
+ * signed out and saves pending edits at once (not at their next retry).
+ */
+export function useLogin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (code: string) => api.auth.login(code),
+    onSuccess: (status) => {
+      qc.setQueryData(keys.auth, status);
+      void flushAllAutosaves();
+      void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== keys.auth[0] });
+    },
+  });
+}
+
+/**
+ * Saves pending edits, signs out, then reloads the app: nothing of the
+ * session (cached data, the open page) should outlive it.
+ */
+export function useSignOut() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      await flushAllAutosaves();
+      // A flush that found a save already running returns before it ends.
+      for (let waited = 0; qc.isMutating() > 1 && waited < 5_000; waited += 50) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      await api.auth.signOut();
+    },
+    onSettled: () => {
+      window.location.replace('/');
+    },
+  });
+}
 
 export const useExp = () => useQuery({ queryKey: keys.exp, queryFn: api.exp });
 

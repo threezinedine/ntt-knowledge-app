@@ -3,6 +3,7 @@ import fastifyStatic from '@fastify/static';
 import { DEFAULT_LEVEL_CONFIG, newId, type LevelConfig } from '@km/core';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { Database } from './db/database.js';
+import { registerAuth, type AuthOptions } from './http/auth.js';
 import { registerErrorHandler } from './http/errorHandler.js';
 import { registerHostGuard } from './http/hostGuard.js';
 import { registerEdgeRoutes } from './http/routes/edgeRoutes.js';
@@ -22,6 +23,8 @@ export interface AppOptions {
   newId?: () => string;
   /** EXP/level table (from the operator's config file). */
   levelConfig?: LevelConfig;
+  /** Authenticator-code sign-in. Omitted = no sign-in (KM_AUTH=off, and the API tests). */
+  auth?: AuthOptions | undefined;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -34,7 +37,8 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   registerErrorHandler(app);
   registerHostGuard(app, options.allowedHosts ?? []);
-  app.get('/api/health', () => ({ ok: true }));
+  await registerAuth(app, repos.sessions, options.auth, options.now ?? Date.now);
+  app.get('/api/health', () => ({ ok: true })); // public: see PUBLIC_API in http/auth.ts
   registerNodeRoutes(app, repos);
   registerEdgeRoutes(app, repos);
   registerTagRoutes(app, repos);

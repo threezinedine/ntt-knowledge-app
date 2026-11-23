@@ -49,6 +49,12 @@ export const COMMANDS = [
     keys: ['Mod+B'],
   },
   {
+    id: 'km.auth.signOut',
+    title: 'cmd.signOut',
+    category: 'cmdCategory.account',
+    keys: [],
+  },
+  {
     id: 'km.sidebar.focusSearch',
     title: 'cmd.focusSearch',
     category: 'cmdCategory.view',

@@ -230,5 +230,19 @@
   "graph3d.label": "Đồ thị 3D: {nodes} nút, {links} liên kết",
   "graph3d.loading": "Đang tải chế độ 3D…",
   "graph3d.unsupported": "Chế độ 3D cần WebGL, trình duyệt này không hỗ trợ.",
-  "graph3d.loadFailed": "Không mở được chế độ 3D. Kiểm tra kết nối rồi thử lại."
+  "graph3d.loadFailed": "Không mở được chế độ 3D. Kiểm tra kết nối rồi thử lại.",
+  "error.code.UNAUTHORIZED": "Vui lòng đăng nhập lại.",
+  "cmd.signOut": "Đăng xuất",
+  "cmdCategory.account": "Tài khoản",
+  "auth.title": "Knowledge Manager",
+  "auth.subtitle": "Nhập mã 6 số trong ứng dụng xác thực.",
+  "auth.codeLabel": "Mã 6 số",
+  "auth.signIn": "Đăng nhập",
+  "auth.expiredTitle": "Đã đăng xuất",
+  "auth.expired": "Phiên đăng nhập đã hết. Nhập mã mới để làm tiếp; thay đổi chưa lưu vẫn được giữ.",
+  "auth.lockedOut": "Nhập sai quá nhiều lần. Thử lại sau {minutes} phút.",
+  "error.reason.CODE_INVALID": "Mã sai hoặc đã hết hạn. Hãy dùng mã đang hiện trong ứng dụng.",
+  "error.reason.LOCKED_OUT": "Nhập sai quá nhiều lần. Thử lại sau.",
+  "error.code.TOO_MANY_REQUESTS": "Thử quá nhiều lần. Vui lòng thử lại sau.",
+  "error.reason.CODE_USED": "Mã này vừa được dùng. Hãy chờ mã tiếp theo."
 }

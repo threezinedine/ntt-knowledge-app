@@ -959,6 +959,9 @@ kbd {
   .activity-bar > a,
   .activity-button {
     flex: 1;
+    /* Fill the bar's row inside its top border; a fixed 48px stuck out by
+       1px, which let the whole page scroll (and closed menus on tap). */
+    height: auto;
   }
   .activity-bar-spacer {
     display: none;
@@ -1481,4 +1484,73 @@ kbd {
 .node-list-item {
   -webkit-touch-callout: none;
   user-select: none;
+}
+
+/* ---------- sign-in ---------- */
+
+.auth-page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--bg);
+}
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(360px, 100%);
+  padding: 32px 24px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: center;
+}
+.auth-card h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.auth-card p {
+  margin: 0;
+}
+.auth-logo {
+  font-size: 40px;
+  line-height: 1;
+  color: var(--accent);
+  text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 45%, transparent);
+  user-select: none;
+}
+.code-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+.code-form label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.code-input {
+  font-family: var(--mono);
+  font-size: 24px;
+  letter-spacing: 0.4em;
+  text-align: center;
+  padding: 10px;
+}
+.code-form .error {
+  margin: 0;
+  font-size: 13px;
+}
+.auth-dialog {
+  width: min(360px, calc(100% - 32px));
+}
+.auth-dialog h2 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+.auth-dialog::backdrop {
+  background: rgb(0 0 0 / 60%);
+  backdrop-filter: blur(3px);
 }

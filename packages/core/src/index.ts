@@ -6,3 +6,4 @@ export * from './exp.js';
 export * from './tagTree.js';
 export * from './api.js';
 export * from './ids.js';
+export * from './auth.js';

@@ -39,6 +39,9 @@ export default defineConfig({
       // level-config.json that happens to sit on this machine.
       KM_LEVEL_CONFIG: 'e2e-uses-default-level-config.json',
       KM_LOG_LEVEL: 'warn',
+      // No Google in tests. Set explicitly so a developer's .env (which the
+      // server reads, but never over an existing variable) can't turn it on.
+      KM_AUTH: 'off',
       // Windows doesn't kill this server when Playwright dies (e.g. the UI-mode
       // window is closed); it would then hold the port and break the next run.
       KM_PARENT_PID: String(process.pid),

@@ -20,6 +20,7 @@ playwright/.cache/
 .DS_Store
 .env
 .env.*
+!.env.example
 .claude/settings.local.json
 
 # the operator's own level table (see level-config.example.json)

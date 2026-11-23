@@ -10,6 +10,7 @@ import { readJson, writeJson } from './commands/storage';
 import { Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
 import { GraphIcon, KeyboardIcon, SearchIcon, SidebarIcon, TagIcon } from './components/icons';
 import { Toast } from './components/toast';
+import { SignOutButton } from './features/auth/SignOutButton';
 import { GraphPage } from './features/graph/GraphPage';
 import { NodePage } from './features/node/NodePage';
 import { TagsPage } from './features/tags/TagsPage';
@@ -74,6 +75,7 @@ export function App() {
           <TagIcon size={22} />
         </NavLink>
         <span className="activity-bar-spacer" />
+        <SignOutButton />
         <button
           type="button"
           className={`activity-button${sidebarVisible ? ' active' : ''}`}

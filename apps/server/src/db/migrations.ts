@@ -161,4 +161,33 @@ export const migrations: readonly string[] = [
         data: writing it never bumps updated_at. */ `
   ALTER TABLE nodes ADD COLUMN content_words INTEGER;
   `,
+
+  /* 6: sign-in sessions (authenticator-app code). Only a SHA-256 of the
+        cookie token is stored, so a copy of the database can't be used to
+        sign in. Signing out tombstones the row; expired rows stop matching.
+        Device-local secret state: NEVER include this table in any sync. */ `
+  CREATE TABLE sessions (
+    id          TEXT PRIMARY KEY,
+    token_hash  TEXT NOT NULL UNIQUE,
+    expires_at  INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    deleted_at  INTEGER
+  ) STRICT;
+  `,
+
+  /* 7: sessions again. An unreleased draft of 6 created this table with
+        sign-in identity columns (email NOT NULL, …) on some dev databases,
+        and 6 can't change once applied. Sessions are disposable (worst case:
+        sign in again), so rebuild the table in its final shape everywhere. */ `
+  DROP TABLE IF EXISTS sessions;
+  CREATE TABLE sessions (
+    id          TEXT PRIMARY KEY,
+    token_hash  TEXT NOT NULL UNIQUE,
+    expires_at  INTEGER NOT NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    deleted_at  INTEGER
+  ) STRICT;
+  `,
 ];

@@ -108,3 +108,39 @@ describe('migration 4: tasks are gone', () => {
     db.close();
   });
 });
+
+describe('migration 7: sessions rebuilt', () => {
+  it('fixes a database where a draft migration 6 made sessions with identity columns', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec('PRAGMA foreign_keys = ON;');
+    for (const sql of migrations.slice(0, 5)) db.exec(sql);
+    // What the unreleased Google sign-in draft of 6 created on dev machines.
+    db.exec(`
+      CREATE TABLE sessions (
+        id TEXT PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE,
+        email TEXT NOT NULL, name TEXT NOT NULL, picture TEXT,
+        expires_at INTEGER NOT NULL, created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL, deleted_at INTEGER
+      ) STRICT;
+      PRAGMA user_version = 6;
+    `);
+
+    migrate(db);
+
+    expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: migrations.length });
+    // The insert that failed with "NOT NULL constraint failed: sessions.email".
+    db.prepare(
+      `INSERT INTO sessions (id, token_hash, expires_at, created_at, updated_at)
+       VALUES ('s1', 'h', 2, 1, 1)`,
+    ).run();
+    const columns = db.prepare('PRAGMA table_info(sessions)').all() as { name: string }[];
+    expect(columns.map((c) => c.name)).toEqual([
+      'id',
+      'token_hash',
+      'expires_at',
+      'created_at',
+      'updated_at',
+      'deleted_at',
+    ]);
+  });
+});
