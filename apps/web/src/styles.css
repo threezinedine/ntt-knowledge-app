@@ -1128,3 +1128,17 @@ kbd {
     display: none; /* keyboard shortcuts; phones have no Alt+J */
   }
 }
+.keyboard-indicator {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.keyboard-indicator.warn {
+  color: var(--warn);
+  border-color: var(--warn);
+}

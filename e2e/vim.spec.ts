@@ -177,6 +177,23 @@ test.describe('vim mode', () => {
     await expect(page.getByText('--NORMAL--')).toBeInViewport();
   });
 
+  test('shows which keyboard language is typing', async ({ page, api }) => {
+    const node = await api.createNode({ title: 'Keys' });
+    await page.goto('/nodes/' + node.id);
+    await enableVim(page);
+    const indicator = page.getByTestId('keyboard-indicator');
+    await page.keyboard.press('Alt+J');
+    await page.keyboard.press('j');
+    await expect(indicator).toHaveText('⌨ EN');
+    await expect(indicator).toHaveAttribute('data-kind', 'latin');
+    // What Unikey/EVKey Telex sends for "w": the composed letter.
+    await content(page).dispatchEvent('keydown', { key: 'ư', code: '', bubbles: true });
+    await expect(indicator).toHaveText('⌨ VI');
+    await expect(indicator).toHaveAttribute('aria-label', /Vietnamese typing is on/);
+    await page.keyboard.press('j');
+    await expect(indicator).toHaveText('⌨ EN');
+  });
+
   test('toggling vim keeps the caret in the title', async ({ page, api }) => {
     const node = await api.createNode({ title: 'Stay' });
     await page.goto(`/nodes/${node.id}`);

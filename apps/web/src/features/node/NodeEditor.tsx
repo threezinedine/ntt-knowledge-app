@@ -7,6 +7,7 @@ import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useAutosave } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
 import { JumpHint } from './JumpHint';
+import { KeyboardIndicator } from './KeyboardIndicator';
 import { MarkdownEditor } from './MarkdownEditor';
 import { wantsTitleFocus } from './navState';
 import { draftToPatch, type NodeDraft as Draft } from './nodeDraft';
@@ -117,6 +118,7 @@ export function NodeEditor({ node }: { node: GraphNode }) {
         >
           {t('editor.vim')}
         </button>
+        {vim && <KeyboardIndicator />}
         <span className={`save-status ${autosave.status}`} data-testid="save-status">
           {t(`editor.status.${autosave.status}`)}
         </span>
