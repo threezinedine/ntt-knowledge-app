@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.tsbuildinfo
+
+# local data
+data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# misc
+.DS_Store
+.env
+.env.*
+.claude/settings.local.json

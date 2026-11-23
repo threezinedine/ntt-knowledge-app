@@ -1,0 +1,24 @@
+# Usage: docker compose up -d --build   →  http://localhost:4317
+#
+# Optional env (shell or a .env file next to this file):
+#   KM_PORT=4317                  host port
+#   KM_PUBLISH_ADDR=127.0.0.1     set to 0.0.0.0 to reach it from your phone on the LAN
+#   KM_ALLOWED_HOSTS=192.168.1.20 required with 0.0.0.0: the PC's LAN IP / hostname
+services:
+  km:
+    build: .
+    image: knowledge-manager:local
+    container_name: knowledge-manager
+    init: true # proper signal handling / zombie reaping for node as PID 1
+    restart: unless-stopped
+    ports:
+      - '${KM_PUBLISH_ADDR:-127.0.0.1}:${KM_PORT:-4317}:4317'
+    environment:
+      KM_ALLOWED_HOSTS: ${KM_ALLOWED_HOSTS:-}
+      KM_LOG_LEVEL: ${KM_LOG_LEVEL:-info}
+    volumes:
+      - km-data:/data
+
+volumes:
+  km-data:
+    name: knowledge-manager-data

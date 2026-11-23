@@ -1,0 +1,16 @@
+**/node_modules
+**/dist
+**/dev-dist
+**/*.tsbuildinfo
+.git
+.claude
+data
+*.sqlite
+*.sqlite-*
+test-results
+playwright-report
+blob-report
+coverage
+e2e
+.env
+.env.*
