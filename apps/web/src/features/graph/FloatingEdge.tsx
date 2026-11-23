@@ -1,7 +1,27 @@
-import { BaseEdge, useInternalNode, type EdgeProps, type InternalNode } from '@xyflow/react';
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  useInternalNode,
+  type EdgeProps,
+  type InternalNode,
+} from '@xyflow/react';
+import { createContext, useContext } from 'react';
+import { EdgeNameEditor } from './EdgeNameEditor';
 import type { KmFlowEdge, KmFlowNode } from './flowMapping';
 import { edgeGeometry, type Circle } from './graphGeometry';
 import { edgeHighlight, useGraphHighlight } from './highlight';
+
+/** Which link is being renamed on the canvas, and what to do with the result. */
+export interface EdgeRename {
+  editingId: string | null;
+  commit: (id: string, name: string) => void;
+  cancel: () => void;
+}
+export const EdgeRenameContext = createContext<EdgeRename>({
+  editingId: null,
+  commit: () => undefined,
+  cancel: () => undefined,
+});
 
 /** Marker defined once by <GraphMarkers/>; React Flow's markers can't change colour per state. */
 export const ACTIVE_ARROW_ID = 'km-arrow-active';
@@ -42,7 +62,10 @@ function toCircle(node: InternalNode<KmFlowNode>): Circle {
   };
 }
 
-/** Straight, center-to-center edge (Obsidian look) that keeps its arrow and relation label. */
+/**
+ * Straight, center-to-center edge (Obsidian look) that keeps its arrow and
+ * relation label. The label runs along the edge, lifted just off the line.
+ */
 export function FloatingEdge({
   id,
   source,
@@ -55,26 +78,58 @@ export function FloatingEdge({
   const sourceNode = useInternalNode<KmFlowNode>(source);
   const targetNode = useInternalNode<KmFlowNode>(target);
   const state = edgeHighlight(useGraphHighlight(), source, target);
+  const rename = useContext(EdgeRenameContext);
   if (!sourceNode || !targetNode) return null;
 
-  const { path, labelX, labelY } = edgeGeometry(
+  const { path, labelX, labelY, labelAngle } = edgeGeometry(
     toCircle(sourceNode),
     toCircle(targetNode),
     source === target,
     data?.lane,
   );
 
+  const editing = rename.editingId === id;
+  const name = data?.name ?? (typeof label === 'string' ? label : '');
+
   return (
-    <BaseEdge
-      id={id}
-      path={path}
-      markerEnd={state === 'active' || selected ? `url(#${ACTIVE_ARROW_ID})` : markerEnd}
-      label={label}
-      labelX={labelX}
-      labelY={labelY}
-      className={`km-edge km-edge--${state}${selected ? ' is-selected' : ''}`}
-      labelShowBg={false}
-      labelStyle={{ opacity: state === 'dim' ? 0.15 : state === 'active' ? 1 : 0.6 }}
-    />
+    <>
+      <BaseEdge
+        id={id}
+        path={path}
+        markerEnd={state === 'active' || selected ? `url(#${ACTIVE_ARROW_ID})` : markerEnd}
+        className={`km-edge km-edge--${state}${selected ? ' is-selected' : ''}`}
+      />
+      {!editing && name && (
+        <text
+          className="react-flow__edge-text"
+          x={labelX}
+          y={labelY}
+          dy={-5}
+          textAnchor="middle"
+          transform={`rotate(${String(labelAngle)} ${String(labelX)} ${String(labelY)})`}
+          style={{ opacity: state === 'dim' ? 0.15 : state === 'active' || selected ? 1 : 0.6 }}
+        >
+          {name}
+        </text>
+      )}
+      {editing && (
+        <EdgeLabelRenderer>
+          <div
+            className="edge-rename nodrag nopan"
+            style={{
+              transform: `translate(-50%, -50%) translate(${String(labelX)}px, ${String(labelY)}px)`,
+            }}
+          >
+            <EdgeNameEditor
+              initial={name}
+              onCommit={(next) => {
+                rename.commit(id, next);
+              }}
+              onCancel={rename.cancel}
+            />
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
   );
 }

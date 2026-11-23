@@ -10,6 +10,17 @@ export interface EdgeGeometry {
   path: string;
   labelX: number;
   labelY: number;
+  /** Degrees to rotate the label so it runs along the edge, kept upright (−90, 90]. */
+  labelAngle: number;
+}
+
+/** Direction of (dx, dy) in degrees, flipped if needed so text never reads upside down. */
+export function uprightAngle(dx: number, dy: number): number {
+  if (dx === 0 && dy === 0) return 0;
+  let deg = (Math.atan2(dy, dx) * 180) / Math.PI;
+  if (deg > 90) deg -= 180;
+  else if (deg <= -90) deg += 180;
+  return deg;
 }
 
 const MIN_RADIUS = 7;
@@ -80,6 +91,7 @@ export function edgeGeometry(
       path: `M ${source.cx},${source.cy} L ${target.cx},${target.cy}`,
       labelX: source.cx,
       labelY: source.cy,
+      labelAngle: 0,
     };
   }
 
@@ -90,7 +102,12 @@ export function edgeGeometry(
     const sy = source.cy + uy * source.r;
     const tx = target.cx - ux * target.r;
     const ty = target.cy - uy * target.r;
-    return { path: `M ${sx},${sy} L ${tx},${ty}`, labelX: (sx + tx) / 2, labelY: (sy + ty) / 2 };
+    return {
+      path: `M ${sx},${sy} L ${tx},${ty}`,
+      labelX: (sx + tx) / 2,
+      labelY: (sy + ty) / 2,
+      labelAngle: uprightAngle(dx, dy),
+    };
   }
 
   // Quadratic curve whose apex sits `offset` away from the centre line
@@ -105,6 +122,8 @@ export function edgeGeometry(
     path: `M ${sx},${sy} Q ${cx},${cy} ${tx},${ty}`,
     labelX: 0.25 * sx + 0.5 * cx + 0.25 * tx,
     labelY: 0.25 * sy + 0.5 * cy + 0.25 * ty,
+    // A quadratic's tangent at its midpoint is parallel to its chord.
+    labelAngle: uprightAngle(tx - sx, ty - sy),
   };
 }
 
@@ -125,5 +144,6 @@ function selfLoop({ cx, cy, r }: Circle, loopIndex: number): EdgeGeometry {
     path: `M ${sx},${y} C ${cx - spread},${y - height} ${cx + spread},${y - height} ${ex},${y}`,
     labelX: cx,
     labelY: y - height * 0.75,
+    labelAngle: 0,
   };
 }

@@ -36,8 +36,9 @@ test.describe('shortcut tooltips', () => {
     await page.goto('/');
     await page.getByRole('link', { name: 'Tags' }).focus();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('button', { name: 'Show All Commands' })).toBeFocused();
-    await expect(page.getByRole('tooltip')).toHaveText(/Show All Commands/);
+    // Next in the activity bar: an icon-only button, so it always has a tooltip.
+    await expect(page.getByRole('button', { name: 'Toggle Sidebar Visibility' })).toBeFocused();
+    await expect(page.getByRole('tooltip')).toHaveText(/Toggle Sidebar Visibility\s*Ctrl\+B/);
     await page.keyboard.press('Escape');
     await expect(page.getByRole('tooltip')).toBeHidden();
   });
@@ -85,10 +86,10 @@ test.describe('shortcut tooltips', () => {
     await page.goto('/');
     await page.getByRole('link', { name: 'Tags' }).focus();
     await page.keyboard.press('Tab');
-    await expect(page.getByRole('tooltip')).toHaveText(/Show All Commands/);
+    await expect(page.getByRole('tooltip')).toHaveText(/Toggle Sidebar Visibility/);
     await page.mouse.move(400, 400);
     await page.mouse.move(420, 410);
-    await expect(page.getByRole('tooltip')).toHaveText(/Show All Commands/);
+    await expect(page.getByRole('tooltip')).toHaveText(/Toggle Sidebar Visibility/);
   });
 });
 

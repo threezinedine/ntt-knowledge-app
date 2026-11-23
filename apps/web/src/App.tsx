@@ -8,6 +8,7 @@ import { TooltipLayer } from './commands/TooltipLayer';
 import { useCommandTooltip } from './commands/useCommandTooltip';
 import { readJson, writeJson } from './commands/storage';
 import { Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
+import { GraphIcon, KeyboardIcon, SearchIcon, SidebarIcon, TagIcon } from './components/icons';
 import { Toast } from './components/toast';
 import { GraphPage } from './features/graph/GraphPage';
 import { NodePage } from './features/node/NodePage';
@@ -19,9 +20,14 @@ const SIDEBAR_KEY = 'km.sidebarVisible';
 
 export function App() {
   const { t } = useI18n();
-  const graphTip = useCommandTooltip('km.go.graph');
-  const tagsTip = useCommandTooltip('km.go.tags');
+  const graphTip = useCommandTooltip('km.go.graph', { always: true });
+  const tagsTip = useCommandTooltip('km.go.tags', { always: true });
   const paletteTip = useCommandTooltip('workbench.action.showCommands', { always: true });
+  // Icon-only: they need the tooltip even when unbound.
+  const sidebarTip = useCommandTooltip('workbench.action.toggleSidebarVisibility', {
+    always: true,
+  });
+  const keysTip = useCommandTooltip('workbench.action.openGlobalKeybindings', { always: true });
   const [sidebarVisible, setSidebarVisibleState] = useState(() => readJson(SIDEBAR_KEY) !== false);
   const setSidebarVisible = (visible: boolean) => {
     setSidebarVisibleState(visible);
@@ -43,28 +49,47 @@ export function App() {
         }}
       />
       <header className="app-header">
-        <span className="brand">◆ Knowledge Manager</span>
-        <nav className="app-nav">
-          <NavLink to="/" end {...graphTip}>
-            {t('app.nav.graph')}
-          </NavLink>
-          <NavLink to="/tags" {...tagsTip}>
-            {t('app.nav.tags')}
-          </NavLink>
-        </nav>
+        <span className="brand" aria-hidden="true">
+          ◆
+        </span>
+        {/* VS Code's command center: the title bar's search box opens the palette. */}
         <button
           type="button"
-          className="subtle small palette-button"
-          aria-label={t('cmd.showCommands')}
+          className="command-center"
           {...paletteTip}
           onClick={() => {
             openQuickInput('>');
           }}
         >
-          &gt;_
+          <SearchIcon size={14} />
+          <span className="command-center-text">{t('cmd.showCommands')}</span>
         </button>
         <LanguagePicker />
       </header>
+      <nav className="activity-bar" aria-label={t('app.nav.label')}>
+        <NavLink to="/" end aria-label={t('app.nav.graph')} {...graphTip}>
+          <GraphIcon size={22} />
+        </NavLink>
+        <NavLink to="/tags" aria-label={t('app.nav.tags')} {...tagsTip}>
+          <TagIcon size={22} />
+        </NavLink>
+        <span className="activity-bar-spacer" />
+        <button
+          type="button"
+          className={`activity-button${sidebarVisible ? ' active' : ''}`}
+          aria-label={t('cmd.toggleSidebar')}
+          aria-pressed={sidebarVisible}
+          {...sidebarTip}
+          onClick={() => {
+            setSidebarVisible(!sidebarVisible);
+          }}
+        >
+          <SidebarIcon size={22} />
+        </button>
+        <NavLink to="/shortcuts" aria-label={t('cmd.openKeybindings')} {...keysTip}>
+          <KeyboardIcon size={22} />
+        </NavLink>
+      </nav>
       {/* Hidden, not unmounted: its commands (e.g. New Node) keep working. */}
       <Sidebar hidden={!sidebarVisible} />
       <main className="app-main">

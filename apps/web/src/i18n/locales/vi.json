@@ -1,5 +1,6 @@
 {
   "meta.languageName": "Tiếng Việt",
+  "app.nav.label": "Chế độ xem",
   "app.nav.graph": "Đồ thị",
   "app.nav.tags": "Thẻ",
   "app.language": "Ngôn ngữ",
@@ -217,5 +218,9 @@
   "nodeMenu.deleteConfirm": "Xoá “{title}” cùng các liên kết của nó?",
   "nodeMenu.deleted": "Đã xoá “{title}”",
   "exp.short": "{exp} EXP",
-  "exp.shortNext": "{exp}/{next}"
+  "exp.shortNext": "{exp}/{next}",
+  "cmd.renameLink": "Đổi tên liên kết",
+  "links.rename": "Đổi tên liên kết {relation} ({node})",
+  "relation.editLabel": "Tên liên kết",
+  "graph.renameLinkFailed": "Không đổi được tên liên kết: {error}"
 }

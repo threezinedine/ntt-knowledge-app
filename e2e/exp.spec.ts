@@ -43,8 +43,57 @@ test.describe('fields and levels', () => {
     await api.createTag('Solo');
     await page.goto('/');
     await expect(fields(page).getByTestId('field-Solo')).toBeVisible();
-    await expect(fields(page).getByRole('button')).toHaveCount(0);
+    // The only button folds the section away; nothing edits a level.
+    await expect(fields(page).getByRole('button')).toHaveCount(1);
+    await expect(fields(page).getByRole('button', { name: 'Fields' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
     await expect(fields(page).getByRole('textbox')).toHaveCount(0);
     expect((await page.request.post('/api/exp', { data: {} })).status()).toBe(404);
+  });
+
+  test('the field tree folds by click and keyboard, and remembers it', async ({ page, api }) => {
+    const computer = await api.createTag('Computer');
+    const cpu = await api.createTag('CPU', computer.id);
+    await api.createTag('Cache', cpu.id);
+    await api.createTag('Math');
+
+    await page.goto('/');
+    const tree = fields(page).getByRole('tree');
+    const item = (name: string) => tree.getByRole('treeitem', { name, exact: true });
+    await expect(item('Cache')).toBeVisible();
+    await expect(item('Computer')).toHaveAttribute('aria-expanded', 'true');
+    await expect(item('Math')).not.toHaveAttribute('aria-expanded');
+    // The level is read after the name, not only shown.
+    await expect(item('Math')).toHaveAccessibleDescription(/Lv 1 · 0 \/ 50 EXP · 0 nodes/);
+
+    // Clicking a parent hides its whole subtree.
+    await item('Computer').click();
+    await expect(item('Computer')).toHaveAttribute('aria-expanded', 'false');
+    await expect(item('CPU')).toHaveCount(0);
+    await expect(item('Cache')).toHaveCount(0);
+
+    // Keyboard: Right opens, Right again enters, Left on a leaf goes up.
+    await item('Computer').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(item('CPU')).toBeVisible();
+    await page.keyboard.press('ArrowRight');
+    await expect(item('CPU')).toBeFocused();
+    await page.keyboard.press('ArrowLeft'); // CPU is open: collapse it
+    await expect(item('Cache')).toHaveCount(0);
+    await page.keyboard.press('ArrowLeft'); // closed: go to the parent
+    await expect(item('Computer')).toBeFocused();
+
+    // The fold state survives a reload; the section header folds everything.
+    await page.reload();
+    await expect(item('CPU')).toBeVisible();
+    await expect(item('Cache')).toHaveCount(0);
+    const header = fields(page).getByRole('button', { name: 'Fields' });
+    await header.click();
+    await expect(header).toHaveAttribute('aria-expanded', 'false');
+    await expect(fields(page).getByRole('tree')).toHaveCount(0);
+    await page.reload();
+    await expect(header).toHaveAttribute('aria-expanded', 'false');
   });
 });

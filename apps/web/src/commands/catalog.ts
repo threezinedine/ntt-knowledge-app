@@ -150,6 +150,14 @@ export const COMMANDS = [
     when: 'cmdWhen.node',
   },
   {
+    // F2 is taken by Rename Node (defaults may not clash, whatever the page).
+    id: 'km.edge.rename',
+    title: 'cmd.renameLink',
+    category: 'cmdCategory.graph',
+    keys: [],
+    when: 'cmdWhen.graph',
+  },
+  {
     id: 'km.graph.fitView',
     title: 'cmd.fitView',
     category: 'cmdCategory.graph',

@@ -6,6 +6,7 @@ import type {
   GraphSnapshot,
   NodePositionsInput,
   TaggableKind,
+  UpdateEdgeInput,
   UpdateNodeInput,
   UpdateTagInput,
 } from '@km/core';
@@ -154,6 +155,15 @@ export function useCreateEdge() {
   const invalidate = useInvalidateGraph();
   return useMutation({
     mutationFn: (input: CreateEdgeInput) => api.edges.create(input),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateEdge() {
+  const invalidate = useInvalidateGraph();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateEdgeInput }) =>
+      api.edges.update(id, patch),
     onSuccess: invalidate,
   });
 }

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_NODE_COLOR, edgeGeometry, radiusForDegree, typeColors } from './graphGeometry';
+import {
+  DEFAULT_NODE_COLOR,
+  edgeGeometry,
+  radiusForDegree,
+  typeColors,
+  uprightAngle,
+} from './graphGeometry';
 
 describe('radiusForDegree', () => {
   it('grows with links but is bounded', () => {
@@ -63,5 +69,26 @@ describe('edgeGeometry lanes', () => {
     const first = edgeGeometry(a, a, true, { offset: 0, loopIndex: 0 });
     const second = edgeGeometry(a, a, true, { offset: 0, loopIndex: 1 });
     expect(second.labelY).toBeLessThan(first.labelY);
+  });
+});
+
+describe('label angle', () => {
+  it('follows the edge and never turns the text upside down', () => {
+    expect(uprightAngle(1, 0)).toBe(0);
+    expect(uprightAngle(-1, 0)).toBe(0); // right-to-left still reads left-to-right
+    expect(uprightAngle(1, 1)).toBeCloseTo(45);
+    expect(uprightAngle(-1, -1)).toBeCloseTo(45);
+    expect(uprightAngle(1, -1)).toBeCloseTo(-45);
+    expect(uprightAngle(0, 1)).toBeCloseTo(90);
+    expect(uprightAngle(0, -1)).toBeCloseTo(90);
+  });
+
+  it('is set for straight and bent edges, flat for self-loops', () => {
+    const a = { cx: 0, cy: 0, r: 5 };
+    const b = { cx: 100, cy: 100, r: 5 };
+    expect(edgeGeometry(a, b, false).labelAngle).toBeCloseTo(45);
+    expect(edgeGeometry(b, a, false).labelAngle).toBeCloseTo(45);
+    expect(edgeGeometry(a, b, false, { offset: 20, loopIndex: 0 }).labelAngle).toBeCloseTo(45);
+    expect(edgeGeometry(a, a, true).labelAngle).toBe(0);
   });
 });

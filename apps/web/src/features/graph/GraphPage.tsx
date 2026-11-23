@@ -24,6 +24,7 @@ import {
   useDeleteEdge,
   useGraph,
   useMovePositions,
+  useUpdateEdge,
 } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
@@ -31,7 +32,7 @@ import { useI18n } from '../../i18n/context';
 import { revealNodeId, useNodeContextMenu } from '../node/NodeContextMenu';
 import { CircleNode } from './CircleNode';
 import { pushAway, type Circle } from './collide';
-import { FloatingEdge, GraphMarkers } from './FloatingEdge';
+import { EdgeRenameContext, FloatingEdge, GraphMarkers, type EdgeRename } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
 import {
   buildAdjacency,
@@ -73,6 +74,7 @@ function GraphCanvas() {
   const movePositions = useMovePositions();
   const createEdge = useCreateEdge();
   const deleteEdge = useDeleteEdge();
+  const updateEdge = useUpdateEdge();
   const navigate = useNavigate();
   const { t, errorText } = useI18n();
   const flow = useReactFlow<KmFlowNode, KmFlowEdge>();
@@ -83,6 +85,51 @@ function GraphCanvas() {
   const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
   const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
   const nodeMenu = useNodeContextMenu();
+
+  const renameEdge = updateEdge.mutate; // stable, unlike the mutation object
+  // Renaming a link: double-click it, or "Rename Link" with one link selected.
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const selectedEdges = edges.filter((e) => e.selected);
+  const onlySelectedEdge = selectedEdges.length === 1 ? selectedEdges[0] : undefined;
+  useCommandHandler(
+    'km.edge.rename',
+    () => {
+      if (onlySelectedEdge) setRenamingId(onlySelectedEdge.id);
+    },
+    onlySelectedEdge !== undefined,
+  );
+  const edgeRename = useMemo<EdgeRename>(
+    () => ({
+      editingId: renamingId,
+      commit: (id, name) => {
+        setRenamingId(null);
+        const setName = (to: string) => {
+          setEdges((prev) =>
+            prev.map((e) =>
+              e.id === id && e.data ? { ...e, label: to, data: { ...e.data, name: to } } : e,
+            ),
+          );
+        };
+        // Show the new name at once. On failure put the server's name back
+        // directly: the refetch returns the same data, so the sync effect
+        // wouldn't run again.
+        const previous = graph.data?.edges.find((e) => e.id === id)?.name;
+        setName(name);
+        renameEdge(
+          { id, patch: { name } },
+          {
+            onError: () => {
+              if (previous !== undefined) setName(previous);
+            },
+          },
+        );
+      },
+      cancel: () => {
+        setRenamingId(null);
+      },
+    }),
+    [renamingId, setEdges, renameEdge, graph.data],
+  );
 
   // Dragging a dot near others nudges them out of the way (see collide.ts).
   // Origins are where every dot was when the drag began; pushed dots are
@@ -154,123 +201,133 @@ function GraphCanvas() {
       {nodeMenu.element}
       <GraphMarkers />
       <GraphHighlightContext value={highlight}>
-        <ReactFlow<KmFlowNode, KmFlowEdge>
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodeMouseEnter={(_event, node) => {
-            setHoveredId(node.id);
-          }}
-          onNodeMouseLeave={() => {
-            setHoveredId(null);
-          }}
-          // Loose: ending on *any* handle of another node connects (the dot's own
-          // grip included), so the whole dot and its label are a drop target.
-          connectionMode={ConnectionMode.Loose}
-          connectionRadius={40}
-          // Self-loops come from the node page; on the canvas a short drag from the
-          // grip would otherwise snap back onto the same node.
-          isValidConnection={(c) => c.source !== c.target}
-          // Stored position = circle centre, so it doesn't drift as the radius
-          // (which grows with link count) changes.
-          nodeOrigin={nodeOrigin}
-          connectionLineStyle={{ stroke: 'var(--graph-accent)', strokeWidth: 1.5 }}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={setPendingConnection}
-          onBeforeDelete={onlyEdges}
-          onEdgesDelete={(deleted) => {
-            for (const edge of deleted) deleteEdge.mutate(edge.id);
-          }}
-          onNodeDragStart={() => {
-            dragOrigins.current = new Map(nodes.map((n) => [n.id, circleOf(n)]));
-            pushedNow.current = new Map();
-            setDragging(true);
-          }}
-          onNodeDrag={(_event, _node, dragged) => {
-            nudge(dragged);
-          }}
-          onNodeDragStop={(_event, _node, dragged) => {
-            dragOrigins.current = null;
-            setDragging(false);
-            // The dragged dots and the ones they pushed, in one request.
-            const items = [
-              ...dragged.map((n) => ({ id: n.id, position: n.position })),
-              ...[...pushedNow.current].map(([id, position]) => ({ id, position })),
-            ];
-            pushedNow.current = new Map();
-            movePositions.mutate({ items }); // failures show in the panel below
-          }}
-          onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
-          onNodeContextMenu={(event, node) => {
-            event.preventDefault();
-            nodeMenu.open({ id: node.id, title: node.data.label }, event.clientX, event.clientY);
-          }}
-          fitView
-          fitViewOptions={fitViewOptions}
-          minZoom={0.1}
-        >
-          {/* Our own buttons: translated labels and shortcut tooltips. */}
-          <Controls
-            showZoom={false}
-            showFitView={false}
-            showInteractive={false}
-            aria-label={t('graph.controls')}
+        <EdgeRenameContext value={edgeRename}>
+          <ReactFlow<KmFlowNode, KmFlowEdge>
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodeMouseEnter={(_event, node) => {
+              setHoveredId(node.id);
+            }}
+            onNodeMouseLeave={() => {
+              setHoveredId(null);
+            }}
+            // Loose: ending on *any* handle of another node connects (the dot's own
+            // grip included), so the whole dot and its label are a drop target.
+            connectionMode={ConnectionMode.Loose}
+            connectionRadius={40}
+            // Self-loops come from the node page; on the canvas a short drag from the
+            // grip would otherwise snap back onto the same node.
+            isValidConnection={(c) => c.source !== c.target}
+            // Stored position = circle centre, so it doesn't drift as the radius
+            // (which grows with link count) changes.
+            nodeOrigin={nodeOrigin}
+            connectionLineStyle={{ stroke: 'var(--graph-accent)', strokeWidth: 1.5 }}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={setPendingConnection}
+            onBeforeDelete={onlyEdges}
+            onEdgesDelete={(deleted) => {
+              for (const edge of deleted) deleteEdge.mutate(edge.id);
+            }}
+            onNodeDragStart={() => {
+              dragOrigins.current = new Map(nodes.map((n) => [n.id, circleOf(n)]));
+              pushedNow.current = new Map();
+              setDragging(true);
+            }}
+            onNodeDrag={(_event, _node, dragged) => {
+              nudge(dragged);
+            }}
+            onNodeDragStop={(_event, _node, dragged) => {
+              dragOrigins.current = null;
+              setDragging(false);
+              // The dragged dots and the ones they pushed, in one request.
+              const items = [
+                ...dragged.map((n) => ({ id: n.id, position: n.position })),
+                ...[...pushedNow.current].map(([id, position]) => ({ id, position })),
+              ];
+              pushedNow.current = new Map();
+              movePositions.mutate({ items }); // failures show in the panel below
+            }}
+            onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
+            onEdgeDoubleClick={(_event, edge) => {
+              setRenamingId(edge.id);
+            }}
+            onNodeContextMenu={(event, node) => {
+              event.preventDefault();
+              nodeMenu.open({ id: node.id, title: node.data.label }, event.clientX, event.clientY);
+            }}
+            fitView
+            fitViewOptions={fitViewOptions}
+            minZoom={0.1}
           >
-            <ControlButton
-              aria-label={t('cmd.zoomIn')}
-              {...zoomInTip}
-              onClick={() => void flow.zoomIn()}
+            {/* Our own buttons: translated labels and shortcut tooltips. */}
+            <Controls
+              showZoom={false}
+              showFitView={false}
+              showInteractive={false}
+              aria-label={t('graph.controls')}
             >
-              <svg viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M5 0h2v5h5v2H7v5H5V7H0V5h5z" />
-              </svg>
-            </ControlButton>
-            <ControlButton
-              aria-label={t('cmd.zoomOut')}
-              {...zoomOutTip}
-              onClick={() => void flow.zoomOut()}
-            >
-              <svg viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M0 5h12v2H0z" />
-              </svg>
-            </ControlButton>
-            <ControlButton
-              aria-label={t('cmd.fitView')}
-              {...fitTip}
-              onClick={() => void flow.fitView(fitViewOptions)}
-            >
-              <svg viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M0 0h4v1.5H1.5V4H0zm8 0h4v4h-1.5V1.5H8zM0 8h1.5v2.5H4V12H0zm10.5 0H12v4H8v-1.5h2.5z" />
-              </svg>
-            </ControlButton>
-          </Controls>
-          <MiniMap<KmFlowNode>
-            pannable
-            zoomable
-            nodeColor={(n) => n.data.color}
-            nodeBorderRadius={999}
-            bgColor="#1a1a1e"
-            maskColor="rgb(10 10 12 / 60%)"
-          />
-          {/* One stacked panel: separate panels overlap (and steal taps) on narrow screens. */}
-          <Panel position="top-left" className="graph-panel">
-            <NewNodeForm />
-            {graph.isError && <p className="error">{errorText(graph.error)}</p>}
-            {movePositions.isError && (
-              <p className="error">
-                {t('graph.savePositionFailed', { error: errorText(movePositions.error) })}
-              </p>
-            )}
-            {deleteEdge.isError && (
-              <p className="error">
-                {t('graph.deleteLinkFailed', { error: errorText(deleteEdge.error) })}
-              </p>
-            )}
-            {graph.data?.nodes.length === 0 && <p className="muted">{t('graph.empty')}</p>}
-          </Panel>
-        </ReactFlow>
+              <ControlButton
+                aria-label={t('cmd.zoomIn')}
+                {...zoomInTip}
+                onClick={() => void flow.zoomIn()}
+              >
+                <svg viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M5 0h2v5h5v2H7v5H5V7H0V5h5z" />
+                </svg>
+              </ControlButton>
+              <ControlButton
+                aria-label={t('cmd.zoomOut')}
+                {...zoomOutTip}
+                onClick={() => void flow.zoomOut()}
+              >
+                <svg viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M0 5h12v2H0z" />
+                </svg>
+              </ControlButton>
+              <ControlButton
+                aria-label={t('cmd.fitView')}
+                {...fitTip}
+                onClick={() => void flow.fitView(fitViewOptions)}
+              >
+                <svg viewBox="0 0 12 12" aria-hidden="true">
+                  <path d="M0 0h4v1.5H1.5V4H0zm8 0h4v4h-1.5V1.5H8zM0 8h1.5v2.5H4V12H0zm10.5 0H12v4H8v-1.5h2.5z" />
+                </svg>
+              </ControlButton>
+            </Controls>
+            <MiniMap<KmFlowNode>
+              pannable
+              zoomable
+              nodeColor={(n) => n.data.color}
+              nodeBorderRadius={999}
+              bgColor="#1a1a1e"
+              maskColor="rgb(10 10 12 / 60%)"
+            />
+            {/* One stacked panel: separate panels overlap (and steal taps) on narrow screens. */}
+            <Panel position="top-left" className="graph-panel">
+              <NewNodeForm />
+              {graph.isError && <p className="error">{errorText(graph.error)}</p>}
+              {movePositions.isError && (
+                <p className="error">
+                  {t('graph.savePositionFailed', { error: errorText(movePositions.error) })}
+                </p>
+              )}
+              {updateEdge.isError && (
+                <p className="error">
+                  {t('graph.renameLinkFailed', { error: errorText(updateEdge.error) })}
+                </p>
+              )}
+              {deleteEdge.isError && (
+                <p className="error">
+                  {t('graph.deleteLinkFailed', { error: errorText(deleteEdge.error) })}
+                </p>
+              )}
+              {graph.data?.nodes.length === 0 && <p className="muted">{t('graph.empty')}</p>}
+            </Panel>
+          </ReactFlow>
+        </EdgeRenameContext>
       </GraphHighlightContext>
 
       {pendingConnection && (

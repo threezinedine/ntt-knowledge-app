@@ -1,5 +1,5 @@
 import { relationNameSchema, type EdgeWithNeighbor } from '@km/core';
-import { useId, useRef, useState, type SubmitEvent } from 'react';
+import { useEffect, useId, useRef, useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import {
   useCreateEdge,
@@ -7,17 +7,23 @@ import {
   useGraph,
   useNodeEdges,
   useRelationNames,
+  useUpdateEdge,
 } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
-import { useCommandTooltip } from '../../commands/useCommandTooltip';
+import { tooltip, useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
+import { EdgeNameEditor } from '../graph/EdgeNameEditor';
 
 type Direction = 'outgoing' | 'incoming';
 
 export function EdgesPanel({ nodeId }: { nodeId: string }) {
   const edges = useNodeEdges(nodeId);
   const deleteEdge = useDeleteEdge();
+  const updateEdge = useUpdateEdge();
   const { t, errorText } = useI18n();
+  const rename = (id: string, name: string) => {
+    updateEdge.mutate({ id, patch: { name } });
+  };
 
   return (
     <section className="panel" aria-label={t('links.heading')}>
@@ -29,6 +35,7 @@ export function EdgesPanel({ nodeId }: { nodeId: string }) {
             label={t('links.outgoing')}
             items={edges.data.outgoing}
             direction="outgoing"
+            onRename={rename}
             onDelete={(id) => {
               deleteEdge.mutate(id);
             }}
@@ -37,6 +44,7 @@ export function EdgesPanel({ nodeId }: { nodeId: string }) {
             label={t('links.incoming')}
             items={edges.data.incoming}
             direction="incoming"
+            onRename={rename}
             onDelete={(id) => {
               deleteEdge.mutate(id);
             }}
@@ -44,6 +52,7 @@ export function EdgesPanel({ nodeId }: { nodeId: string }) {
         </>
       )}
       {deleteEdge.isError && <p className="error">{errorText(deleteEdge.error)}</p>}
+      {updateEdge.isError && <p className="error">{errorText(updateEdge.error)}</p>}
       <AddEdgeForm nodeId={nodeId} />
     </section>
   );
@@ -54,8 +63,22 @@ function EdgeList(props: {
   items: EdgeWithNeighbor[];
   direction: Direction;
   onDelete: (edgeId: string) => void;
+  onRename: (edgeId: string, name: string) => void;
 }) {
   const { t } = useI18n();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // After a rename (or Escape) put focus back on the name the editor replaced.
+  const returnFocusTo = useRef<string | null>(null);
+  const buttons = useRef(new Map<string, HTMLButtonElement>());
+  useEffect(() => {
+    if (editingId !== null || returnFocusTo.current === null) return;
+    buttons.current.get(returnFocusTo.current)?.focus();
+    returnFocusTo.current = null;
+  }, [editingId]);
+  const startEditing = (id: string) => {
+    returnFocusTo.current = id;
+    setEditingId(id);
+  };
   return (
     <div className="edge-group">
       <h4>{props.label}</h4>
@@ -68,7 +91,39 @@ function EdgeList(props: {
               {props.direction === 'incoming' && (
                 <Link to={`/nodes/${neighbor.id}`}>{neighbor.title}</Link>
               )}
-              <span className="relation">—[{edge.name}]→</span>
+              {editingId === edge.id ? (
+                <span className="relation">
+                  —[
+                  <EdgeNameEditor
+                    className="relation-input"
+                    initial={edge.name}
+                    onCommit={(name) => {
+                      setEditingId(null);
+                      props.onRename(edge.id, name);
+                    }}
+                    onCancel={() => {
+                      setEditingId(null);
+                    }}
+                  />
+                  ]→
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="relation relation-button"
+                  aria-label={t('links.rename', { relation: edge.name, node: neighbor.title })}
+                  {...tooltip(t('cmd.renameLink'))}
+                  ref={(el) => {
+                    if (el) buttons.current.set(edge.id, el);
+                    else buttons.current.delete(edge.id);
+                  }}
+                  onClick={() => {
+                    startEditing(edge.id);
+                  }}
+                >
+                  —[{edge.name}]→
+                </button>
+              )}
               {props.direction === 'outgoing' && (
                 <Link to={`/nodes/${neighbor.id}`}>{neighbor.title}</Link>
               )}

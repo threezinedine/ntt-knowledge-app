@@ -1,5 +1,6 @@
 {
   "meta.languageName": "English",
+  "app.nav.label": "Views",
   "app.nav.graph": "Graph",
   "app.nav.tags": "Tags",
   "app.language": "Language",
@@ -217,5 +218,9 @@
   "nodeMenu.deleteConfirm": "Delete “{title}” and its links?",
   "nodeMenu.deleted": "Deleted “{title}”",
   "exp.short": "{exp} EXP",
-  "exp.shortNext": "{exp}/{next}"
+  "exp.shortNext": "{exp}/{next}",
+  "cmd.renameLink": "Rename Link",
+  "links.rename": "Rename link {relation} ({node})",
+  "relation.editLabel": "Link name",
+  "graph.renameLinkFailed": "Couldn't rename the link: {error}"
 }
