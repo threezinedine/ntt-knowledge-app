@@ -1062,3 +1062,54 @@ kbd {
 .tooltip .keys {
   margin-right: 0;
 }
+
+/* ---------- vim mode ---------- */
+
+.title-vim {
+  /* The CodeMirror title looks like the plain input. */
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  min-width: 0;
+}
+.title-vim:hover,
+.title-vim:focus-within {
+  border-color: var(--border);
+}
+.title-vim .cm-editor,
+.title-vim .cm-scroller {
+  background: transparent;
+  font-family: var(--font);
+  line-height: 1.4;
+}
+.title-vim .cm-content {
+  padding: 0;
+}
+.title-vim .cm-editor.cm-focused {
+  outline: none;
+}
+.vim-toggle[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.markdown-source .cm-vim-panel {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 0 6px;
+}
+.editor-hint {
+  margin: -4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.editor-hint .keys {
+  margin-right: 4px;
+}
+.title-vim:has([aria-invalid='true']) {
+  border-color: var(--danger);
+}
+/* Vim needs a hardware keyboard; on-screen keyboards don't send its keys. */
+@media (pointer: coarse) {
+  .vim-toggle {
+    display: none;
+  }
+}

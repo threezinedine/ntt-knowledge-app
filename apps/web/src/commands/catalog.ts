@@ -89,6 +89,29 @@ export const COMMANDS = [
     when: 'cmdWhen.node',
   },
   {
+    // Vim-ish: K = up to the title, J = down into the content.
+    id: 'km.node.focusTitle',
+    title: 'cmd.focusTitle',
+    category: 'cmdCategory.node',
+    keys: ['Alt+K'],
+    macKeys: ['Ctrl+Alt+K'],
+    when: 'cmdWhen.node',
+  },
+  {
+    id: 'km.node.focusContent',
+    title: 'cmd.focusContent',
+    category: 'cmdCategory.node',
+    keys: ['Alt+J'],
+    macKeys: ['Ctrl+Alt+J'],
+    when: 'cmdWhen.node',
+  },
+  {
+    id: 'km.editor.toggleVim',
+    title: 'cmd.toggleVim',
+    category: 'cmdCategory.preferences',
+    keys: [],
+  },
+  {
     id: 'km.node.addTask',
     title: 'cmd.addTask',
     category: 'cmdCategory.node',

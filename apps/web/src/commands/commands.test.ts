@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BROWSER_RESERVED, COMMAND_LIST, COMMANDS, type CommandId } from './catalog';
-import { resolvePress } from './dispatch';
+import { resolvePress, yieldsToVim } from './dispatch';
 import { parseBinding, splitBinding } from './keybinding';
 import {
   bindingsClash,
@@ -178,5 +178,26 @@ describe('registry', () => {
     off1();
     expect(runCommand('km.zoom' as CommandId)).toBe(false);
     expect(availableCommands().has('km.zoom' as CommandId)).toBe(false);
+  });
+});
+
+describe('yieldsToVim', () => {
+  const inVim = () => {
+    const box = document.createElement('div');
+    box.setAttribute('data-km-vim', '');
+    const input = document.createElement('input');
+    box.append(input);
+    return input;
+  };
+
+  it('gives vim its Ctrl keys inside a vim editor only', () => {
+    expect(yieldsToVim('Ctrl+B', inVim())).toBe(true);
+    expect(yieldsToVim('Ctrl+B', document.createElement('input'))).toBe(false);
+  });
+
+  it('keeps quick open, chords and modified presses for the app', () => {
+    expect(yieldsToVim('Ctrl+P', inVim())).toBe(false);
+    expect(yieldsToVim('Ctrl+K', inVim())).toBe(false);
+    expect(yieldsToVim('Ctrl+Shift+B', inVim())).toBe(false);
   });
 });

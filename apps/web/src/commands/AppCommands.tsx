@@ -3,6 +3,7 @@ import { useI18n } from '../i18n/context';
 import { useChordStatus, useKeybindingDispatcher } from './dispatch';
 import { formatBinding, formatPress } from './keybinding';
 import { openQuickInput, openQuickPick } from './quickInputStore';
+import { toggleVimMode } from '../settings/vimSetting';
 import { useCommandHandler } from './registry';
 
 /** App-wide commands, the keyboard dispatcher and the chord status line. */
@@ -28,6 +29,7 @@ export function AppCommands({
   useCommandHandler('km.sidebar.focusSearch', onFocusSearch);
   useCommandHandler('km.go.graph', () => void navigate('/'));
   useCommandHandler('km.go.tags', () => void navigate('/tags'));
+  useCommandHandler('km.editor.toggleVim', toggleVimMode);
   useCommandHandler('km.language.change', () => {
     openQuickPick({
       placeholder: t('quick.languagePlaceholder'),

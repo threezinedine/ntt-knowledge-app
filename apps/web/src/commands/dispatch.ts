@@ -98,6 +98,23 @@ function modalDialogOpen(): boolean {
 const CHORD_TIMEOUT_MS = 3000;
 const MISS_DISPLAY_MS = 2000;
 
+/**
+ * Ctrl keys vim uses in Normal mode (page/half-page scroll, jumps, redo,
+ * visual block, increment). Inside a vim editor (`data-km-vim`) they are
+ * vim's, even when a command is bound to them (Ctrl+B = sidebar). Ctrl+P
+ * (quick open) and Ctrl+K (chords) stay ours: vim has k/j for those moves.
+ */
+const VIM_CTRL_KEYS = /^Ctrl\+[BFDUEYORVAX]$/;
+
+export function yieldsToVim(press: KeyPress, target: EventTarget | null): boolean {
+  return (
+    VIM_CTRL_KEYS.test(press) &&
+    isEditableTarget(target) &&
+    target instanceof Element &&
+    target.closest('[data-km-vim]') !== null
+  );
+}
+
 /** Installs the global keydown handler. Mount once, at the app root. */
 export function useKeybindingDispatcher(): void {
   useEffect(() => {
@@ -125,6 +142,7 @@ export function useKeybindingDispatcher(): void {
         return;
       }
       if (pending === null && isEditableTarget(e.target) && !firesWhileTyping(press)) return;
+      if (pending === null && yieldsToVim(press, e.target)) return;
 
       const result = resolvePress(press, pending, currentBindings(), availableCommands(), e.repeat);
       if (result.kind === 'none') return;
