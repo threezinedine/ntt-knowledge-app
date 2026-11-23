@@ -1,5 +1,5 @@
 import { relationNameSchema, type EdgeWithNeighbor } from '@km/core';
-import { useId, useState, type SubmitEvent } from 'react';
+import { useId, useRef, useState, type SubmitEvent } from 'react';
 import { Link } from 'react-router';
 import {
   useCreateEdge,
@@ -8,6 +8,8 @@ import {
   useNodeEdges,
   useRelationNames,
 } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
+import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 
 type Direction = 'outgoing' | 'incoming';
@@ -97,6 +99,11 @@ function AddEdgeForm({ nodeId }: { nodeId: string }) {
   const createEdge = useCreateEdge();
   const listId = useId();
   const { t, errorText, locale } = useI18n();
+  const relationRef = useRef<HTMLInputElement>(null);
+  const addTip = useCommandTooltip('km.node.addLink');
+  useCommandHandler('km.node.addLink', () => {
+    relationRef.current?.focus();
+  });
 
   const nameValid = relationNameSchema.safeParse(name).success;
 
@@ -132,6 +139,7 @@ function AddEdgeForm({ nodeId }: { nodeId: string }) {
         <option value="incoming">{t('links.directionIn')}</option>
       </select>
       <input
+        ref={relationRef}
         aria-label={t('links.relation')}
         placeholder={t('relation.placeholder')}
         list={listId}
@@ -159,7 +167,7 @@ function AddEdgeForm({ nodeId }: { nodeId: string }) {
           </option>
         ))}
       </select>
-      <button type="submit" disabled={!nameValid || !otherId || createEdge.isPending}>
+      <button type="submit" disabled={!nameValid || !otherId || createEdge.isPending} {...addTip}>
         {t('links.submit')}
       </button>
       {createEdge.isError && <p className="error">{errorText(createEdge.error)}</p>}

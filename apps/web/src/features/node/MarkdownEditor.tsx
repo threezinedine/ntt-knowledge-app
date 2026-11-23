@@ -3,6 +3,8 @@ import CodeMirror, { EditorView } from '@uiw/react-codemirror';
 import { useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useCommandHandler } from '../../commands/registry';
+import { useCommandTooltip, type TooltipProps } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 
 const extensions = [markdown(), EditorView.lineWrapping];
@@ -17,6 +19,17 @@ type Mode = 'edit' | 'preview' | 'split';
 export function MarkdownEditor({ value, onChange }: Props) {
   const [mode, setMode] = useState<Mode>('edit');
   const { t } = useI18n();
+  useCommandHandler('km.markdown.togglePreview', () => {
+    setMode((m) => (m === 'preview' ? 'edit' : 'preview'));
+  });
+  useCommandHandler('km.markdown.openPreviewToSide', () => {
+    setMode('split');
+  });
+
+  const tips: Partial<Record<Mode, TooltipProps>> = {
+    preview: useCommandTooltip('km.markdown.togglePreview'),
+    split: useCommandTooltip('km.markdown.openPreviewToSide'),
+  };
 
   return (
     <div className={`markdown-editor mode-${mode}`}>
@@ -27,6 +40,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
             type="button"
             role="tab"
             aria-selected={mode === m}
+            {...tips[m]}
             onClick={() => {
               setMode(m);
             }}

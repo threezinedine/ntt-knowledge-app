@@ -1,6 +1,7 @@
 import type { GraphNode } from '@km/core';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTagLink } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
 import { useI18n } from '../../i18n/context';
 import { OwnerTags } from '../tags/OwnerTags';
 import { TagPalette } from '../tags/TagPalette';
@@ -15,9 +16,16 @@ export function NodeTagsPanel({ node }: { node: GraphNode }) {
   const link = useTagLink('nodes');
   const [showPalette, setShowPalette] = useState(true);
   const { t, errorText } = useI18n();
+  const sectionRef = useRef<HTMLElement>(null);
+  // Focus the node's own "+ tag" picker (absent once every tag is attached).
+  useCommandHandler('km.node.addTag', () => {
+    sectionRef.current
+      ?.querySelector<HTMLSelectElement>('.owner-tags > select.tag-picker')
+      ?.focus();
+  });
 
   return (
-    <section className="panel" aria-label={t('tags.heading')}>
+    <section className="panel" aria-label={t('tags.heading')} ref={sectionRef}>
       <h3>{t('tags.heading')}</h3>
       <OwnerTags
         kind="nodes"

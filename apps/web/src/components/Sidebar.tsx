@@ -1,9 +1,14 @@
 import { useDeferredValue, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { useCreateNode, useNodeList } from '../api/queries';
+import { useCommandHandler } from '../commands/registry';
+import { useCommandTooltip } from '../commands/useCommandTooltip';
 import { useI18n } from '../i18n/context';
 
-export function Sidebar() {
+/** The search box's id, for the "Search Nodes" command. */
+export const SIDEBAR_SEARCH_ID = 'km-node-search';
+
+export function Sidebar({ hidden = false }: { hidden?: boolean }) {
   const [search, setSearch] = useState('');
   const query = useDeferredValue(search.trim());
   const nodes = useNodeList(query);
@@ -17,20 +22,27 @@ export function Sidebar() {
       { onSuccess: (node) => void navigate(`/nodes/${node.id}`) },
     );
   };
+  const newTip = useCommandTooltip('km.node.new');
+  const searchTip = useCommandTooltip('km.sidebar.focusSearch');
+  useCommandHandler('km.node.new', () => {
+    if (!createNode.isPending) handleCreate();
+  });
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" hidden={hidden}>
       <div className="sidebar-actions">
         <input
           type="search"
+          id={SIDEBAR_SEARCH_ID}
           placeholder={t('sidebar.searchPlaceholder')}
           aria-label={t('sidebar.searchLabel')}
+          {...searchTip}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
           }}
         />
-        <button type="button" onClick={handleCreate} disabled={createNode.isPending}>
+        <button type="button" onClick={handleCreate} disabled={createNode.isPending} {...newTip}>
           {t('sidebar.new')}
         </button>
       </div>

@@ -1,5 +1,5 @@
 import { taskTitleSchema, type Task, type TaskStatus } from '@km/core';
-import { useState, type SubmitEvent } from 'react';
+import { useRef, useState, type SubmitEvent } from 'react';
 import {
   useCreateTask,
   useDeleteTask,
@@ -7,6 +7,8 @@ import {
   useTagLink,
   useUpdateTask,
 } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
+import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { useTagDropTarget } from '../tags/dnd';
 import { OwnerTags } from '../tags/OwnerTags';
@@ -135,6 +137,11 @@ function AddTaskForm({ nodeId, index }: { nodeId: string; index: TagIndex }) {
   const createTask = useCreateTask(nodeId);
   const valid = taskTitleSchema.safeParse(title).success;
   const { t, errorText } = useI18n();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const addTip = useCommandTooltip('km.node.addTask');
+  useCommandHandler('km.node.addTask', () => {
+    inputRef.current?.focus();
+  });
 
   const submit = (e: SubmitEvent) => {
     e.preventDefault();
@@ -152,6 +159,7 @@ function AddTaskForm({ nodeId, index }: { nodeId: string; index: TagIndex }) {
   return (
     <form className="add-task-form" onSubmit={submit} aria-label={t('tasks.addForm')}>
       <input
+        ref={inputRef}
         aria-label={t('tasks.new')}
         placeholder={t('tasks.newPlaceholder')}
         value={title}
@@ -173,7 +181,7 @@ function AddTaskForm({ nodeId, index }: { nodeId: string; index: TagIndex }) {
           </option>
         ))}
       </select>
-      <button type="submit" disabled={!valid || createTask.isPending}>
+      <button type="submit" disabled={!valid || createTask.isPending} {...addTip}>
         {t('common.add')}
       </button>
       {createTask.isError && <p className="error">{errorText(createTask.error)}</p>}

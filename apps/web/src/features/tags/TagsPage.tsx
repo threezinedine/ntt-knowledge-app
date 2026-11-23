@@ -1,6 +1,8 @@
 import { tagNameSchema, wouldCreateTagCycle, type Tag, type TagTreeNode } from '@km/core';
-import { useMemo, useState, type KeyboardEvent, type SubmitEvent } from 'react';
+import { useMemo, useRef, useState, type KeyboardEvent, type Ref, type SubmitEvent } from 'react';
 import { useCreateTag, useDeleteTag, useUpdateTag } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
+import { tooltip, useCommandTooltip, type TooltipProps } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { DEFAULT_TAG_COLOR } from './colors';
 import { tagDragSource, useTagDropTarget } from './dnd';
@@ -10,6 +12,11 @@ export function TagsPage() {
   const index = useTagIndex();
   const updateTag = useUpdateTag();
   const { t, tx, errorText } = useI18n();
+  const newTagRef = useRef<HTMLInputElement>(null);
+  const newTagTip = useCommandTooltip('km.tags.new');
+  useCommandHandler('km.tags.new', () => {
+    newTagRef.current?.focus();
+  });
   const move = (tagId: string, parentId: string | null) => {
     updateTag.mutate({ id: tagId, patch: { parentId } });
   };
@@ -35,7 +42,12 @@ export function TagsPage() {
       <p className="muted">
         {tx('tags.help', { top: <kbd>⤒</kbd>, add: <kbd>+</kbd>, edit: <kbd>✎</kbd> })}
       </p>
-      <NewTagForm parentId={null} label={t('tags.newTopLevel')} />
+      <NewTagForm
+        parentId={null}
+        label={t('tags.newTopLevel')}
+        inputRef={newTagRef}
+        submitTooltip={newTagTip}
+      />
       {index.error && <p className="error">{errorText(index.error)}</p>}
       {updateTag.isError && <p className="error">{errorText(updateTag.error)}</p>}
       {!index.isPending && index.all.length === 0 && <p className="muted">{t('tags.empty')}</p>}
@@ -132,7 +144,7 @@ function TagRow({ node, all, onMove }: { node: TagTreeNode; all: Tag[]; onMove: 
                 type="button"
                 className="icon subtle"
                 aria-label={t('tags.moveTop', { name: tag.name })}
-                title={t('tags.moveTopTitle')}
+                {...tooltip(t('tags.moveTopTitle'))}
                 onClick={() => {
                   onMove(tag.id, null);
                 }}
@@ -210,10 +222,20 @@ function TagRow({ node, all, onMove }: { node: TagTreeNode; all: Tag[]; onMove: 
   );
 }
 
-function NewTagForm(props: {
+function NewTagForm({
+  parentId,
+  label,
+  autoFocus,
+  inputRef,
+  submitTooltip,
+  onDone,
+}: {
   parentId: string | null;
   label: string;
   autoFocus?: boolean;
+  inputRef?: Ref<HTMLInputElement>;
+  /** For the top-level form, whose input the "New Top-Level Tag" command focuses. */
+  submitTooltip?: TooltipProps;
   /** When set, the form is transient: closes after a successful add or on Escape. */
   onDone?: () => void;
 }) {
@@ -226,37 +248,38 @@ function NewTagForm(props: {
     e.preventDefault();
     if (!valid) return;
     createTag.mutate(
-      { name, parentId: props.parentId },
+      { name, parentId },
       {
         onSuccess: () => {
           setName('');
-          props.onDone?.();
+          onDone?.();
         },
       },
     );
   };
 
   const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') props.onDone?.();
+    if (e.key === 'Escape') onDone?.();
   };
 
   return (
-    <form className="toolbar" onSubmit={submit} aria-label={props.label}>
+    <form className="toolbar" onSubmit={submit} aria-label={label}>
       <input
-        aria-label={props.label}
-        placeholder={props.label}
-        autoFocus={props.autoFocus}
+        ref={inputRef}
+        aria-label={label}
+        placeholder={label}
+        autoFocus={autoFocus}
         value={name}
         onKeyDown={onKeyDown}
         onChange={(e) => {
           setName(e.target.value);
         }}
       />
-      <button type="submit" disabled={!valid || createTag.isPending}>
+      <button type="submit" disabled={!valid || createTag.isPending} {...submitTooltip}>
         {t('common.add')}
       </button>
-      {props.onDone && (
-        <button type="button" className="subtle" onClick={props.onDone}>
+      {onDone && (
+        <button type="button" className="subtle" onClick={onDone}>
           {t('common.cancel')}
         </button>
       )}

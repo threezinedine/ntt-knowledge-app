@@ -49,6 +49,10 @@ a `dependencies` entry of `@km/server` or `@km/core`, or the image breaks.
   Show errors with `errorText(err)`, never the raw server message. API errors that need a
   specific message get an `ApiErrorReason` (`@km/core`) instead of client-side string matching.
   E2E runs with `locale: en-US`; English labels in specs are intentional.
+- Web commands (VS Code style, `src/commands/`): every user action worth a shortcut is a
+  `CommandSpec` in `catalog.ts` (id, i18n title/category, default `keys` with `Mod`), and
+  the component that can perform it registers it with `useCommandHandler`. The palette only
+  lists commands that currently have a handler. Defaults must not conflict (unit-tested).
 - Tests: every new endpoint gets API tests (`app.inject` via `createTestApp`); every
   user-facing flow gets an e2e spec using role/label locators, not CSS, where possible.
 

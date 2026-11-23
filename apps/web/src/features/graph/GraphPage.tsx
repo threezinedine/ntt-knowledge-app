@@ -1,6 +1,7 @@
 import { nodeTitleSchema } from '@km/core';
 import {
   ConnectionMode,
+  ControlButton,
   Controls,
   MiniMap,
   Panel,
@@ -24,6 +25,8 @@ import {
   useGraph,
   useUpdateNode,
 } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
+import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { CircleNode } from './CircleNode';
 import { FloatingEdge, GraphMarkers } from './FloatingEdge';
@@ -52,7 +55,7 @@ const onlyEdges: OnBeforeDelete<KmFlowNode, KmFlowEdge> = ({ edges }) =>
 const nodeTypes: NodeTypes = { circle: CircleNode };
 const nodeOrigin: [number, number] = [0.5, 0.5];
 /** Keep dots clear of the toolbar panel (top), minimap/controls (bottom) and labels. */
-const fitViewOptions: FitViewOptions = {
+const fitViewOptions: FitViewOptions<KmFlowNode> = {
   maxZoom: 1.5,
   padding: { top: '110px', bottom: '170px', left: '60px', right: '60px' },
 };
@@ -70,6 +73,13 @@ function GraphCanvas() {
   const deleteEdge = useDeleteEdge();
   const navigate = useNavigate();
   const { t, errorText } = useI18n();
+  const flow = useReactFlow<KmFlowNode, KmFlowEdge>();
+  useCommandHandler('km.graph.fitView', () => void flow.fitView(fitViewOptions));
+  useCommandHandler('km.graph.zoomIn', () => void flow.zoomIn());
+  useCommandHandler('km.graph.zoomOut', () => void flow.zoomOut());
+  const zoomInTip = useCommandTooltip('km.graph.zoomIn', { always: true });
+  const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
+  const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
 
   // React Flow owns interactive state (dragging, selection); the server is the
   // source of truth, so re-sync whenever a fresh snapshot arrives.
@@ -139,7 +149,41 @@ function GraphCanvas() {
           fitViewOptions={fitViewOptions}
           minZoom={0.1}
         >
-          <Controls showInteractive={false} />
+          {/* Our own buttons: translated labels and shortcut tooltips. */}
+          <Controls
+            showZoom={false}
+            showFitView={false}
+            showInteractive={false}
+            aria-label={t('graph.controls')}
+          >
+            <ControlButton
+              aria-label={t('cmd.zoomIn')}
+              {...zoomInTip}
+              onClick={() => void flow.zoomIn()}
+            >
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M5 0h2v5h5v2H7v5H5V7H0V5h5z" />
+              </svg>
+            </ControlButton>
+            <ControlButton
+              aria-label={t('cmd.zoomOut')}
+              {...zoomOutTip}
+              onClick={() => void flow.zoomOut()}
+            >
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M0 5h12v2H0z" />
+              </svg>
+            </ControlButton>
+            <ControlButton
+              aria-label={t('cmd.fitView')}
+              {...fitTip}
+              onClick={() => void flow.fitView(fitViewOptions)}
+            >
+              <svg viewBox="0 0 12 12" aria-hidden="true">
+                <path d="M0 0h4v1.5H1.5V4H0zm8 0h4v4h-1.5V1.5H8zM0 8h1.5v2.5H4V12H0zm10.5 0H12v4H8v-1.5h2.5z" />
+              </svg>
+            </ControlButton>
+          </Controls>
           <MiniMap<KmFlowNode>
             pannable
             zoomable

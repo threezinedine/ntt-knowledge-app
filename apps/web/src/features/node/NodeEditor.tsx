@@ -1,6 +1,7 @@
 import { nodeTitleSchema, nodeTypeSchema, type GraphNode } from '@km/core';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useUpdateNode } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
 import { useAutosave } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
 import { MarkdownEditor } from './MarkdownEditor';
@@ -24,6 +25,11 @@ export function NodeEditor({ node }: { node: GraphNode }) {
   );
   const autosave = useAutosave(save);
   const { t } = useI18n();
+  const titleRef = useRef<HTMLInputElement>(null);
+  useCommandHandler('km.node.rename', () => {
+    titleRef.current?.focus();
+    titleRef.current?.select();
+  });
 
   const titleValid = nodeTitleSchema.safeParse(draft.title).success;
   const typeValid = nodeTypeSchema.safeParse(draft.type).success;
@@ -38,6 +44,7 @@ export function NodeEditor({ node }: { node: GraphNode }) {
     <div className="node-editor">
       <div className="node-editor-header">
         <input
+          ref={titleRef}
           className="title-input"
           aria-label={t('editor.title')}
           aria-invalid={!titleValid}

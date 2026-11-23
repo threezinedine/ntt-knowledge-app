@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ApiError } from '../../api/client';
 import { useDeleteNode, useNode } from '../../api/queries';
+import { useCommandHandler } from '../../commands/registry';
+import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { EdgesPanel } from './EdgesPanel';
 import { NodeEditor } from './NodeEditor';
@@ -42,12 +44,17 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
   const deleteNode = useDeleteNode();
   const navigate = useNavigate();
   const { t, errorText } = useI18n();
+  const deleteTip = useCommandTooltip('km.node.delete');
+  useCommandHandler('km.node.delete', () => {
+    setConfirming(true);
+  });
 
   if (!confirming) {
     return (
       <button
         type="button"
         className="danger subtle"
+        {...deleteTip}
         onClick={() => {
           setConfirming(true);
         }}
@@ -62,6 +69,7 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
       <button
         type="button"
         className="danger"
+        autoFocus
         disabled={deleteNode.isPending}
         onClick={() => {
           deleteNode.mutate(nodeId, { onSuccess: () => void navigate('/') });
