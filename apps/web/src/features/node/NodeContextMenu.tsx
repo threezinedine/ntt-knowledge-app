@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { api } from '../../api/client';
+import { api, ApiError } from '../../api/client';
 import { keys, useDeleteNode, useTagLink } from '../../api/queries';
 import { useBindings } from '../../commands/keybindingStore';
 import { openQuickPick } from '../../commands/quickInputStore';
@@ -122,7 +122,10 @@ export function useNodeContextMenu(): {
       id: 'reveal',
       label: t('nodeMenu.reveal'),
       onSelect: () =>
-        void navigate('/', { state: { revealNodeId: node.id } satisfies RevealState }),
+        void navigate('/', {
+          state: { revealNodeId: node.id } satisfies RevealState,
+          replace: location.pathname === '/', // no duplicate history entry
+        }),
     },
     {
       id: 'copy-title',
@@ -171,11 +174,21 @@ export function useNodeContextMenu(): {
             setConfirming(null);
           }}
           onConfirm={() => {
+            const done = () => {
+              setConfirming(null);
+              showToast(t('nodeMenu.deleted', { title: confirming.title }));
+              if (location.pathname === `/nodes/${confirming.id}`) void navigate('/');
+            };
             deleteNode.mutate(confirming.id, {
-              onSuccess: () => {
-                setConfirming(null);
-                showToast(t('nodeMenu.deleted', { title: confirming.title }));
-                if (location.pathname === `/nodes/${confirming.id}`) void navigate('/');
+              onSuccess: done,
+              // Already deleted (another tab/device): that is what was asked for.
+              onError: (err) => {
+                if (err instanceof ApiError && err.status === 404) {
+                  deleteNode.reset();
+                  void qc.invalidateQueries({ queryKey: keys.nodes });
+                  void qc.invalidateQueries({ queryKey: keys.graph });
+                  done();
+                }
               },
             });
           }}

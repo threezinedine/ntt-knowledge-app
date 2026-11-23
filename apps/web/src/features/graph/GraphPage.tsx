@@ -23,13 +23,14 @@ import {
   useCreateNode,
   useDeleteEdge,
   useGraph,
-  useUpdateNode,
+  useMovePositions,
 } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { revealNodeId, useNodeContextMenu } from '../node/NodeContextMenu';
 import { CircleNode } from './CircleNode';
+import { pushAway, type Circle } from './collide';
 import { FloatingEdge, GraphMarkers } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
 import {
@@ -69,7 +70,7 @@ function GraphCanvas() {
   const [pendingConnection, setPendingConnection] = useState<Connection | null>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const updateNode = useUpdateNode();
+  const movePositions = useMovePositions();
   const createEdge = useCreateEdge();
   const deleteEdge = useDeleteEdge();
   const navigate = useNavigate();
@@ -82,6 +83,34 @@ function GraphCanvas() {
   const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
   const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
   const nodeMenu = useNodeContextMenu();
+
+  // Dragging a dot near others nudges them out of the way (see collide.ts).
+  // Origins are where every dot was when the drag began; pushed dots are
+  // placed relative to them, so they settle back once the drag moves on.
+  const dragOrigins = useRef<Map<string, Circle> | null>(null);
+  /** Result of the latest nudge: what to save on drop (the render may lag behind). */
+  const pushedNow = useRef<ReadonlyMap<string, { x: number; y: number }>>(new Map());
+  const [dragging, setDragging] = useState(false);
+  const circleOf = (n: KmFlowNode): Circle => ({
+    x: n.position.x,
+    y: n.position.y,
+    r: n.data.radius,
+  });
+  const nudge = (dragged: readonly KmFlowNode[]) => {
+    const origins = dragOrigins.current;
+    if (!origins) return;
+    const draggedCircles = new Map(dragged.map((n) => [n.id, circleOf(n)]));
+    const pushed = pushAway(draggedCircles, origins);
+    pushedNow.current = pushed;
+    setNodes((prev) =>
+      prev.map((n) => {
+        if (draggedCircles.has(n.id)) return n;
+        const target = pushed.get(n.id) ?? origins.get(n.id);
+        if (!target || (target.x === n.position.x && target.y === n.position.y)) return n;
+        return { ...n, position: { x: target.x, y: target.y } };
+      }),
+    );
+  };
 
   // "Reveal in Graph" from a node's menu: centre on it once it is on the canvas.
   const location = useLocation();
@@ -96,12 +125,13 @@ function GraphCanvas() {
 
   // React Flow owns interactive state (dragging, selection); the server is the
   // source of truth, so re-sync whenever a fresh snapshot arrives.
+  // Not mid-drag: a refetch would put pushed dots back; it is applied on drop.
   useEffect(() => {
-    if (!graph.data) return;
+    if (!graph.data || dragging) return;
     const snapshot = graph.data;
     setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev));
     setEdges((prev) => toFlowEdges(snapshot.edges, prev));
-  }, [graph.data, setNodes, setEdges]);
+  }, [graph.data, dragging, setNodes, setEdges]);
 
   const adjacency = useMemo(() => buildAdjacency(edges), [edges]);
   const highlight = useMemo<GraphHighlight>(
@@ -120,7 +150,7 @@ function GraphCanvas() {
   };
 
   return (
-    <div className="graph-page" data-testid="graph-canvas">
+    <div className={`graph-page${dragging ? ' is-dragging' : ''}`} data-testid="graph-canvas">
       {nodeMenu.element}
       <GraphMarkers />
       <GraphHighlightContext value={highlight}>
@@ -153,10 +183,24 @@ function GraphCanvas() {
           onEdgesDelete={(deleted) => {
             for (const edge of deleted) deleteEdge.mutate(edge.id);
           }}
+          onNodeDragStart={() => {
+            dragOrigins.current = new Map(nodes.map((n) => [n.id, circleOf(n)]));
+            pushedNow.current = new Map();
+            setDragging(true);
+          }}
+          onNodeDrag={(_event, _node, dragged) => {
+            nudge(dragged);
+          }}
           onNodeDragStop={(_event, _node, dragged) => {
-            for (const n of dragged) {
-              updateNode.mutate({ id: n.id, patch: { position: n.position } });
-            }
+            dragOrigins.current = null;
+            setDragging(false);
+            // The dragged dots and the ones they pushed, in one request.
+            const items = [
+              ...dragged.map((n) => ({ id: n.id, position: n.position })),
+              ...[...pushedNow.current].map(([id, position]) => ({ id, position })),
+            ];
+            pushedNow.current = new Map();
+            movePositions.mutate({ items }); // failures show in the panel below
           }}
           onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
           onNodeContextMenu={(event, node) => {
@@ -214,9 +258,9 @@ function GraphCanvas() {
           <Panel position="top-left" className="graph-panel">
             <NewNodeForm />
             {graph.isError && <p className="error">{errorText(graph.error)}</p>}
-            {updateNode.isError && (
+            {movePositions.isError && (
               <p className="error">
-                {t('graph.savePositionFailed', { error: errorText(updateNode.error) })}
+                {t('graph.savePositionFailed', { error: errorText(movePositions.error) })}
               </p>
             )}
             {deleteEdge.isError && (

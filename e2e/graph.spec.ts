@@ -99,6 +99,54 @@ test.describe('graph editor', () => {
     }).toPass();
   });
 
+  test('dragging a dot onto another pushes it aside, and keeps it there', async ({
+    page,
+    api,
+    isMobile,
+  }, testInfo) => {
+    test.skip(isMobile, 'Pointer drag; covered on desktop.');
+    const mover = await api.createNode({ title: 'Mover', position: { x: 0, y: 0 } });
+    const sitter = await api.createNode({ title: 'Sitter', position: { x: 300, y: 0 } });
+    await api.createNode({ title: 'Bystander', position: { x: 300, y: 400 } });
+    await page.goto('/');
+
+    const from = await page.locator(`.react-flow__node[data-id="${mover.id}"]`).boundingBox();
+    const onto = await page.locator(`.react-flow__node[data-id="${sitter.id}"]`).boundingBox();
+    if (!from || !onto) throw new Error('nodes not rendered');
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    // Right onto the sitter's centre.
+    await page.mouse.move(onto.x + onto.width / 2, onto.y + onto.height / 2, { steps: 20 });
+    await page.waitForTimeout(200); // let the nudge glide finish for the screenshot
+    await testInfo.attach('mid-drag', { body: await page.screenshot(), contentType: 'image/png' });
+    const sitterNow = await page.locator(`.react-flow__node[data-id="${sitter.id}"]`).boundingBox();
+    expect(
+      sitterNow && Math.abs(sitterNow.x - onto.x) + Math.abs(sitterNow.y - onto.y),
+    ).toBeGreaterThan(10);
+    // A slow save must not flash the pushed dot back to where it was.
+    await page.route('**/api/nodes/positions', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      await route.continue();
+    });
+    await page.mouse.up();
+    for (let i = 0; i < 4; i++) {
+      await page.waitForTimeout(150);
+      const box = await page.locator(`.react-flow__node[data-id="${sitter.id}"]`).boundingBox();
+      expect(Math.abs((box?.x ?? 0) - (sitterNow?.x ?? 0))).toBeLessThan(2);
+    }
+
+    // Saved: the two dots no longer overlap on the server either.
+    await expect(async () => {
+      const get = async (id: string) =>
+        ((await (await page.request.get(`/api/nodes/${id}`)).json()) as GraphNode).position;
+      const a = await get(mover.id);
+      const b = await get(sitter.id);
+      if (!a || !b) throw new Error('no positions');
+      expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(40);
+      expect(b).not.toEqual({ x: 300, y: 0 });
+    }).toPass();
+  });
+
   test('opens the node page on double-click', async ({ page, api }) => {
     const node = await api.createNode({ title: 'Open me', position: { x: 0, y: 0 } });
     await page.goto('/');

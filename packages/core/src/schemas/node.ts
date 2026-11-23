@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { entityMetaShape, positionSchema, propsSchema } from './common.js';
+import { entityMetaShape, idSchema, positionSchema, propsSchema } from './common.js';
 import { tagIdsSchema } from './tag.js';
 
 export const NODE_TITLE_MAX = 200;
@@ -48,6 +48,18 @@ export const updateNodeInputSchema = z.strictObject({
   position: positionSchema.nullable().optional(),
 });
 export type UpdateNodeInput = z.infer<typeof updateNodeInputSchema>;
+
+/** Most dots one drag can move (the dragged ones plus those it pushed aside). */
+export const MAX_POSITIONS_PER_BATCH = 500;
+
+/** PATCH /api/nodes/positions: canvas moves of several nodes, all or nothing. */
+export const nodePositionsInputSchema = z.strictObject({
+  items: z
+    .array(z.strictObject({ id: idSchema, position: positionSchema }))
+    .min(1)
+    .max(MAX_POSITIONS_PER_BATCH),
+});
+export type NodePositionsInput = z.infer<typeof nodePositionsInputSchema>;
 
 export const nodeListQuerySchema = z.strictObject({
   q: z.string().trim().max(NODE_TITLE_MAX).optional(),

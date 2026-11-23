@@ -7,7 +7,9 @@ export type ExpRepository = ReturnType<typeof createExpRepository>;
 
 /**
  * What EXP is computed from: live tags and live nodes' word counts and tags.
- * Reads the cached `content_words`, never the content itself.
+ * Reads the cached `content_words`, never the content itself. Invariant:
+ * every writer of `nodes.content` also sets `content_words` (today only
+ * nodeRepository create/update do).
  */
 export function createExpRepository({ db }: RepoContext) {
   backfillContentWords(db);
@@ -40,7 +42,10 @@ export function createExpRepository({ db }: RepoContext) {
  * left alone. A no-op once every row is counted.
  */
 export function backfillContentWords(db: RepoContext['db']): number {
-  const pending = db.prepare('SELECT id, content FROM nodes WHERE content_words IS NULL').all() as {
+  // Live rows only: tombstones never count towards EXP.
+  const pending = db
+    .prepare('SELECT id, content FROM nodes WHERE content_words IS NULL AND deleted_at IS NULL')
+    .all() as {
     id: string;
     content: string;
   }[];

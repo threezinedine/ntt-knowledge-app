@@ -131,4 +131,50 @@ test.describe('node context menu', () => {
     await expect(farNode).toHaveClass(/selected/);
     await expect(farNode).toBeInViewport();
   });
+
+  test('keys typed in the menu never reach the graph (Backspace keeps a selected link)', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Edge selection is a pointer interaction.');
+    const a = await api.createNode({ title: 'From', position: { x: 0, y: 0 } });
+    const b = await api.createNode({ title: 'To', position: { x: 400, y: 0 } });
+    const edge = await api.createEdge(a.id, b.id, 'KEEP');
+    await page.goto('/');
+    const line = page.getByTestId(`rf__edge-${edge.id}`);
+    await line.click({ force: true });
+    await expect(line).toHaveClass(/selected/);
+
+    await page.locator(`.react-flow__node[data-id="${a.id}"]`).click({ button: 'right' });
+    await expect(menu(page, 'From')).toBeVisible();
+    await page.keyboard.press('Backspace');
+    await page.keyboard.press('Delete');
+    await page.keyboard.press('Escape');
+    const graph = (await (await page.request.get('/api/graph')).json()) as { edges: unknown[] };
+    expect(graph.edges).toHaveLength(1);
+  });
+
+  test('Reveal in Graph from a node page opens the graph on that node', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Checks the canvas viewport.');
+    for (let i = 0; i < 12; i++) {
+      await api.createNode({
+        title: `Filler ${String(i)}`,
+        position: { x: (i % 4) * 500, y: Math.floor(i / 4) * 400 },
+      });
+    }
+    const target = await api.createNode({ title: 'Target', position: { x: 2600, y: 1400 } });
+    await page.goto(`/nodes/${target.id}`);
+    await sidebarItem(page, 'Target').click({ button: 'right' });
+    await menu(page, 'Target').getByRole('menuitem', { name: 'Reveal in Graph' }).click();
+    await expect(page).toHaveURL(/\/$/);
+    const node = page.locator(`.react-flow__node[data-id="${target.id}"]`);
+    await expect(node).toHaveClass(/selected/);
+    await expect(node).toBeInViewport();
+    await expect(node.locator('.km-node-label')).toBeVisible(); // zoomed in, not the overview
+  });
 });

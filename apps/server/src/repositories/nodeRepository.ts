@@ -215,6 +215,20 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
     },
 
     /**
+     * Moves several nodes on the canvas in one transaction (a drag and the
+     * dots it pushed aside): every node must exist, or nothing moves.
+     * Layout rows only, like a single `position` patch.
+     */
+    movePositions(items: readonly { id: string; position: Position }[]): void {
+      transaction(db, () => {
+        for (const { id, position } of items) {
+          const existing = getOrThrow(id);
+          if (!sameJson(position, existing.position)) writeLayout(id, position);
+        }
+      });
+    },
+
+    /**
      * Soft-deletes the node with its edges and tag links,
      * sharing one tombstone timestamp.
      */

@@ -1,4 +1,9 @@
-import { createNodeInputSchema, nodeListQuerySchema, updateNodeInputSchema } from '@km/core';
+import {
+  createNodeInputSchema,
+  nodeListQuerySchema,
+  nodePositionsInputSchema,
+  updateNodeInputSchema,
+} from '@km/core';
 import type { FastifyInstance } from 'fastify';
 import type { Repositories } from '../../repositories/index.js';
 import { idParamsSchema, parse } from '../validation.js';
@@ -14,6 +19,11 @@ export function registerNodeRoutes(app: FastifyInstance, repos: Repositories): v
   app.get('/api/nodes/:id', (request) => {
     const { id } = parse(idParamsSchema, request.params);
     return repos.nodes.getOrThrow(id);
+  });
+
+  app.patch('/api/nodes/positions', async (request, reply) => {
+    repos.nodes.movePositions(parse(nodePositionsInputSchema, request.body).items);
+    return reply.status(204).send();
   });
 
   app.patch('/api/nodes/:id', (request) => {

@@ -127,3 +127,54 @@ describe('nodes API', () => {
     expect(res.body.error.code).toBe('NOT_FOUND');
   });
 });
+
+describe('PATCH /api/nodes/positions', () => {
+  it('moves several nodes at once, without touching their content timestamps', async () => {
+    const a = await createNode('A', { position: { x: 0, y: 0 } });
+    const b = await createNode('B');
+    t.tick(10);
+    const res = await t.request('PATCH', '/api/nodes/positions', {
+      items: [
+        { id: a.id, position: { x: 5, y: 6 } },
+        { id: b.id, position: { x: -1, y: 2 } },
+      ],
+    });
+    expect(res.status).toBe(204);
+    const after = await t.request<GraphNode>('GET', `/api/nodes/${a.id}`);
+    expect(after.body.position).toEqual({ x: 5, y: 6 });
+    expect(after.body.updatedAt).toBe(a.updatedAt);
+    expect((await t.request<GraphNode>('GET', `/api/nodes/${b.id}`)).body.position).toEqual({
+      x: -1,
+      y: 2,
+    });
+  });
+
+  it('is all or nothing: one missing node moves none', async () => {
+    const a = await createNode('A', { position: { x: 0, y: 0 } });
+    const res = await t.request<ApiErrorBody>('PATCH', '/api/nodes/positions', {
+      items: [
+        { id: a.id, position: { x: 9, y: 9 } },
+        { id: '01900000-0000-7000-8000-000000000000', position: { x: 1, y: 1 } },
+      ],
+    });
+    expect(res.status).toBe(404);
+    expect((await t.request<GraphNode>('GET', `/api/nodes/${a.id}`)).body.position).toEqual({
+      x: 0,
+      y: 0,
+    });
+  });
+
+  it('validates the body', async () => {
+    expect((await t.request('PATCH', '/api/nodes/positions', { items: [] })).status).toBe(400);
+    expect((await t.request('PATCH', '/api/nodes/positions', { items: [], extra: 1 })).status).toBe(
+      400,
+    );
+    expect(
+      (
+        await t.request('PATCH', '/api/nodes/positions', {
+          items: [{ id: 'nope', position: { x: 0, y: 0 } }],
+        })
+      ).status,
+    ).toBe(400);
+  });
+});

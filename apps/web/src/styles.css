@@ -1258,3 +1258,10 @@ kbd {
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* Long-press opens the node menu on touch; don't start a text selection or the
+   iOS link callout instead. */
+.node-list-item {
+  -webkit-touch-callout: none;
+  user-select: none;
+}

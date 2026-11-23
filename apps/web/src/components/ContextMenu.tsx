@@ -89,6 +89,9 @@ export function ContextMenu({ label, x, y, items, onClose }: Props) {
     enabled.findIndex((i) => i.id === (document.activeElement as HTMLElement | null)?.dataset.id);
 
   const onKeyDown = (e: KeyboardEvent) => {
+    // Every key stays in the menu: unhandled ones (Backspace, Delete, ...) would
+    // otherwise reach document listeners, e.g. React Flow deleting a selected edge.
+    e.stopPropagation();
     const handled = () => {
       e.preventDefault();
       e.stopPropagation();
@@ -108,7 +111,7 @@ export function ContextMenu({ label, x, y, items, onClose }: Props) {
     } else if (e.key === 'Escape' || e.key === 'Tab') {
       handled();
       onClose();
-    } else if (e.key.length === 1 && /\S/.test(e.key)) {
+    } else if (e.key.length === 1 && /\S/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // Type-ahead: the next item starting with that letter.
       const from = current();
       const next = enabled.findIndex(

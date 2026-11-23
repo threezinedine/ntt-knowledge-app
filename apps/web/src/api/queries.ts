@@ -4,6 +4,7 @@ import type {
   CreateTagInput,
   GraphNode,
   GraphSnapshot,
+  NodePositionsInput,
   TaggableKind,
   UpdateNodeInput,
   UpdateTagInput,
@@ -103,6 +104,37 @@ export function useUpdateNode() {
       }
       await Promise.all(stale.map((queryKey) => qc.invalidateQueries({ queryKey })));
     },
+  });
+}
+
+/**
+ * Saves where a drag left every dot it moved. The canvas cache is updated
+ * first (optimistic), so no refetch or other response can flash the dots
+ * back; a failure restores the server's view.
+ */
+export function useMovePositions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: NodePositionsInput) => api.nodes.movePositions(input),
+    onMutate: async ({ items }) => {
+      await qc.cancelQueries({ queryKey: keys.graph });
+      const moved = new Map(items.map((i) => [i.id, i.position]));
+      qc.setQueryData<GraphSnapshot>(
+        keys.graph,
+        (graph) =>
+          graph && {
+            ...graph,
+            nodes: graph.nodes.map((n) => {
+              const position = moved.get(n.id);
+              return position ? { ...n, position } : n;
+            }),
+          },
+      );
+      for (const [id, position] of moved) {
+        qc.setQueryData<GraphNode>(keys.node(id), (node) => node && { ...node, position });
+      }
+    },
+    onError: () => qc.invalidateQueries({ queryKey: keys.graph }),
   });
 }
 

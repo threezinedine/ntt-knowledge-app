@@ -7,6 +7,7 @@ import type {
   ExpSnapshot,
   GraphNode,
   GraphSnapshot,
+  NodePositionsInput,
   NodeEdges,
   Tag,
   TaggableKind,
@@ -88,6 +89,9 @@ export const api = {
       request<GraphNode>('PATCH', `/nodes/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/nodes/${id}`),
     edges: (id: string) => request<NodeEdges>('GET', `/nodes/${id}/edges`),
+    /** Several canvas moves in one transaction (a drag and what it pushed). */
+    movePositions: (input: NodePositionsInput) =>
+      request<undefined>('PATCH', '/nodes/positions', input),
   },
   edges: {
     create: (input: CreateEdgeInput) => request<Edge>('POST', '/edges', input),
