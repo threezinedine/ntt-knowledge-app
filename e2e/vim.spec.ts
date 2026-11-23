@@ -173,6 +173,8 @@ test.describe('vim mode', () => {
     await expect(numbers).toHaveText(['1', '1', '2', '3']);
     await page.keyboard.type('2j'); // to line 3
     await expect(numbers).toHaveText(['2', '1', '3', '1']);
+    // The mode line stays on screen even though the pane is taller than the window.
+    await expect(page.getByText('--NORMAL--')).toBeInViewport();
   });
 
   test('toggling vim keeps the caret in the title', async ({ page, api }) => {
