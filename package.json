@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:ui": "playwright test --ui-host=127.0.0.1 --ui-port=9323",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",

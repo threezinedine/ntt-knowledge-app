@@ -1,6 +1,7 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config.js';
 import { openDatabase } from './db/database.js';
+import { watchParent } from './watchParent.js';
 
 const config = loadConfig(process.env);
 const db = openDatabase(config.KM_DB_PATH);
@@ -25,6 +26,9 @@ async function shutdown(signal: string): Promise<void> {
 }
 process.once('SIGINT', () => void shutdown('SIGINT'));
 process.once('SIGTERM', () => void shutdown('SIGTERM'));
+if (config.KM_PARENT_PID !== undefined) {
+  watchParent(config.KM_PARENT_PID, () => void shutdown('parent exited'));
+}
 
 await app.listen({ host: config.KM_HOST, port: config.KM_PORT });
 app.log.info({ db: config.KM_DB_PATH }, 'Knowledge Manager ready');

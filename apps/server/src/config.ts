@@ -18,6 +18,8 @@ const envSchema = z.object({
         .map((h) => h.trim())
         .filter(Boolean),
     ),
+  /** Exit when this process exits (set by the e2e config; see watchParent.ts). */
+  KM_PARENT_PID: z.coerce.number().int().positive().optional(),
   KM_LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),

@@ -36,6 +36,9 @@ export default defineConfig({
       KM_PORT: String(PORT),
       KM_DB_PATH: ':memory:',
       KM_LOG_LEVEL: 'warn',
+      // Windows doesn't kill this server when Playwright dies (e.g. the UI-mode
+      // window is closed); it would then hold the port and break the next run.
+      KM_PARENT_PID: String(process.pid),
     },
   },
 });
