@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router';
 import { useCreateNode, useNodeList } from '../api/queries';
 import { useCommandHandler } from '../commands/registry';
 import { useCommandTooltip } from '../commands/useCommandTooltip';
+import { NEW_NODE_STATE } from '../features/node/navState';
 import { useI18n } from '../i18n/context';
 
 /** The search box's id, for the "Search Nodes" command. */
@@ -19,7 +20,7 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
   const handleCreate = () => {
     createNode.mutate(
       { title: t('sidebar.untitled') },
-      { onSuccess: (node) => void navigate(`/nodes/${node.id}`) },
+      { onSuccess: (node) => void navigate(`/nodes/${node.id}`, { state: NEW_NODE_STATE }) },
     );
   };
   const newTip = useCommandTooltip('km.node.new');

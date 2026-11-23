@@ -1,6 +1,6 @@
 import { useI18n } from '../i18n/context';
 import { COMMAND_BY_ID, type CommandId } from './catalog';
-import { ariaKeyShortcut } from './keybinding';
+import { ariaKeyShortcut, type Keybinding } from './keybinding';
 import { useBindings } from './keybindingStore';
 
 /** Attributes read by `<TooltipLayer>`; spread them onto any element. */
@@ -16,21 +16,18 @@ export function tooltip(label: string): TooltipProps {
 }
 
 /**
- * Tooltip for a control that does what command `id` does: "Label [Alt+N]",
- * like VS Code's buttons. Follows the user's rebindings; shows the first one.
- * Unbound commands get no tooltip (the control's own text says it already)
- * unless `always` is set, for icon-only buttons.
+ * "Label [first binding]", like VS Code's buttons. Unbound commands get no
+ * tooltip (the control's own text says it already) unless `always` is set,
+ * for icon-only buttons. Screen readers get every single-press binding.
  */
-export function useCommandTooltip(
-  id: CommandId,
-  { label, always = false }: { label?: string; always?: boolean } = {},
+export function commandTooltipProps(
+  label: string,
+  keys: readonly Keybinding[],
+  always = false,
 ): TooltipProps {
-  const { t } = useI18n();
-  const keys = useBindings().get(id) ?? [];
   const first = keys.at(0);
   if (first === undefined && !always) return {};
-  const spec = COMMAND_BY_ID.get(id);
-  const props: TooltipProps = { 'data-tooltip': label ?? (spec ? t(spec.title) : id) };
+  const props: TooltipProps = { 'data-tooltip': label };
   if (first !== undefined) props['data-tooltip-keys'] = first;
   const aria = keys
     .map(ariaKeyShortcut)
@@ -38,4 +35,15 @@ export function useCommandTooltip(
     .join(' ');
   if (aria) props['aria-keyshortcuts'] = aria;
   return props;
+}
+
+/** Tooltip for a control that does what command `id` does; follows rebinding. */
+export function useCommandTooltip(
+  id: CommandId,
+  { label, always = false }: { label?: string; always?: boolean } = {},
+): TooltipProps {
+  const { t } = useI18n();
+  const keys = useBindings().get(id) ?? [];
+  const spec = COMMAND_BY_ID.get(id);
+  return commandTooltipProps(label ?? (spec ? t(spec.title) : id), keys, always);
 }

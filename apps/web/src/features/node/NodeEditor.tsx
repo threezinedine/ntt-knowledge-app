@@ -1,10 +1,12 @@
 import { nodeTitleSchema, nodeTypeSchema, type GraphNode } from '@km/core';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { useUpdateNode } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
 import { useAutosave } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
 import { MarkdownEditor } from './MarkdownEditor';
+import { wantsTitleFocus } from './navState';
 import { draftToPatch, type NodeDraft as Draft } from './nodeDraft';
 
 /**
@@ -30,6 +32,17 @@ export function NodeEditor({ node }: { node: GraphNode }) {
     titleRef.current?.focus();
     titleRef.current?.select();
   });
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const focusTitle = wantsTitleFocus(location.state);
+  useEffect(() => {
+    if (!focusTitle) return;
+    titleRef.current?.focus();
+    titleRef.current?.select();
+    // Once only: not again on reload or when coming back to this entry.
+    void navigate(location, { replace: true, state: null });
+  }, [focusTitle, location, navigate]);
 
   const titleValid = nodeTitleSchema.safeParse(draft.title).success;
   const typeValid = nodeTypeSchema.safeParse(draft.type).success;

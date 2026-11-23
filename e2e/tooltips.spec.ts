@@ -61,17 +61,48 @@ test.describe('shortcut tooltips', () => {
   test('an unbound command adds no tooltip to a labelled button', async ({ page, api }) => {
     const node = await api.createNode({ title: 'Plain' });
     await page.goto(`/nodes/${node.id}`);
-    await page.getByRole('button', { name: 'Delete node' }).hover();
-    await page.waitForTimeout(800); // past the show delay
-    await expect(page.getByRole('tooltip')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Delete node' })).not.toHaveAttribute(
+      'data-tooltip',
+    );
+    // ...while a bound one on the same page has it.
+    await expect(page.getByRole('tab', { name: 'Split' })).toHaveAttribute(
+      'data-tooltip-keys',
+      'Ctrl+K V',
+    );
+  });
+
+  test('focusing a text field never shows one (hover still does)', async ({ page }) => {
+    await page.goto('/');
+    const search = page.getByRole('searchbox', { name: 'Search nodes' });
+    await page.keyboard.press('ControlOrMeta+Shift+F');
+    await expect(search).toBeFocused();
+    await expect(page.getByRole('tooltip')).toHaveCount(0); // focus shows synchronously
+    await search.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(/Search Nodes/);
+  });
+
+  test('a keyboard tooltip survives the mouse drifting', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Tags' }).focus();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('tooltip')).toHaveText(/Show All Commands/);
+    await page.mouse.move(400, 400);
+    await page.mouse.move(420, 410);
+    await expect(page.getByRole('tooltip')).toHaveText(/Show All Commands/);
   });
 });
 
 test('touch never shows tooltips', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'Touch profile only.');
   await page.goto('/');
+  // Focusing a field by tap: focus would show one synchronously.
+  const search = page.getByRole('searchbox', { name: 'Search nodes' });
+  await search.tap();
+  await expect(search).toBeFocused();
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  // Tapping a button: hover would show one after its 500 ms delay.
   await page.getByRole('button', { name: 'Show All Commands' }).tap();
   await expect(page.getByRole('dialog', { name: 'Quick input' })).toBeVisible();
   await page.waitForTimeout(800);
-  await expect(page.getByRole('tooltip')).toBeHidden();
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
 });

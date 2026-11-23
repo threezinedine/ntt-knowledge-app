@@ -1,6 +1,26 @@
 import { expect, test } from './fixtures';
 
 test.describe('node editing', () => {
+  test('a new node opens with its title selected, so typing names it', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: '+ New' }).click();
+    const title = page.getByRole('textbox', { name: 'Title' });
+    await expect(title).toBeFocused();
+    await page.keyboard.type('Named right away');
+    await expect(title).toHaveValue('Named right away');
+    await expect(page.getByTestId('save-status')).toHaveText('Saved');
+
+    // Only on creation: not after a reload, nor when opening an existing node.
+    await page.reload();
+    await expect(title).toHaveValue('Named right away');
+    await expect(title).not.toBeFocused();
+
+    // Same with the shortcut.
+    await page.keyboard.press('Alt+N');
+    await expect(title).toHaveValue('Untitled');
+    await expect(title).toBeFocused();
+  });
+
   test('creates a node, edits title/type/markdown, and persists across reload', async ({
     page,
   }) => {
