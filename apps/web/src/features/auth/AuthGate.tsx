@@ -4,6 +4,7 @@ import { useAuthStatus, useLogin } from '../../api/queries';
 import { suspendKeybindings } from '../../commands/dispatch';
 import { useI18n } from '../../i18n/context';
 import { LanguagePicker } from '../../i18n/LanguagePicker';
+import { isNativeApp, ReadOnlyContext } from '../readOnly';
 
 /**
  * Asks for the authenticator code when the server wants one.
@@ -26,11 +27,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
   if (status.data && !signedOut && !wasIn) setWasIn(true);
 
   if (signedOut && !wasIn) return <SignInPage />;
+  const readOnly = isNativeApp() || status.data?.readOnly === true;
   return (
-    <>
+    <ReadOnlyContext value={readOnly}>
       {children}
       {signedOut && <SignInDialog />}
-    </>
+    </ReadOnlyContext>
   );
 }
 
@@ -82,11 +84,15 @@ function CodeForm() {
 
   const submit = (value: string) => {
     if (!/^\d{6}$/.test(value) || login.isPending) return;
-    login.mutate(value, {
-      onError: () => {
-        setCode(''); // a wrong code is no use; ready for the next one
+    // The phone app asks for a read-only session: the server then refuses writes.
+    login.mutate(
+      { code: value, readOnly: isNativeApp() },
+      {
+        onError: () => {
+          setCode(''); // a wrong code is no use; ready for the next one
+        },
       },
-    });
+    );
   };
 
   let error: string | null = null;

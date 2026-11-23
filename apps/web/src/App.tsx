@@ -14,6 +14,7 @@ import { SignOutButton } from './features/auth/SignOutButton';
 import { GraphPage } from './features/graph/GraphPage';
 import { NodePage } from './features/node/NodePage';
 import { TagsPage } from './features/tags/TagsPage';
+import { useReadOnly } from './features/readOnly';
 import { useI18n } from './i18n/context';
 import { LanguagePicker } from './i18n/LanguagePicker';
 
@@ -21,6 +22,7 @@ const SIDEBAR_KEY = 'km.sidebarVisible';
 
 export function App() {
   const { t } = useI18n();
+  const readOnly = useReadOnly();
   const graphTip = useCommandTooltip('km.go.graph', { always: true });
   const tagsTip = useCommandTooltip('km.go.tags', { always: true });
   const paletteTip = useCommandTooltip('workbench.action.showCommands', { always: true });
@@ -71,9 +73,12 @@ export function App() {
         <NavLink to="/" end aria-label={t('app.nav.graph')} {...graphTip}>
           <GraphIcon size={22} />
         </NavLink>
-        <NavLink to="/tags" aria-label={t('app.nav.tags')} {...tagsTip}>
-          <TagIcon size={22} />
-        </NavLink>
+        {/* The tags page is for editing the tree; read-only mode has none. */}
+        {!readOnly && (
+          <NavLink to="/tags" aria-label={t('app.nav.tags')} {...tagsTip}>
+            <TagIcon size={22} />
+          </NavLink>
+        )}
         <span className="activity-bar-spacer" />
         <SignOutButton />
         <button
@@ -98,7 +103,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<GraphPage />} />
           <Route path="/nodes/:id" element={<NodePage />} />
-          <Route path="/tags" element={<TagsPage />} />
+          <Route path="/tags" element={readOnly ? <Navigate to="/" replace /> : <TagsPage />} />
           <Route path="/shortcuts" element={<ShortcutsPage />} />
           <Route path="/categories" element={<Navigate to="/tags" replace />} />
           <Route path="*" element={<p className="empty">{t('app.notFound')}</p>} />

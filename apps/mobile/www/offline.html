@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Knowledge Manager</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #14161a;
+        color: #e3e6eb;
+        font:
+          15px/1.5 system-ui,
+          sans-serif;
+        text-align: center;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .mark {
+        font-size: 40px;
+        color: #7aa2f7;
+      }
+      .muted {
+        color: #8b929c;
+        font-size: 13px;
+      }
+      button {
+        margin-top: 12px;
+        padding: 10px 20px;
+        border: 0;
+        border-radius: 6px;
+        background: #7aa2f7;
+        color: #0e1116;
+        font: inherit;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">◆</div>
+      <h1>Không kết nối được máy chủ</h1>
+      <p>Can't reach your Knowledge Manager server.</p>
+      <p class="muted">
+        Kiểm tra máy tính đang bật server và điện thoại cùng mạng Wi-Fi.<br />
+        Make sure the server is running and the phone is on the same Wi-Fi.
+      </p>
+      <button
+        type="button"
+        onclick="
+          history.back();
+          setTimeout(() => location.reload(), 300);
+        "
+      >
+        Thử lại · Retry
+      </button>
+    </main>
+  </body>
+</html>

@@ -117,7 +117,8 @@ export const api = {
   auth: {
     status: () => request<AuthStatus>('GET', '/auth/status'),
     /** The 6-digit authenticator code; sets the session cookie. */
-    login: (code: string) => request<AuthStatus>('POST', '/auth/login', { code }),
+    login: (code: string, readOnly = false) =>
+      request<AuthStatus>('POST', '/auth/login', readOnly ? { code, readOnly } : { code }),
     signOut: () => request<undefined>('POST', '/auth/logout'),
   },
 };

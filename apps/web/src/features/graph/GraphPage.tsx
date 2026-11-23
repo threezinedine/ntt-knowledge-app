@@ -53,6 +53,7 @@ import {
 } from './highlight';
 import { graph3dFailure, type Graph3DFailure } from './graph3dData';
 import { RelationDialog } from './RelationDialog';
+import { useReadOnly } from '../readOnly';
 
 // three.js is big: only fetched when someone switches to 3D (and kept out of
 // the service worker's precache, see vite.config.ts).
@@ -162,6 +163,8 @@ function GraphCanvas() {
   const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
   const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
   const nodeMenu = useNodeContextMenu();
+  // Read-only (phone app): look and navigate; no drag, connect, rename, delete.
+  const readOnly = useReadOnly();
 
   const renameEdge = updateEdge.mutate; // stable, unlike the mutation object
   // Renaming a link: double-click it, or "Rename Link" with one link selected.
@@ -173,7 +176,7 @@ function GraphCanvas() {
     () => {
       if (onlySelectedEdge) setRenamingId(onlySelectedEdge.id);
     },
-    onlySelectedEdge !== undefined,
+    onlySelectedEdge !== undefined && !readOnly,
   );
   const edgeRename = useMemo<EdgeRename>(
     () => ({
@@ -292,6 +295,9 @@ function GraphCanvas() {
             }}
             // Loose: ending on *any* handle of another node connects (the dot's own
             // grip included), so the whole dot and its label are a drop target.
+            nodesDraggable={!readOnly}
+            nodesConnectable={!readOnly}
+            deleteKeyCode={readOnly ? null : undefined}
             connectionMode={ConnectionMode.Loose}
             connectionRadius={40}
             // Self-loops come from the node page; on the canvas a short drag from the
@@ -329,7 +335,7 @@ function GraphCanvas() {
             }}
             onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
             onEdgeDoubleClick={(_event, edge) => {
-              setRenamingId(edge.id);
+              if (!readOnly) setRenamingId(edge.id);
             }}
             onNodeContextMenu={(event, node) => {
               event.preventDefault();
@@ -384,7 +390,7 @@ function GraphCanvas() {
             />
             {/* One stacked panel: separate panels overlap (and steal taps) on narrow screens. */}
             <Panel position="top-left" className="graph-panel">
-              <NewNodeForm />
+              {!readOnly && <NewNodeForm />}
               {graph.isError && <p className="error">{errorText(graph.error)}</p>}
               {movePositions.isError && (
                 <p className="error">

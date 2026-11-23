@@ -7,30 +7,37 @@ export interface GraphSnapshot {
   edges: Edge[];
 }
 
-export type ApiErrorCode =
-  | 'VALIDATION_ERROR'
-  | 'NOT_FOUND'
-  | 'CONFLICT'
-  | 'FORBIDDEN_HOST'
-  | 'UNAUTHORIZED'
-  | 'TOO_MANY_REQUESTS'
-  | 'PAYLOAD_TOO_LARGE'
-  | 'BAD_REQUEST'
-  | 'INTERNAL_ERROR';
+export const API_ERROR_CODES = [
+  'VALIDATION_ERROR',
+  'NOT_FOUND',
+  'CONFLICT',
+  'FORBIDDEN_HOST',
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'TOO_MANY_REQUESTS',
+  'PAYLOAD_TOO_LARGE',
+  'BAD_REQUEST',
+  'INTERNAL_ERROR',
+] as const;
+export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
 
 /**
  * Finer-grained, stable cause for errors whose code alone is too vague to show
  * a user. Clients translate it; `message` stays English (logs, curl).
+ * Listed at runtime so a test can check every one has a translation.
  */
-export type ApiErrorReason =
-  | 'EDGE_EXISTS'
-  | 'TAG_NAME_TAKEN'
-  | 'TAG_HAS_CHILDREN'
-  | 'TAG_CYCLE'
-  | 'TAG_LIMIT_REACHED'
-  | 'CODE_INVALID'
-  | 'CODE_USED'
-  | 'LOCKED_OUT';
+export const API_ERROR_REASONS = [
+  'EDGE_EXISTS',
+  'TAG_NAME_TAKEN',
+  'TAG_HAS_CHILDREN',
+  'TAG_CYCLE',
+  'TAG_LIMIT_REACHED',
+  'CODE_INVALID',
+  'CODE_USED',
+  'LOCKED_OUT',
+  'READ_ONLY',
+] as const;
+export type ApiErrorReason = (typeof API_ERROR_REASONS)[number];
 
 /** Shape of every non-2xx JSON response body. */
 export interface ApiErrorBody {

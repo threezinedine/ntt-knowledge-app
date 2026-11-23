@@ -9,6 +9,9 @@
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @km/server\" \"npm run dev -w @km/web\"",
     "auth:setup": "npm run auth:setup -w @km/server",
+    "mobile:sync": "npm run sync -w @km/mobile",
+    "mobile:open": "npm run open -w @km/mobile",
+    "mobile:run": "npm run run -w @km/mobile",
     "build": "npm run build -w @km/web",
     "start": "npm run start -w @km/server",
     "typecheck": "npm run typecheck --workspaces --if-present",

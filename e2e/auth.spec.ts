@@ -7,8 +7,13 @@ import { expect, test } from './fixtures';
 // the server side (codes, lockout, sessions) is covered by
 // apps/server/src/http/auth.test.ts.
 
-const IN: AuthStatus = { enabled: true, signedIn: true, expiresAt: Date.now() + 3_600_000 };
-const OUT: AuthStatus = { enabled: true, signedIn: false, expiresAt: null };
+const IN: AuthStatus = {
+  enabled: true,
+  signedIn: true,
+  expiresAt: Date.now() + 3_600_000,
+  readOnly: false,
+};
+const OUT: AuthStatus = { enabled: true, signedIn: false, expiresAt: null, readOnly: false };
 
 /** A fake sign-in server: `GOOD` is the only right code. */
 async function fakeAuth(page: Page, start: AuthStatus) {

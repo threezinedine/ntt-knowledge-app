@@ -9,11 +9,14 @@ import { EdgesPanel } from './EdgesPanel';
 import { NodeEditor } from './NodeEditor';
 import { NodeTagsPanel } from './NodeTagsPanel';
 import { PropsEditor } from './PropsEditor';
+import { NodeView } from './NodeView';
+import { useReadOnly } from '../readOnly';
 
 export function NodePage() {
   const { id = '' } = useParams();
   const node = useNode(id);
   const { t, errorText } = useI18n();
+  const readOnly = useReadOnly();
 
   if (node.isPending) return <p className="muted">{t('common.loading')}</p>;
   if (node.isError) {
@@ -21,6 +24,7 @@ export function NodePage() {
     return <p className="empty">{notFound ? t('node.notFound') : errorText(node.error)}</p>;
   }
 
+  if (readOnly) return <NodeView key={node.data.id} node={node.data} />;
   // Keyed by id so local drafts reset cleanly when switching nodes.
   return (
     <div className="node-page" key={node.data.id}>

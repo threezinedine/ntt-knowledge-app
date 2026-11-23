@@ -8,6 +8,7 @@ import { openQuickPick } from '../../commands/quickInputStore';
 import { ContextMenu, type MenuItem } from '../../components/ContextMenu';
 import { showToast } from '../../components/toast';
 import { useI18n } from '../../i18n/context';
+import { useReadOnly } from '../readOnly';
 import { useTagIndex } from '../tags/useTagIndex';
 import { NEW_NODE_STATE } from './navState';
 
@@ -35,6 +36,8 @@ export function revealNodeId(state: unknown): string | null {
  * open, rename, tags, reveal in graph, copy title/link, delete. Returns an
  * opener and the element to render.
  */
+const READ_ONLY_ITEMS = new Set(['open', 'reveal', 'copy-title', 'copy-link']);
+
 export function useNodeContextMenu(): {
   open: (node: MenuNode, x: number, y: number) => void;
   element: ReactNode;
@@ -47,6 +50,7 @@ export function useNodeContextMenu(): {
   const link = useTagLink('nodes');
   const deleteNode = useDeleteNode();
   const bindings = useBindings();
+  const readOnly = useReadOnly();
   const [menu, setMenu] = useState<{ node: MenuNode; x: number; y: number } | null>(null);
   const [confirming, setConfirming] = useState<MenuNode | null>(null);
 
@@ -99,7 +103,10 @@ export function useNodeContextMenu(): {
     );
   };
 
-  const items = (node: MenuNode): MenuItem[] => [
+  // Read-only (phone app): only the items that change nothing.
+  const items = (node: MenuNode): MenuItem[] =>
+    allItems(node).filter((i) => !readOnly || READ_ONLY_ITEMS.has(i.id));
+  const allItems = (node: MenuNode): MenuItem[] => [
     {
       id: 'open',
       label: t('nodeMenu.open'),

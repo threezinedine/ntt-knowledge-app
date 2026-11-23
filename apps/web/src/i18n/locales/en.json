@@ -244,5 +244,7 @@
   "error.reason.CODE_INVALID": "Wrong or expired code. Use the one the app shows now.",
   "error.reason.LOCKED_OUT": "Too many wrong codes. Try again later.",
   "error.code.TOO_MANY_REQUESTS": "Too many attempts. Try again later.",
-  "error.reason.CODE_USED": "That code was just used. Wait for the next one."
+  "error.reason.CODE_USED": "That code was just used. Wait for the next one.",
+  "error.code.FORBIDDEN": "Not allowed.",
+  "error.reason.READ_ONLY": "This device can only view, not change anything."
 }

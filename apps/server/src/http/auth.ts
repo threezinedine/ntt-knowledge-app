@@ -2,8 +2,8 @@ import fastifyCookie from '@fastify/cookie';
 import { loginInputSchema, type AuthStatus } from '@km/core';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { LoginGuard } from '../auth/loginGuard.js';
-import { TooManyRequestsError, UnauthorizedError } from '../errors.js';
-import type { SessionRepository } from '../repositories/sessionRepository.js';
+import { ForbiddenError, TooManyRequestsError, UnauthorizedError } from '../errors.js';
+import type { LiveSession, SessionRepository } from '../repositories/sessionRepository.js';
 import { parse } from './validation.js';
 
 export interface AuthOptions {
@@ -20,6 +20,9 @@ export interface AuthOptions {
 }
 
 export const SESSION_COOKIE = 'km_session';
+
+/** All a read-only session may do (besides signing out). */
+const READ_METHODS = new Set(['GET', 'HEAD']);
 
 /**
  * Route *patterns* reachable without a session: signing in and out, the
@@ -47,15 +50,20 @@ export async function registerAuth(
 ): Promise<void> {
   await app.register(fastifyCookie);
 
-  const sessionEnd = (request: FastifyRequest): number | undefined => {
+  const liveSession = (request: FastifyRequest): LiveSession | undefined => {
     const token = request.cookies[SESSION_COOKIE];
-    return token ? sessions.expiresAt(token) : undefined;
+    return token ? sessions.find(token) : undefined;
   };
 
   app.get('/api/auth/status', (request): AuthStatus => {
-    if (!auth) return { enabled: false, signedIn: false, expiresAt: null };
-    const expiresAt = sessionEnd(request) ?? null;
-    return { enabled: true, signedIn: expiresAt !== null, expiresAt };
+    if (!auth) return { enabled: false, signedIn: false, expiresAt: null, readOnly: false };
+    const session = liveSession(request);
+    return {
+      enabled: true,
+      signedIn: session !== undefined,
+      expiresAt: session?.expiresAt ?? null,
+      readOnly: session?.readOnly ?? false,
+    };
   });
 
   if (!auth) return;
@@ -76,12 +84,25 @@ export async function registerAuth(
   // Runs after the Host guard.
   app.addHook('onRequest', (request, _reply, done) => {
     const route = request.routeOptions.url;
-    const open = route === undefined || !route.startsWith('/api') || PUBLIC_API.has(route);
-    done(open || sessionEnd(request) !== undefined ? undefined : new UnauthorizedError());
+    if (route === undefined || !route.startsWith('/api') || PUBLIC_API.has(route)) {
+      done();
+      return;
+    }
+    const session = liveSession(request);
+    if (!session) {
+      done(new UnauthorizedError());
+      return;
+    }
+    // A read-only session (the phone app) can look but never change anything.
+    if (session.readOnly && !READ_METHODS.has(request.method)) {
+      done(new ForbiddenError('READ_ONLY', 'This sign-in can only read'));
+      return;
+    }
+    done();
   });
 
   app.post('/api/auth/login', (request, reply) => {
-    const { code } = parse(loginInputSchema, request.body);
+    const { code, readOnly = false } = parse(loginInputSchema, request.body);
     const result = guard.check(code);
     if (!result.ok) {
       if (result.reason === 'locked') {
@@ -101,10 +122,15 @@ export async function registerAuth(
       }
       throw new UnauthorizedError('CODE_INVALID', 'Wrong or expired code');
     }
-    const session = sessions.create(auth.sessionTtlMs);
+    const session = sessions.create(auth.sessionTtlMs, readOnly);
     setSessionCookie(reply, session.token);
-    request.log.info('Signed in');
-    return { enabled: true, signedIn: true, expiresAt: session.expiresAt } satisfies AuthStatus;
+    request.log.info({ readOnly }, 'Signed in');
+    return {
+      enabled: true,
+      signedIn: true,
+      expiresAt: session.expiresAt,
+      readOnly,
+    } satisfies AuthStatus;
   });
 
   app.post('/api/auth/logout', (request, reply) => {

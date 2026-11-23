@@ -52,7 +52,8 @@ export const useAuthStatus = () =>
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (code: string) => api.auth.login(code),
+    mutationFn: ({ code, readOnly }: { code: string; readOnly: boolean }) =>
+      api.auth.login(code, readOnly),
     onSuccess: (status) => {
       qc.setQueryData(keys.auth, status);
       void flushAllAutosaves();

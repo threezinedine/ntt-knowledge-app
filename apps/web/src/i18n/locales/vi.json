@@ -244,5 +244,7 @@
   "error.reason.CODE_INVALID": "Mã sai hoặc đã hết hạn. Hãy dùng mã đang hiện trong ứng dụng.",
   "error.reason.LOCKED_OUT": "Nhập sai quá nhiều lần. Thử lại sau.",
   "error.code.TOO_MANY_REQUESTS": "Thử quá nhiều lần. Vui lòng thử lại sau.",
-  "error.reason.CODE_USED": "Mã này vừa được dùng. Hãy chờ mã tiếp theo."
+  "error.reason.CODE_USED": "Mã này vừa được dùng. Hãy chờ mã tiếp theo.",
+  "error.code.FORBIDDEN": "Không được phép.",
+  "error.reason.READ_ONLY": "Thiết bị này chỉ được xem, không sửa được."
 }

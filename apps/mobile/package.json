@@ -1,0 +1,19 @@
+{
+  "name": "@km/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Android app (Capacitor): a read-only window onto your Knowledge Manager server.",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "sync": "cap sync android",
+    "open": "cap open android",
+    "run": "cap run android"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2"
+  }
+}

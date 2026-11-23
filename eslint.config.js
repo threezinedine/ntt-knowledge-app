@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/node_modules/**',
       'test-results/**',
       'playwright-report/**',
+      'apps/mobile/android/**',
     ],
   },
   js.configs.recommended,
@@ -31,7 +32,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/server/**/*.ts', 'packages/**/*.ts', 'e2e/**/*.ts', '*.config.ts'],
+    files: [
+      'apps/server/**/*.ts',
+      'apps/mobile/*.ts',
+      'packages/**/*.ts',
+      'e2e/**/*.ts',
+      '*.config.ts',
+    ],
     languageOptions: { globals: globals.node },
   },
   {

@@ -141,6 +141,7 @@ describe('migration 7: sessions rebuilt', () => {
       'created_at',
       'updated_at',
       'deleted_at',
+      'read_only', // added by 8
     ]);
   });
 });

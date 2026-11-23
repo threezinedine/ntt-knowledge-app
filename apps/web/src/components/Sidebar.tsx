@@ -7,6 +7,7 @@ import { FieldLevels } from '../features/exp/FieldLevels';
 import { useNodeContextMenu } from '../features/node/NodeContextMenu';
 import { NEW_NODE_STATE } from '../features/node/navState';
 import { useI18n } from '../i18n/context';
+import { useReadOnly } from '../features/readOnly';
 
 /** The search box's id, for the "Search Nodes" command. */
 export const SIDEBAR_SEARCH_ID = 'km-node-search';
@@ -28,9 +29,14 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
   const newTip = useCommandTooltip('km.node.new');
   const nodeMenu = useNodeContextMenu();
   const searchTip = useCommandTooltip('km.sidebar.focusSearch');
-  useCommandHandler('km.node.new', () => {
-    if (!createNode.isPending) handleCreate();
-  });
+  const readOnly = useReadOnly();
+  useCommandHandler(
+    'km.node.new',
+    () => {
+      if (!createNode.isPending) handleCreate();
+    },
+    !readOnly,
+  );
 
   return (
     <aside className="sidebar" hidden={hidden}>
@@ -46,9 +52,11 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
             setSearch(e.target.value);
           }}
         />
-        <button type="button" onClick={handleCreate} disabled={createNode.isPending} {...newTip}>
-          {t('sidebar.new')}
-        </button>
+        {!readOnly && (
+          <button type="button" onClick={handleCreate} disabled={createNode.isPending} {...newTip}>
+            {t('sidebar.new')}
+          </button>
+        )}
       </div>
       {createNode.isError && <p className="error">{errorText(createNode.error)}</p>}
 

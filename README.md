@@ -108,6 +108,57 @@ use "Add to home screen". Note: browsers only enable the service worker (offline
 shell, true install) on `https` or `localhost`. Over plain LAN http it works as a
 bookmarked web app. Proper install needs HTTPS (e.g. a reverse proxy or Tailscale).
 
+### Android app (read-only, Capacitor)
+
+`apps/mobile` is an Android app that opens the web app from your server and
+shows it **read-only**: browse the graph, read nodes and follow links; nothing
+can be created, edited or deleted. The server enforces it too: the app signs in
+with a read-only session, and every write from it gets `403`.
+
+One-time setup on the PC:
+
+1. Install [Android Studio](https://developer.android.com/studio) (brings the
+   Android SDK and the right JDK). On the phone: _Settings → About phone → tap
+   Build number 7×_, then _Developer options → USB debugging_ on.
+2. In `.env`: `KM_MOBILE_SERVER_URL=http://<pc-wifi-ip>:4317` (`ipconfig`
+   shows the Wi-Fi IPv4). A DHCP reservation in the router keeps it fixed.
+3. Run the server so the phone can reach it (production build, not Vite):
+
+   ```sh
+   npm run build
+   KM_HOST=0.0.0.0 KM_ALLOWED_HOSTS=<pc-wifi-ip> npm start
+   ```
+
+   Windows may ask to allow Node through the firewall: allow **Private** networks.
+   With sign-in on (`npm run auth:setup`), the app asks for the code like the web.
+
+4. Build and install:
+
+   ```sh
+   npm run mobile:sync     # after changing KM_MOBILE_SERVER_URL or Capacitor config
+   npm run mobile:open     # opens Android Studio: press ▶ Run with the phone plugged in
+   # or, with the SDK on PATH:  npm run mobile:run
+   ```
+
+   Or build the APK without opening Android Studio (PowerShell), then copy
+   `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk` to the phone:
+
+   ```powershell
+   $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+   $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+   cd apps/mobile/android; .\gradlew.bat assembleDebug
+   ```
+
+The app needs the PC on and the same Wi-Fi (it shows a retry page otherwise).
+
+- It is plain http on the LAN: the sign-in code and the session cookie cross
+  the Wi-Fi unencrypted, so anyone on that network could listen in. Fine on
+  your own home Wi-Fi; anywhere else, put HTTPS in front (e.g. Caddy or
+  Tailscale), then use an `https://` `KM_MOBILE_SERVER_URL` and
+  `KM_COOKIE_SECURE=true`.
+- It is built for installing on your own phone (sideloading). An app that only
+  opens a server URL is not what the Play Store accepts.
+
 ## Quality gates
 
 ```sh

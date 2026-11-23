@@ -43,6 +43,12 @@ export class UnauthorizedError extends AppError {
   }
 }
 
+export class ForbiddenError extends AppError {
+  constructor(reason: ApiErrorReason, message: string) {
+    super(403, 'FORBIDDEN', message, undefined, reason);
+  }
+}
+
 export class TooManyRequestsError extends AppError {
   constructor(reason: ApiErrorReason, message: string, retryAfterMs: number) {
     super(429, 'TOO_MANY_REQUESTS', message, { retryAfterMs }, reason);

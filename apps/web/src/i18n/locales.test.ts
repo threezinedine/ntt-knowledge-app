@@ -1,3 +1,4 @@
+import { API_ERROR_CODES, API_ERROR_REASONS } from '@km/core';
 import { describe, expect, it } from 'vitest';
 import { LOCALES, SOURCE_LOCALE, SOURCE_MESSAGES } from './catalog';
 import { placeholders } from './format';
@@ -36,5 +37,17 @@ describe('locale files', () => {
   it.each(['vi'])('%s translates every key', (code) => {
     const messages = LOCALES.find((l) => l.code === code)?.messages ?? {};
     expect(sourceKeys.filter((k) => !messages[k])).toEqual([]);
+  });
+});
+
+describe('API errors', () => {
+  // Every code and reason the server can send has a message (errorText would
+  // otherwise fall back to a bare "error 403").
+  it('each error code and reason has an English message', () => {
+    const missing = [
+      ...API_ERROR_CODES.map((c) => `error.code.${c}`),
+      ...API_ERROR_REASONS.map((r) => `error.reason.${r}`),
+    ].filter((key) => !(key in SOURCE_MESSAGES));
+    expect(missing).toEqual([]);
   });
 });

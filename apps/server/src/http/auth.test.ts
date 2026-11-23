@@ -40,6 +40,7 @@ describe('auth off (KM_AUTH=off)', () => {
       enabled: false,
       signedIn: false,
       expiresAt: null,
+      readOnly: false,
     });
     expect((await t.request('GET', '/api/nodes')).status).toBe(200);
     expect((await t.request('POST', '/api/auth/login', { code: '123456' })).status).toBe(404);
@@ -57,6 +58,7 @@ describe('sign-in with an authenticator code', () => {
       enabled: true,
       signedIn: false,
       expiresAt: null,
+      readOnly: false,
     });
   });
 
@@ -64,7 +66,12 @@ describe('sign-in with an authenticator code', () => {
     await withAuth();
     const res = await login(codeNow());
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ enabled: true, signedIn: true, expiresAt: START + 24 * HOUR });
+    expect(res.json()).toEqual({
+      enabled: true,
+      signedIn: true,
+      expiresAt: START + 24 * HOUR,
+      readOnly: false,
+    });
     const cookie = sessionOf(res);
     expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict', path: '/' });
     expect(cookie?.maxAge).toBe(24 * 60 * 60);
@@ -143,6 +150,43 @@ describe('sign-in with an authenticator code', () => {
   it('marks the cookie Secure when told the app is served over HTTPS', async () => {
     await withAuth(24 * HOUR, true);
     expect(sessionOf(await login(codeNow()))?.secure).toBe(true);
+  });
+
+  it('a read-only sign-in (the phone app) can read but never write', async () => {
+    await withAuth();
+    const res = await t.app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { code: codeNow(), readOnly: true },
+    });
+    expect(res.json()).toMatchObject({ signedIn: true, readOnly: true });
+    const session = withSession(sessionOf(res)?.value ?? '');
+
+    const read = (url: string) => t.app.inject({ method: 'GET', url, ...session });
+    for (const url of ['/api/nodes', '/api/graph', '/api/tags', '/api/exp', '/api/relations']) {
+      expect((await read(url)).statusCode).toBe(200);
+    }
+    const status = await read('/api/auth/status');
+    expect(status.json()).toMatchObject({ signedIn: true, readOnly: true });
+
+    const writes = [
+      { method: 'POST', url: '/api/nodes', payload: { title: 'x' } },
+      { method: 'PATCH', url: '/api/nodes/positions', payload: { items: [] } },
+      { method: 'POST', url: '/api/tags', payload: { name: 't', parentId: null } },
+      { method: 'DELETE', url: '/api/nodes/01890000-0000-7000-8000-000000000000' },
+      { method: 'POST', url: '/%61pi/nodes', payload: { title: 'x' } },
+    ] as const;
+    for (const w of writes) {
+      const r = await t.app.inject({ ...w, ...session });
+      expect(r.statusCode, `${w.method} ${w.url}`).toBe(403);
+      expect(r.json()).toMatchObject({ error: { code: 'FORBIDDEN', reason: 'READ_ONLY' } });
+    }
+    expect((await t.request<unknown[]>('GET', '/api/nodes')).status).toBe(401); // no cookie
+
+    // Signing out still works.
+    const out = await t.app.inject({ method: 'POST', url: '/api/auth/logout', ...session });
+    expect(out.statusCode).toBe(204);
+    expect((await read('/api/nodes')).statusCode).toBe(401);
   });
 
   it('signing out ends the session at once', async () => {

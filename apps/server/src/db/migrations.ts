@@ -190,4 +190,8 @@ export const migrations: readonly string[] = [
     deleted_at  INTEGER
   ) STRICT;
   `,
+
+  /* 8: read-only sessions (the phone app): every write is refused. */ `
+  ALTER TABLE sessions ADD COLUMN read_only INTEGER NOT NULL DEFAULT 0 CHECK (read_only IN (0, 1));
+  `,
 ];

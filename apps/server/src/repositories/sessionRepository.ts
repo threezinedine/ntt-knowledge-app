@@ -12,13 +12,18 @@ export function hashToken(token: string): string {
 
 export type SessionRepository = ReturnType<typeof createSessionRepository>;
 
+export interface LiveSession {
+  expiresAt: number;
+  readOnly: boolean;
+}
+
 export function createSessionRepository({ db, now, newId }: RepoContext) {
   const insert = db.prepare(
-    `INSERT INTO sessions (id, token_hash, expires_at, created_at, updated_at)
-     VALUES (:id, :token_hash, :expires_at, :ts, :ts)`,
+    `INSERT INTO sessions (id, token_hash, expires_at, read_only, created_at, updated_at)
+     VALUES (:id, :token_hash, :expires_at, :read_only, :ts, :ts)`,
   );
   const selectLive = db.prepare(
-    `SELECT expires_at FROM sessions
+    `SELECT expires_at, read_only FROM sessions
       WHERE token_hash = ? AND deleted_at IS NULL AND expires_at > ?`,
   );
   const softDelete = db.prepare(
@@ -28,18 +33,25 @@ export function createSessionRepository({ db, now, newId }: RepoContext) {
 
   return {
     /** Starts a session lasting `ttlMs`; returns the cookie token and its end. */
-    create(ttlMs: number): { token: string; expiresAt: number } {
+    create(ttlMs: number, readOnly = false): { token: string; expiresAt: number } {
       const token = newSessionToken();
       const ts = now();
       const expiresAt = ts + ttlMs;
-      insert.run({ id: newId(), token_hash: hashToken(token), expires_at: expiresAt, ts });
+      insert.run({
+        id: newId(),
+        token_hash: hashToken(token),
+        expires_at: expiresAt,
+        read_only: readOnly ? 1 : 0,
+        ts,
+      });
       return { token, expiresAt };
     },
 
-    /** When a live session ends (epoch ms), or undefined if the token isn't one. */
-    expiresAt(token: string): number | undefined {
-      const row = selectLive.get(hashToken(token), now()) as { expires_at: number } | undefined;
-      return row?.expires_at;
+    /** A live session (when it ends, whether it may only read), or undefined. */
+    find(token: string): LiveSession | undefined {
+      const row = selectLive.get(hashToken(token), now()) as
+        { expires_at: number; read_only: number } | undefined;
+      return row && { expiresAt: row.expires_at, readOnly: row.read_only === 1 };
     },
 
     /** Signs out: the token stops working at once. Unknown tokens are a no-op. */
