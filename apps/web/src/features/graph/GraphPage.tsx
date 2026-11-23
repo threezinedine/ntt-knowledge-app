@@ -17,7 +17,7 @@ import {
   type OnBeforeDelete,
 } from '@xyflow/react';
 import { useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import {
   useCreateEdge,
   useCreateNode,
@@ -28,6 +28,7 @@ import {
 import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
+import { revealNodeId, useNodeContextMenu } from '../node/NodeContextMenu';
 import { CircleNode } from './CircleNode';
 import { FloatingEdge, GraphMarkers } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
@@ -80,6 +81,18 @@ function GraphCanvas() {
   const zoomInTip = useCommandTooltip('km.graph.zoomIn', { always: true });
   const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
   const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
+  const nodeMenu = useNodeContextMenu();
+
+  // "Reveal in Graph" from a node's menu: centre on it once it is on the canvas.
+  const location = useLocation();
+  const reveal = revealNodeId(location.state);
+  const revealReady = reveal !== null && nodes.some((n) => n.id === reveal);
+  useEffect(() => {
+    if (!revealReady) return;
+    void flow.fitView({ nodes: [{ id: reveal }], maxZoom: 1.5, duration: 300 });
+    setNodes((prev) => prev.map((n) => ({ ...n, selected: n.id === reveal })));
+    void navigate(location, { replace: true, state: null }); // once
+  }, [revealReady, reveal, flow, setNodes, navigate, location]);
 
   // React Flow owns interactive state (dragging, selection); the server is the
   // source of truth, so re-sync whenever a fresh snapshot arrives.
@@ -108,6 +121,7 @@ function GraphCanvas() {
 
   return (
     <div className="graph-page" data-testid="graph-canvas">
+      {nodeMenu.element}
       <GraphMarkers />
       <GraphHighlightContext value={highlight}>
         <ReactFlow<KmFlowNode, KmFlowEdge>
@@ -145,6 +159,10 @@ function GraphCanvas() {
             }
           }}
           onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
+          onNodeContextMenu={(event, node) => {
+            event.preventDefault();
+            nodeMenu.open({ id: node.id, title: node.data.label }, event.clientX, event.clientY);
+          }}
           fitView
           fitViewOptions={fitViewOptions}
           minZoom={0.1}

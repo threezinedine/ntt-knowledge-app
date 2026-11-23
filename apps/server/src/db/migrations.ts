@@ -155,4 +155,10 @@ export const migrations: readonly string[] = [
          updated_at = MAX(updated_at + 1, CAST(unixepoch('subsec') * 1000 AS INTEGER))
    WHERE deleted_at IS NULL;
   `,
+
+  /* 5: cached word count of `content` for EXP, so /api/exp needn't read every
+        note. NULL = not counted yet; the app fills it in at startup. Derived
+        data: writing it never bumps updated_at. */ `
+  ALTER TABLE nodes ADD COLUMN content_words INTEGER;
+  `,
 ];

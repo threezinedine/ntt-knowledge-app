@@ -29,6 +29,12 @@ describe('loadLevelConfig', () => {
     expect(config).toEqual({ ...DEFAULT_LEVEL_CONFIG, expPerNode: 5, levelThresholds: [10, 30] });
   });
 
+  it('accepts a UTF-8 BOM (as Windows editors write)', () => {
+    const path = join(dir, 'level-config.json');
+    writeFileSync(path, '\uFEFF' + JSON.stringify({ expPerNode: 7 }));
+    expect(loadLevelConfig(path).config.expPerNode).toBe(7);
+  });
+
   it('refuses to start on a broken file, saying why', () => {
     const path = join(dir, 'level-config.json');
     writeFileSync(path, '{ nope');

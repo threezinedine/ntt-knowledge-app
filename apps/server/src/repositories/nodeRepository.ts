@@ -7,6 +7,7 @@ import type {
   Props,
   UpdateNodeInput,
 } from '@km/core';
+import { countWords } from '@km/core';
 import { transaction } from '../db/database.js';
 import { NotFoundError } from '../errors.js';
 import {
@@ -63,12 +64,13 @@ export type NodeRepository = ReturnType<typeof createNodeRepository>;
 export function createNodeRepository({ db, now, newId }: RepoContext, links: TagLinkRepository) {
   const selectById = db.prepare(`${SELECT_NODE} WHERE n.id = ? AND n.deleted_at IS NULL`);
   const insert = db.prepare(
-    `INSERT INTO nodes (id, type, title, content, props, created_at, updated_at)
-     VALUES (:id, :type, :title, :content, :props, :ts, :ts)`,
+    `INSERT INTO nodes (id, type, title, content, content_words, props, created_at, updated_at)
+     VALUES (:id, :type, :title, :content, :words, :props, :ts, :ts)`,
   );
   const updateRow = db.prepare(
     `UPDATE nodes
-        SET type = :type, title = :title, content = :content, props = :props, updated_at = :updated_at
+        SET type = :type, title = :title, content = :content, props = :props, updated_at = :updated_at,
+            content_words = COALESCE(:words, content_words)
       WHERE id = :id AND deleted_at IS NULL`,
   );
   const selectLayoutTs = db.prepare('SELECT updated_at FROM node_layouts WHERE node_id = ?');
@@ -148,6 +150,7 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
           type: data.type,
           title: data.title,
           content: data.content,
+          words: countWords(data.content),
           props: JSON.stringify(data.props),
           ts,
         });
@@ -185,6 +188,8 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
             ...content,
             props: JSON.stringify(content.props),
             updated_at: updatedAt,
+            // Recount only when the text changed (a rename keeps the count).
+            words: content.content === existing.content ? null : countWords(content.content),
           });
         }
         if (!sameJson(position, existing.position)) writeLayout(id, position);

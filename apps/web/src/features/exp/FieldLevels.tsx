@@ -58,6 +58,12 @@ export function FieldLevels() {
               <span className="field-level">
                 {top ? t('exp.levelMax', { level: e.level }) : t('exp.level', { level: e.level })}
               </span>
+              {/* Visible too: touch screens have no hover for the tooltip. */}
+              <span className="field-exp">
+                {e.nextLevelExp === null
+                  ? t('exp.short', { exp: e.exp })
+                  : t('exp.shortNext', { exp: e.exp, next: e.nextLevelExp })}
+              </span>
               <span
                 className="field-bar"
                 role="progressbar"

@@ -37,8 +37,6 @@ export class NetworkError extends Error {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-export type TaggedOwner<K extends TaggableKind> = K extends 'nodes' ? GraphNode : never;
-
 /** Browsers cap the total in-flight keepalive body at 64 KiB. */
 const KEEPALIVE_MAX_BYTES = 60 * 1024;
 
@@ -104,10 +102,10 @@ export const api = {
     update: (id: string, patch: UpdateTagInput) => request<Tag>('PATCH', `/tags/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/tags/${id}`),
     /** Idempotent; resolves to the updated node. */
-    attach: <K extends TaggableKind>(kind: K, ownerId: string, tagId: string) =>
-      request<TaggedOwner<K>>('PUT', `/${kind}/${ownerId}/tags/${tagId}`),
-    detach: <K extends TaggableKind>(kind: K, ownerId: string, tagId: string) =>
-      request<TaggedOwner<K>>('DELETE', `/${kind}/${ownerId}/tags/${tagId}`),
+    attach: (kind: TaggableKind, ownerId: string, tagId: string) =>
+      request<GraphNode>('PUT', `/${kind}/${ownerId}/tags/${tagId}`),
+    detach: (kind: TaggableKind, ownerId: string, tagId: string) =>
+      request<GraphNode>('DELETE', `/${kind}/${ownerId}/tags/${tagId}`),
   },
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),

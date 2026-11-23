@@ -35,6 +35,9 @@ export default defineConfig({
     env: {
       KM_PORT: String(PORT),
       KM_DB_PATH: ':memory:',
+      // Always the default level table (the specs assert its numbers), never a
+      // level-config.json that happens to sit on this machine.
+      KM_LEVEL_CONFIG: 'e2e-uses-default-level-config.json',
       KM_LOG_LEVEL: 'warn',
       // Windows doesn't kill this server when Playwright dies (e.g. the UI-mode
       // window is closed); it would then hold the port and break the next run.

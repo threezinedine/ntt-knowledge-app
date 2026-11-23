@@ -46,8 +46,9 @@ export function countWords(content: string): number {
   return content.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)?.length ?? 0;
 }
 
-export function nodeExp(content: string, config: LevelConfig): number {
-  const bonus = Math.floor(countWords(content) / config.wordsPerExp);
+/** A node's worth, from its content's word count (see `countWords`). */
+export function nodeExp(words: number, config: LevelConfig): number {
+  const bonus = Math.floor(words / config.wordsPerExp);
   return config.expPerNode + Math.min(config.maxContentExpPerNode, bonus);
 }
 
@@ -75,7 +76,8 @@ export interface ExpTag {
   parentId: string | null;
 }
 export interface ExpNode {
-  content: string;
+  /** `countWords(content)`, cached by the server. */
+  words: number;
   tagIds: readonly string[];
 }
 
@@ -101,7 +103,7 @@ export function computeTagExp(
       }
     }
     if (fields.size === 0) continue;
-    const exp = nodeExp(node.content, config);
+    const exp = nodeExp(node.words, config);
     for (const id of fields) {
       const entry = out.get(id);
       if (entry) {

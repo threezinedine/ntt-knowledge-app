@@ -26,9 +26,9 @@ describe('countWords', () => {
 
 describe('nodeExp', () => {
   it('is the base plus a capped bonus for content', () => {
-    expect(nodeExp('', config)).toBe(10);
-    expect(nodeExp('word '.repeat(25), config)).toBe(12);
-    expect(nodeExp('word '.repeat(1000), config)).toBe(15); // capped
+    expect(nodeExp(0, config)).toBe(10);
+    expect(nodeExp(25, config)).toBe(12);
+    expect(nodeExp(1000, config)).toBe(15); // capped
   });
 });
 
@@ -55,18 +55,14 @@ describe('computeTagExp', () => {
   ];
 
   it('adds a node to its tags and every ancestor', () => {
-    const totals = computeTagExp(tags, [{ content: '', tagIds: ['cpu'] }], config);
+    const totals = computeTagExp(tags, [{ words: 0, tagIds: ['cpu'] }], config);
     expect(totals.get('cpu')).toEqual({ exp: 10, nodeCount: 1 });
     expect(totals.get('computer')).toEqual({ exp: 10, nodeCount: 1 });
     expect(totals.get('gpu')).toEqual({ exp: 0, nodeCount: 0 });
   });
 
   it('counts a node once per field, however many of its tags lie below it', () => {
-    const totals = computeTagExp(
-      tags,
-      [{ content: '', tagIds: ['cpu', 'gpu', 'computer'] }],
-      config,
-    );
+    const totals = computeTagExp(tags, [{ words: 0, tagIds: ['cpu', 'gpu', 'computer'] }], config);
     expect(totals.get('computer')).toEqual({ exp: 10, nodeCount: 1 });
   });
 
@@ -75,7 +71,7 @@ describe('computeTagExp', () => {
       { id: 'a', parentId: 'b' },
       { id: 'b', parentId: 'a' },
     ];
-    const totals = computeTagExp(cyclic, [{ content: '', tagIds: ['a', 'gone'] }], config);
+    const totals = computeTagExp(cyclic, [{ words: 0, tagIds: ['a', 'gone'] }], config);
     expect(totals.get('a')?.exp).toBe(10);
     expect(totals.get('b')?.exp).toBe(10);
   });
@@ -97,8 +93,8 @@ describe('expSnapshot', () => {
     const snapshot = expSnapshot(
       [{ id: 'cpu', parentId: null }],
       [
-        { content: '', tagIds: ['cpu'] },
-        { content: '', tagIds: ['cpu'] },
+        { words: 0, tagIds: ['cpu'] },
+        { words: 0, tagIds: ['cpu'] },
       ],
       config,
     );

@@ -4,6 +4,7 @@ import { useCreateNode, useNodeList } from '../api/queries';
 import { useCommandHandler } from '../commands/registry';
 import { useCommandTooltip } from '../commands/useCommandTooltip';
 import { FieldLevels } from '../features/exp/FieldLevels';
+import { useNodeContextMenu } from '../features/node/NodeContextMenu';
 import { NEW_NODE_STATE } from '../features/node/navState';
 import { useI18n } from '../i18n/context';
 
@@ -25,6 +26,7 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
     );
   };
   const newTip = useCommandTooltip('km.node.new');
+  const nodeMenu = useNodeContextMenu();
   const searchTip = useCommandTooltip('km.sidebar.focusSearch');
   useCommandHandler('km.node.new', () => {
     if (!createNode.isPending) handleCreate();
@@ -57,13 +59,29 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
           <p className="muted">{t(query ? 'sidebar.noMatch' : 'sidebar.empty')}</p>
         )}
         {nodes.data?.map((node) => (
-          <NavLink key={node.id} to={`/nodes/${node.id}`} className="node-list-item">
+          <NavLink
+            key={node.id}
+            to={`/nodes/${node.id}`}
+            className="node-list-item"
+            onContextMenu={(e) => {
+              e.preventDefault();
+              // From the keyboard (Menu key, Shift+F10) there is no pointer: use the item.
+              const keyboard = e.clientX === 0 && e.clientY === 0;
+              const rect = e.currentTarget.getBoundingClientRect();
+              nodeMenu.open(
+                node,
+                keyboard ? rect.left + 12 : e.clientX,
+                keyboard ? rect.bottom : e.clientY,
+              );
+            }}
+          >
             <span className="node-type">{node.type}</span>
             <span className="node-title">{node.title}</span>
           </NavLink>
         ))}
       </nav>
       <FieldLevels />
+      {nodeMenu.element}
     </aside>
   );
 }

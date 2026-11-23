@@ -100,10 +100,12 @@ test.describe('keyboard shortcuts', () => {
   test('a chord (Ctrl+K Ctrl+S) opens the shortcuts page', async ({ page }) => {
     await page.goto('/');
     await page.keyboard.press('ControlOrMeta+K');
-    await expect(page.getByRole('status')).toContainText('was pressed. Waiting for second key');
+    // (The toast region is a status too; pick the chord line by its text.)
+    const chord = page.getByRole('status').filter({ hasText: 'Waiting for second key' });
+    await expect(chord).toContainText('was pressed. Waiting for second key');
     await page.keyboard.press('ControlOrMeta+S');
     await expect(page.getByRole('heading', { name: 'Keyboard Shortcuts' })).toBeVisible();
-    await expect(page.getByRole('status')).toBeHidden();
+    await expect(chord).toHaveCount(0);
   });
 
   test('work while typing in the editor; plain keys still type', async ({ page, api }) => {

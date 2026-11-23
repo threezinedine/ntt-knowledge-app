@@ -21,3 +21,6 @@ playwright/.cache/
 .env
 .env.*
 .claude/settings.local.json
+
+# the operator's own level table (see level-config.example.json)
+level-config.json

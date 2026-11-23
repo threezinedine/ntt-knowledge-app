@@ -26,7 +26,8 @@ export function loadLevelConfig(path: string): LoadedLevelConfig {
   }
   let json: unknown;
   try {
-    json = JSON.parse(text);
+    // Windows tools (Notepad, PowerShell 5) like to start UTF-8 with a BOM.
+    json = JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch (error) {
     throw new Error(`Level config ${path} is not valid JSON: ${(error as Error).message}`, {
       cause: error,

@@ -8,6 +8,7 @@ import { TooltipLayer } from './commands/TooltipLayer';
 import { useCommandTooltip } from './commands/useCommandTooltip';
 import { readJson, writeJson } from './commands/storage';
 import { Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
+import { Toast } from './components/toast';
 import { GraphPage } from './features/graph/GraphPage';
 import { NodePage } from './features/node/NodePage';
 import { TagsPage } from './features/tags/TagsPage';
@@ -78,6 +79,7 @@ export function App() {
       </main>
       <QuickInput />
       <TooltipLayer />
+      <Toast />
     </div>
   );
 }

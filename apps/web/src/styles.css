@@ -1138,7 +1138,7 @@ kbd {
   grid-template-columns: auto 1fr auto;
   grid-template-areas:
     'dot name level'
-    'bar bar bar';
+    'bar bar exp';
   align-items: center;
   column-gap: 6px;
   row-gap: 3px;
@@ -1181,4 +1181,80 @@ kbd {
   height: 100%;
   background: var(--accent);
   transition: width 0.3s ease;
+}
+
+/* ---------- context menu, toast ---------- */
+
+.context-menu {
+  position: fixed;
+  z-index: 1100;
+  min-width: 200px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 45%);
+  font-size: 13px;
+}
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+.context-menu-item.separated {
+  margin-top: 5px;
+  position: relative;
+}
+.context-menu-item.separated::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 6px;
+  right: 6px;
+  border-top: 1px solid var(--border);
+}
+.context-menu-item:hover,
+.context-menu-item:focus {
+  background: var(--bg-input);
+}
+.context-menu-item.danger {
+  color: var(--danger);
+}
+.context-menu-item[aria-disabled='true'] {
+  color: var(--muted);
+  cursor: default;
+}
+.context-menu-item .keys {
+  margin-right: 0;
+}
+
+.toast-region {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  pointer-events: none;
+}
+.toast {
+  padding: 6px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 40%);
+  font-size: 13px;
+}
+.field-exp {
+  grid-area: exp;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  white-space: nowrap;
 }
