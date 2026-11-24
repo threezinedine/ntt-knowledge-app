@@ -449,5 +449,11 @@
   "local.confirmOpenOnly": "Mở file sẽ thay bản của máy này, có thể là bản duy nhất của dữ liệu (chưa có trên hub). Muốn giữ thì lưu ra file trước. Vẫn mở?",
   "local.failedTitle": "Không mở được database trên máy",
   "local.failed": "Không mở được bản dữ liệu của máy này. Thử lại; nếu vẫn lỗi, console của trình duyệt ghi lý do.",
-  "export.failed": "Xuất markdown bị lỗi."
+  "export.failed": "Xuất markdown bị lỗi.",
+  "graphSettings.group.forces": "Lực",
+  "graphSettings.autoLayout": "Tự sắp xếp",
+  "graphSettings.centerForce": "Hút về giữa",
+  "graphSettings.repelForce": "Đẩy nhau ra",
+  "graphSettings.linkForce": "Lực kéo của link",
+  "graphSettings.linkDistance": "Độ dài link"
 }

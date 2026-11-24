@@ -24,6 +24,12 @@ export interface GraphSettings {
   pushGap: number;
   pushReach: number;
   pushSoftness: number;
+  /** Dots arrange themselves (forces); off = they stay where you put them. */
+  autoLayout: boolean;
+  centerForce: number;
+  repelForce: number;
+  linkForce: number;
+  linkDistance: number;
 }
 
 type NumberKey = {
@@ -43,11 +49,21 @@ export type SettingField =
     }
   | { kind: 'boolean'; key: BooleanKey; label: MessageKey; default: boolean };
 
+/** Sliders that only do something with auto layout on. */
+export const FORCE_KEYS: ReadonlySet<keyof GraphSettings> = new Set([
+  'centerForce',
+  'repelForce',
+  'linkForce',
+  'linkDistance',
+]);
+
 export interface SettingGroup {
-  id: 'nodes' | 'nodeLabels' | 'links' | 'linkLabels' | 'push';
+  id: 'nodes' | 'nodeLabels' | 'links' | 'linkLabels' | 'forces' | 'push';
   title: MessageKey;
   /** Shown in read-only mode (the phone app); dragging settings aren't. */
   display: boolean;
+  /** Only shown with auto layout on (true) or off (false). */
+  whenAutoLayout?: boolean;
   fields: readonly SettingField[];
 }
 
@@ -107,9 +123,22 @@ export const SETTING_GROUPS: readonly SettingGroup[] = [
     ],
   },
   {
+    id: 'forces',
+    title: 'graphSettings.group.forces',
+    display: true,
+    fields: [
+      bool('autoLayout', 'graphSettings.autoLayout', true),
+      num('centerForce', 'graphSettings.centerForce', 0, 1, 0.01, 0.08),
+      num('repelForce', 'graphSettings.repelForce', 0, 2000, 10, 400),
+      num('linkForce', 'graphSettings.linkForce', 0, 2, 0.05, 0.6),
+      num('linkDistance', 'graphSettings.linkDistance', 20, 500, 5, 110),
+    ],
+  },
+  {
     id: 'push',
     title: 'graphSettings.group.push',
     display: false,
+    whenAutoLayout: false,
     fields: [
       num('pushGap', 'graphSettings.pushGap', 0, 120, 1, 28),
       num('pushReach', 'graphSettings.pushReach', 0, 400, 5, 110),
@@ -194,7 +223,12 @@ export function withOrderedRadii(
 }
 
 export function resetGraphSettings(groupId?: SettingGroup['id']): void {
-  const fields = groupId ? (SETTING_GROUPS.find((g) => g.id === groupId)?.fields ?? []) : FIELDS;
+  const fields = groupId
+    ? (SETTING_GROUPS.find((g) => g.id === groupId)?.fields ?? []).filter(
+        // Resetting the forces resets their strengths, not the choice to use them.
+        (f) => f.key !== 'autoLayout',
+      )
+    : FIELDS;
   setGraphSettings(Object.fromEntries(fields.map((f) => [f.key, f.default])));
 }
 

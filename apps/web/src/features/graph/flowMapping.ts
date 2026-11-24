@@ -56,6 +56,8 @@ export function toFlowNodes(
   edges: readonly Edge[],
   previous: readonly KmFlowNode[],
   sizes: RadiusSizes = DEFAULT_SIZES,
+  /** Dots on the canvas stay where they are (the forces place them, not the server). */
+  keepPositions = false,
 ): KmFlowNode[] {
   const prevById = new Map(previous.map((n) => [n.id, n]));
   const degree = degrees(edges);
@@ -66,10 +68,11 @@ export function toFlowNodes(
     const prev = prevById.get(node.id);
     // A refetch landing mid-drag must not yank the node back to its old spot.
     const dragging = prev?.dragging === true;
+    const stay = prev !== undefined && (dragging || keepPositions);
     return {
       id: node.id,
       type: 'circle' as const,
-      position: dragging ? prev.position : (node.position ?? fallbackPosition(unplaced++)),
+      position: stay ? prev.position : (node.position ?? fallbackPosition(unplaced++)),
       dragging,
       data: {
         label: node.title,

@@ -67,8 +67,13 @@ Links are directed and named: _from_ → **relation** → _to_. The relation is 
 
 The home screen shows all notes as dots on a 2D canvas.
 
-- **Your layout is kept.** Drag dots where you want them; positions are saved. Dragging
-  a dot gently pushes nearby dots aside, and they settle back once you move on.
+- **Dots arrange themselves.** Links pull the notes they join together, every dot pushes
+  the others away, a light pull keeps the graph centred, and dots never overlap. Drag a
+  dot and its neighbours follow; let go and the graph settles again. Nothing is saved
+  as the graph moves, so it never counts as a change to push.
+- **Or arrange them by hand**: turn _Arrange automatically_ off in the graph settings.
+  Then dots stay where you put them and positions are saved; dragging a dot gently
+  pushes nearby dots aside, and they settle back once you move on.
 - **Size shows connections.** The best-linked note gets the biggest dot and the
   least-linked the smallest, so hubs stand out even in a small graph.
 - **Colour shows type.** Plain notes are grey; each other type gets its own colour.
@@ -79,8 +84,9 @@ The home screen shows all notes as dots on a 2D canvas.
   Open either end, Delete_.
 - A minimap, zoom controls and _Fit to screen_ (`Shift+1`).
 - **Graph settings** (gear button): dot sizes, text size and strength of node and link
-  names, line thickness, arrows on/off, link names on/off, and how strongly dragging
-  pushes other dots. Changes apply immediately and are saved on that device.
+  names, line thickness, arrows on/off, link names on/off, the forces (pull to the
+  centre, push apart, link pull, link length), and, when arranging by hand, how strongly
+  dragging pushes other dots. Changes apply immediately and are saved on that device.
 - A **3D view** (`Shift+3`) is available as an experiment: you can look around, but it
   doesn't create links or save a layout.
 

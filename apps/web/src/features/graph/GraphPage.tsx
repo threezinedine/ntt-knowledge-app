@@ -50,6 +50,7 @@ import { useEdgeContextMenu } from './EdgeContextMenu';
 import { useGraphSettings } from './graphSettings';
 import { GraphSettingsPanel } from './GraphSettingsPanel';
 import { pushAway, type Circle } from './collide';
+import { useForceLayout } from './forceLayout';
 import { EdgeRenameContext, FloatingEdge, GraphMarkers, type EdgeRename } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
 import {
@@ -216,9 +217,30 @@ function GraphCanvas() {
   const navigate = useNavigate();
   const { t, errorText } = useI18n();
   const flow = useReactFlow<KmFlowNode, KmFlowEdge>();
-  useCommandHandler('km.graph.fitView', () => void flow.fitView(fitViewOptions));
-  useCommandHandler('km.graph.zoomIn', () => void flow.zoomIn());
-  useCommandHandler('km.graph.zoomOut', () => void flow.zoomOut());
+  // Any view change the user asked for (a zoom, a fit, a reveal, a drag) keeps the
+  // auto layout's first-settle fit from overriding it.
+  const userMoved = useRef(false);
+  /** A node the view should stay on while the dots are still settling (a reveal). */
+  const followId = useRef<string | null>(null);
+  const takeView = () => {
+    userMoved.current = true;
+    followId.current = null;
+  };
+  const fitAll = () => {
+    takeView();
+    void flow.fitView(fitViewOptions);
+  };
+  const zoomIn = () => {
+    takeView();
+    void flow.zoomIn();
+  };
+  const zoomOut = () => {
+    takeView();
+    void flow.zoomOut();
+  };
+  useCommandHandler('km.graph.fitView', fitAll);
+  useCommandHandler('km.graph.zoomIn', zoomIn);
+  useCommandHandler('km.graph.zoomOut', zoomOut);
   const zoomInTip = useCommandTooltip('km.graph.zoomIn', { always: true });
   const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
   const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
@@ -323,12 +345,43 @@ function GraphCanvas() {
     );
   };
 
+  // Auto layout (forces): the dots place themselves; see forceLayout.ts.
+  const auto = settings.autoLayout;
+  const forces = useForceLayout({
+    enabled: auto,
+    nodes,
+    edges,
+    settings,
+    setNodes,
+    // The first rest: back on the revealed node (it moved while settling), or
+    // the whole graph, unless the user already took the view elsewhere.
+    onSettled: () => {
+      const follow = followId.current;
+      followId.current = null;
+      if (follow !== null) {
+        void flow.fitView({ nodes: [{ id: follow }], maxZoom: 1.5, duration: 300 });
+      } else if (!userMoved.current) {
+        void flow.fitView({ ...fitViewOptions, duration: 300 });
+      }
+    },
+  });
+
+  // A revealed dot moves while the forces settle: the view follows it.
+  useEffect(() => {
+    const id = followId.current;
+    if (id === null) return;
+    const n = nodes.find((node) => node.id === id);
+    if (n) void flow.setCenter(n.position.x, n.position.y, { zoom: flow.getZoom() });
+  }, [nodes, flow]);
+
   // "Reveal in Graph" from a node's menu: centre on it once it is on the canvas.
   const location = useLocation();
   const reveal = revealNodeId(location.state);
   const revealReady = reveal !== null && nodes.some((n) => n.id === reveal);
   useEffect(() => {
     if (!revealReady) return;
+    userMoved.current = true;
+    followId.current = reveal;
     void flow.fitView({ nodes: [{ id: reveal }], maxZoom: 1.5, duration: 300 });
     setNodes((prev) => prev.map((n) => ({ ...n, selected: n.id === reveal })));
     void navigate(location, { replace: true, state: null }); // once
@@ -340,9 +393,9 @@ function GraphCanvas() {
   useEffect(() => {
     if (!graph.data || dragging) return;
     const snapshot = graph.data;
-    setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev, sizes));
+    setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev, sizes, auto));
     setEdges((prev) => toFlowEdges(snapshot.edges, prev));
-  }, [graph.data, dragging, setNodes, setEdges, sizes]);
+  }, [graph.data, dragging, setNodes, setEdges, sizes, auto]);
 
   const adjacency = useMemo(() => buildAdjacency(edges), [edges]);
   const highlight = useMemo<GraphHighlight>(
@@ -410,17 +463,31 @@ function GraphCanvas() {
             onEdgesDelete={(deleted) => {
               for (const edge of deleted) deleteEdge.mutate(edge.id);
             }}
-            onNodeDragStart={() => {
+            onMoveStart={(event) => {
+              if (event) takeView(); // a pan or zoom by hand, not a fitView of ours
+            }}
+            onNodeDragStart={(_event, _node, dragged) => {
+              takeView();
+              setDragging(true);
+              if (auto) {
+                forces.hold(dragged);
+                return;
+              }
               dragOrigins.current = new Map(nodes.map((n) => [n.id, circleOf(n)]));
               pushedNow.current = new Map();
-              setDragging(true);
             }}
             onNodeDrag={(_event, _node, dragged) => {
-              nudge(dragged);
+              if (auto) forces.hold(dragged);
+              else nudge(dragged);
             }}
             onNodeDragStop={(_event, _node, dragged) => {
-              dragOrigins.current = null;
               setDragging(false);
+              // Forces: the dot goes back to them; nothing is saved (see forceLayout.ts).
+              if (auto) {
+                forces.release();
+                return;
+              }
+              dragOrigins.current = null;
               // The dragged dots and the ones they pushed, in one request.
               const items = [
                 ...dragged.map((n) => ({ id: n.id, position: n.position })),
@@ -461,29 +528,17 @@ function GraphCanvas() {
               showInteractive={false}
               aria-label={t('graph.controls')}
             >
-              <ControlButton
-                aria-label={t('cmd.zoomIn')}
-                {...zoomInTip}
-                onClick={() => void flow.zoomIn()}
-              >
+              <ControlButton aria-label={t('cmd.zoomIn')} {...zoomInTip} onClick={zoomIn}>
                 <svg viewBox="0 0 12 12" aria-hidden="true">
                   <path d="M5 0h2v5h5v2H7v5H5V7H0V5h5z" />
                 </svg>
               </ControlButton>
-              <ControlButton
-                aria-label={t('cmd.zoomOut')}
-                {...zoomOutTip}
-                onClick={() => void flow.zoomOut()}
-              >
+              <ControlButton aria-label={t('cmd.zoomOut')} {...zoomOutTip} onClick={zoomOut}>
                 <svg viewBox="0 0 12 12" aria-hidden="true">
                   <path d="M0 5h12v2H0z" />
                 </svg>
               </ControlButton>
-              <ControlButton
-                aria-label={t('cmd.fitView')}
-                {...fitTip}
-                onClick={() => void flow.fitView(fitViewOptions)}
-              >
+              <ControlButton aria-label={t('cmd.fitView')} {...fitTip} onClick={fitAll}>
                 <svg viewBox="0 0 12 12" aria-hidden="true">
                   <path d="M0 0h4v1.5H1.5V4H0zm8 0h4v4h-1.5V1.5H8zM0 8h1.5v2.5H4V12H0zm10.5 0H12v4H8v-1.5h2.5z" />
                 </svg>

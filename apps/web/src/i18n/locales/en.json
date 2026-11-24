@@ -449,5 +449,11 @@
   "local.confirmOpenOnly": "Opening a file replaces this device’s copy, which may be the only copy of your data (it isn’t on a hub). Save it to a file first if you want to keep it. Open anyway?",
   "local.failedTitle": "The local database couldn’t be opened",
   "local.failed": "This device’s copy of your data couldn’t be opened. Try again; if it keeps failing, the browser console says why.",
-  "export.failed": "The markdown export failed."
+  "export.failed": "The markdown export failed.",
+  "graphSettings.group.forces": "Forces",
+  "graphSettings.autoLayout": "Arrange automatically",
+  "graphSettings.centerForce": "Pull to the centre",
+  "graphSettings.repelForce": "Push apart",
+  "graphSettings.linkForce": "Link pull",
+  "graphSettings.linkDistance": "Link length"
 }

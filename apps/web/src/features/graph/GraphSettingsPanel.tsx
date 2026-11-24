@@ -5,6 +5,7 @@ import { SettingsTransferButtons } from '../../settings/SettingsTransfer';
 import {
   resetGraphSettings,
   setGraphSettings,
+  FORCE_KEYS,
   SETTING_GROUPS,
   useGraphSettings,
   type SettingGroup,
@@ -22,56 +23,60 @@ export function GraphSettingsForm({ groups }: { groups: readonly SettingGroup[] 
   const idPrefix = useId();
   return (
     <div className="graph-settings-form">
-      {groups.map((group) => (
-        <section key={group.id} className="graph-settings-group" aria-label={t(group.title)}>
-          <h3>{t(group.title)}</h3>
-          {group.fields.map((field) =>
-            field.kind === 'boolean' ? (
-              <label key={field.key} className="graph-settings-switch">
-                <input
-                  type="checkbox"
-                  checked={settings[field.key]}
-                  onChange={(e) => {
-                    setGraphSettings({ [field.key]: e.target.checked });
-                  }}
-                />
-                {t(field.label)}
-              </label>
-            ) : (
-              // Not one <label> around it all: <output> is labelable too, and would
-              // take the name instead of the slider.
-              <div key={field.key} className="graph-settings-slider">
-                <span className="graph-settings-label">
-                  <label htmlFor={`${idPrefix}-${field.key}`}>{t(field.label)}</label>
-                  <output htmlFor={`${idPrefix}-${field.key}`}>
-                    {formatValue(settings[field.key], field.step)}
-                  </output>
-                </span>
-                <input
-                  id={`${idPrefix}-${field.key}`}
-                  type="range"
-                  min={field.min}
-                  max={field.max}
-                  step={field.step}
-                  value={settings[field.key]}
-                  onChange={(e) => {
-                    setGraphSettings({ [field.key]: Number(e.target.value) });
-                  }}
-                />
-              </div>
-            ),
-          )}
-          <button
-            type="button"
-            className="graph-settings-reset"
-            onClick={() => {
-              resetGraphSettings(group.id);
-            }}
-          >
-            {t('graphSettings.resetGroup')}
-          </button>
-        </section>
-      ))}
+      {groups
+        .filter((g) => g.whenAutoLayout === undefined || g.whenAutoLayout === settings.autoLayout)
+        .map((group) => (
+          <section key={group.id} className="graph-settings-group" aria-label={t(group.title)}>
+            <h3>{t(group.title)}</h3>
+            {group.fields.map((field) =>
+              field.kind === 'boolean' ? (
+                <label key={field.key} className="graph-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={settings[field.key]}
+                    onChange={(e) => {
+                      setGraphSettings({ [field.key]: e.target.checked });
+                    }}
+                  />
+                  {t(field.label)}
+                </label>
+              ) : (
+                // Not one <label> around it all: <output> is labelable too, and would
+                // take the name instead of the slider.
+                <div key={field.key} className="graph-settings-slider">
+                  <span className="graph-settings-label">
+                    <label htmlFor={`${idPrefix}-${field.key}`}>{t(field.label)}</label>
+                    <output htmlFor={`${idPrefix}-${field.key}`}>
+                      {formatValue(settings[field.key], field.step)}
+                    </output>
+                  </span>
+                  <input
+                    id={`${idPrefix}-${field.key}`}
+                    type="range"
+                    min={field.min}
+                    max={field.max}
+                    step={field.step}
+                    value={settings[field.key]}
+                    // The forces do nothing while the dots are placed by hand.
+                    disabled={FORCE_KEYS.has(field.key) && !settings.autoLayout}
+                    onChange={(e) => {
+                      setGraphSettings({ [field.key]: Number(e.target.value) });
+                    }}
+                  />
+                </div>
+              ),
+            )}
+            <button
+              type="button"
+              className="graph-settings-reset"
+              onClick={() => {
+                resetGraphSettings(group.id);
+              }}
+            >
+              {t('graphSettings.resetGroup')}
+            </button>
+          </section>
+        ))}
     </div>
   );
 }

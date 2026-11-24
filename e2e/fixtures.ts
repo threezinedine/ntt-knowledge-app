@@ -122,6 +122,14 @@ export const hubUrl = (): string => `http://127.0.0.1:${process.env.KM_E2E_PORT 
 
 export const test = base.extend<{ api: Api }>({
   page: async ({ page }, use) => {
+    // Most specs place dots by hand and click them: no auto layout moving them
+    // underneath, unless a spec turns it on (forces.spec.ts).
+    await page.addInitScript(() => {
+      const stored = JSON.parse(localStorage.getItem('km.graph.settings') ?? '{}') as object;
+      if (!('autoLayout' in stored)) {
+        localStorage.setItem('km.graph.settings', JSON.stringify({ ...stored, autoLayout: false }));
+      }
+    });
     // The specs' `page.request` reaches the data where it now lives.
     const real = page.request;
     Object.defineProperty(page, 'request', { value: requestShim(page, real), configurable: true });

@@ -161,8 +161,13 @@ a `dependencies` entry of `@km/server`, `@km/core` or `@km/engine`, or the image
   there (e.g. spaced repetition later). Asked for so far: the graph's **display**
   settings, on their own activity-bar tab (`/graph-settings`), never over the phone's
   graph view; and **Sync** (pull only), from the title bar.
-- Graph settings (`features/graph/graphSettings.ts`): per-device look of the 2D graph
-  and the push-on-drag, in localStorage, clamped on read; never synced.
+- Graph settings (`features/graph/graphSettings.ts`): per-device look of the 2D graph,
+  the forces and the push-on-drag, in localStorage, clamped on read; never synced.
+- Auto layout (`features/graph/forceLayout.ts`, d3-force; the user wanted Obsidian's
+  self-arranging graph): on by default; positions come from the simulation and are
+  **not saved** (a moving layout would always look like an unpushed change). With it
+  off, the old hand layout applies (saved positions, push-on-drag). e2e specs turn it
+  off by default in the `page` fixture; `forces.spec.ts` turns it on.
 
 ## Rules
 

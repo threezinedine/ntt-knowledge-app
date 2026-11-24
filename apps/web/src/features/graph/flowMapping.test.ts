@@ -108,3 +108,24 @@ describe('toFlowNodes while dragging', () => {
     expect(next?.position).toEqual({ x: 50, y: 60 });
   });
 });
+
+describe('toFlowNodes with auto layout (keepPositions)', () => {
+  it('leaves dots already on the canvas where the forces put them', () => {
+    const prev = toFlowNodes([summary('a', { x: 0, y: 0 })], [], []).map((n) => ({
+      ...n,
+      position: { x: 300, y: -40 },
+    }));
+    const next = toFlowNodes(
+      [summary('a', { x: 0, y: 0 }), summary('b', { x: 7, y: 8 }), summary('c')],
+      [],
+      prev,
+      DEFAULT_SIZES,
+      true,
+    );
+    expect(next.map((n) => n.position)).toEqual([
+      { x: 300, y: -40 }, // kept, not the stored one
+      { x: 7, y: 8 }, // new: where it was saved
+      fallbackPosition(0), // new, never placed
+    ]);
+  });
+});
