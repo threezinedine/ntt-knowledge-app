@@ -13,6 +13,7 @@ import {
 import { suspendKeybindings } from '../../commands/dispatch';
 import { showToast } from '../../components/toast';
 import { useI18n } from '../../i18n/context';
+import { isNativeApp } from '../readOnly';
 import { closeSyncDialog, type SyncAction } from './syncStore';
 
 const reasonOf = (err: unknown) => (err instanceof ApiError ? err.body?.error.reason : undefined);
@@ -71,7 +72,8 @@ export function SyncDialog({
 function ConnectForm({ suggestedName }: { suggestedName: string }) {
   const { t, errorText } = useI18n();
   const connect = useSyncConnect();
-  const [hubUrl, setHubUrl] = useState('');
+  // The web app comes from the hub; the phone app ships its own files.
+  const [hubUrl, setHubUrl] = useState(() => (isNativeApp() ? '' : window.location.origin));
   const [code, setCode] = useState('');
   const [name, setName] = useState(suggestedName);
 

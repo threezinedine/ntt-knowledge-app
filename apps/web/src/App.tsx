@@ -17,9 +17,8 @@ import {
   TagIcon,
 } from './components/icons';
 import { Toast } from './components/toast';
-import { BackupCommands } from './features/backup/BackupCommands';
+import { LocalFileCommands } from './features/local/LocalFileCommands';
 import { LevelUpCelebration } from './features/exp/LevelUpCelebration';
-import { SignOutButton } from './features/auth/SignOutButton';
 import { GraphPage } from './features/graph/GraphPage';
 import { GraphSettingsPage } from './features/graph/GraphSettingsPanel';
 import { NodePage } from './features/node/NodePage';
@@ -102,7 +101,6 @@ export function App() {
           </NavLink>
         )}
         <span className="activity-bar-spacer" />
-        <SignOutButton />
         <button
           type="button"
           className={`activity-button${sidebarVisible ? ' active' : ''}`}
@@ -138,7 +136,7 @@ export function App() {
       <QuickInput />
       <TooltipLayer />
       <Toast />
-      <BackupCommands />
+      <LocalFileCommands />
       <SettingsCommands />
       <SyncHost />
       <LevelUpCelebration />

@@ -1,7 +1,7 @@
 import type { ApiErrorBody } from '@km/core';
 import type { FastifyError, FastifyInstance } from 'fastify';
 import { ZodError, z } from 'zod';
-import { AppError } from '../errors.js';
+import { AppError } from '@km/engine';
 
 type ErrorFields = ApiErrorBody['error'];
 

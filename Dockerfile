@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# One image = API server + built web UI on a single port.
+# One image = the hub (sync server) + the built web app on a single port.
 # Node 24 is required for the built-in node:sqlite module (no native builds needed).
 
 FROM node:24-slim AS base
@@ -9,6 +9,7 @@ WORKDIR /app
 FROM base AS manifests
 COPY package.json package-lock.json ./
 COPY packages/core/package.json packages/core/
+COPY packages/engine/package.json packages/engine/
 COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
 
@@ -17,15 +18,17 @@ FROM manifests AS build
 RUN npm ci --no-audit --no-fund
 COPY tsconfig.base.json ./
 COPY packages/core packages/core
+COPY packages/engine packages/engine
 COPY apps/web apps/web
 RUN npm run build -w @km/web
 
 # ---- runtime: server deps only ----
 FROM manifests AS runtime
 ENV NODE_ENV=production
-RUN npm ci --omit=dev --no-audit --no-fund -w @km/server -w @km/core \
+RUN npm ci --omit=dev --no-audit --no-fund -w @km/server -w @km/core -w @km/engine \
   && npm cache clean --force
 COPY packages/core packages/core
+COPY packages/engine packages/engine
 COPY apps/server apps/server
 COPY --from=build /app/apps/web/dist apps/web/dist
 

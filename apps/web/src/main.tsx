@@ -1,34 +1,21 @@
 // First: applies a staged settings import before any store reads localStorage.
 import './settings/bootImport';
-import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
-import { ApiError } from './api/client';
 import type { SyncStatus } from '@km/core';
 import { keys } from './api/queries';
 import { noteEdit } from './features/sync/syncStore';
 import { App } from './App';
-import { AuthGate } from './features/auth/AuthGate';
+import { LocalGate } from './features/local/LocalGate';
 import { I18nProvider } from './i18n/I18nProvider';
 import '@xyflow/react/dist/style.css';
 import './styles.css';
 
-// A 401 means the session is gone (time up, signed out elsewhere): re-ask the
-// server, and AuthGate asks for a code. Not for a wrong code at sign-in, and
-// not while a status check is already running (many queries fail at once).
-const onError = (error: unknown) => {
-  if (!(error instanceof ApiError) || error.status !== 401) return;
-  const reason = error.body?.error.reason;
-  if (reason === 'CODE_INVALID' || reason === 'CODE_USED') return;
-  if (queryClient.isFetching({ queryKey: keys.auth }) > 0) return;
-  void queryClient.invalidateQueries({ queryKey: keys.auth });
-};
 let syncRefresh: ReturnType<typeof setTimeout> | undefined;
 const queryClient: QueryClient = new QueryClient({
-  queryCache: new QueryCache({ onError }),
   mutationCache: new MutationCache({
-    onError,
     // Editing while the hub has a newer version: warn once (features/sync).
     onMutate: (_variables, mutation) => {
       if (mutation.meta?.notAnEdit === true) return;
@@ -44,7 +31,8 @@ const queryClient: QueryClient = new QueryClient({
     },
   }),
   defaultOptions: {
-    queries: { staleTime: 5_000, retry: 1, refetchOnWindowFocus: true },
+    // Answers come from this device (the engine Worker): no network to retry.
+    queries: { staleTime: 5_000, retry: false, refetchOnWindowFocus: true },
   },
 });
 
@@ -55,11 +43,11 @@ createRoot(root).render(
   <StrictMode>
     <I18nProvider>
       <QueryClientProvider client={queryClient}>
-        <AuthGate>
+        <LocalGate>
           <BrowserRouter>
             <App />
           </BrowserRouter>
-        </AuthGate>
+        </LocalGate>
       </QueryClientProvider>
     </I18nProvider>
   </StrictMode>,

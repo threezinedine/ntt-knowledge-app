@@ -1,17 +1,20 @@
 # Installing and running Knowledge Manager
 
-What the app does is in the [README](README.md). This file covers setting it up,
-configuring it, backing it up, and building the Android app.
+What the app does is in the [README](README.md). This file covers setting up the hub,
+connecting devices, configuration, and building the Android app.
+
+How it fits together: **one server, the hub**, hosts the web app and keeps the versions
+devices push. Each device (a browser, the Android app) keeps its own copy of the graph
+and does all the work on it; it only talks to the hub to push and pull.
 
 - [Requirements](#requirements)
 - [Option 1: Docker](#option-1-docker)
 - [Option 2: from source](#option-2-from-source)
-- [Sign-in setup](#sign-in-setup)
+- [Pairing code setup](#pairing-code-setup)
 - [Configuration](#configuration)
 - [Fields and levels table](#fields-and-levels-table)
-- [Backups, restore and markdown export](#backups-restore-and-markdown-export)
-- [Sync hub](#sync-hub)
-- [Using it from your phone](#using-it-from-your-phone)
+- [The hub](#the-hub)
+- [Other devices and your phone](#other-devices-and-your-phone)
 - [Android app](#android-app)
 - [Security notes](#security-notes)
 - [Development](#development)
@@ -20,43 +23,42 @@ configuring it, backing it up, and building the Android app.
 
 - **Docker** (option 1), or **Node.js 24 or newer** (option 2). The server uses Node's
   built-in SQLite, so there are no native modules to compile.
-- **Node.js 24+** on the host for the one-time sign-in setup (`npm run auth:setup`),
-  even when the app itself runs in Docker.
+- **Node.js 24+** on the host for the one-time code setup (`npm run auth:setup`), even
+  when the server runs in Docker.
 - An authenticator app on your phone (Google Authenticator or any TOTP app), unless you
-  turn sign-in off.
+  turn the pairing code off.
+- On the devices: a current browser. Chrome or Edge for the file features (saving the
+  copy to a file on disk, exporting markdown into a folder).
 
 ## Option 1: Docker
-
-One container serves both the API and the web UI.
 
 ```sh
 git clone git@github.com:threezinedine/ntt-knowlege-app.git
 cd ntt-knowlege-app
-npm install            # only needed for the sign-in setup below
-npm run auth:setup     # creates .env with your sign-in secret
+npm install            # only needed for the code setup below
+npm run auth:setup     # creates .env with the pairing secret
 docker compose up -d --build     # or: npm run docker:up
 ```
 
-Open http://localhost:4317 and enter the code from your authenticator app.
-
-Data lives in the Docker volume `knowledge-manager-data` and survives restarts and
-rebuilds.
+Open http://localhost:4317. The hub's versions live in the Docker volume
+`knowledge-manager-data` and survive restarts and rebuilds.
 
 ```sh
 npm run docker:logs     # follow the logs
 npm run docker:down     # stop (data is kept)
-docker compose down -v  # stop AND delete all data, backups in the volume included
+docker compose down -v  # stop AND delete the hub's versions
 ```
 
 `compose.yaml` reads these from the shell or from `.env` next to it:
 
-| Variable           | Default     | Purpose                                                           |
-| ------------------ | ----------- | ----------------------------------------------------------------- |
-| `KM_PORT`          | `4317`      | Port on the host                                                  |
-| `KM_PUBLISH_ADDR`  | `127.0.0.1` | `0.0.0.0` to reach it from other devices on your network          |
-| `KM_ALLOWED_HOSTS` | _(empty)_   | Required with `0.0.0.0`: the PC's LAN IP or hostname              |
-| `KM_AUTH`          | `totp`      | `off` disables sign-in (only for a machine nobody else can reach) |
-| `KM_TOTP_SECRET`   | _(empty)_   | Written by `npm run auth:setup`                                   |
+| Variable               | Default     | Purpose                                                        |
+| ---------------------- | ----------- | -------------------------------------------------------------- |
+| `KM_PORT`              | `4317`      | Port on the host                                               |
+| `KM_PUBLISH_ADDR`      | `127.0.0.1` | `0.0.0.0` to reach it from other devices on your network       |
+| `KM_ALLOWED_HOSTS`     | _(empty)_   | Required with `0.0.0.0`: the machine's LAN IP or hostname      |
+| `KM_AUTH`              | `totp`      | `off`: pairing needs no code (only for a hub nobody can reach) |
+| `KM_TOTP_SECRET`       | _(empty)_   | Written by `npm run auth:setup`                                |
+| `KM_HUB_KEEP_VERSIONS` | `100`       | How many versions to keep                                      |
 
 Inside the container the database is `/data/km.sqlite` and the level table, if you add
 one, is `/data/level-config.json`.
@@ -67,28 +69,22 @@ one, is `/data/level-config.json`.
 git clone git@github.com:threezinedine/ntt-knowlege-app.git
 cd ntt-knowlege-app
 npm install
-npm run auth:setup     # or put KM_AUTH=off in .env for a local-only machine
-```
-
-**Production-style** (one process, one port):
-
-```sh
+npm run auth:setup     # or put KM_AUTH=off in .env for a hub nobody else can reach
 npm run build
 npm start              # http://127.0.0.1:4317
 ```
 
-**Development** (hot reload):
+The hub's database is `~/.knowledge-manager/km.sqlite` by default. It is created on
+first start, and schema migrations run automatically.
 
-```sh
-npm run dev            # UI on http://localhost:5173, API on :4317
-```
+**Coming from an earlier version** (where the server held the graph and the browser
+edited it there): on the first start, the server's graph becomes the hub's version 1.
+Connect each device and pull it.
 
-The database is `~/.knowledge-manager/km.sqlite` by default. It is created on first
-start, and schema migrations run automatically.
+## Pairing code setup
 
-## Sign-in setup
-
-The app has one owner and signs in with a 6-digit code from an authenticator app (TOTP).
+Connecting a device to the hub takes the 6-digit code from an authenticator app (TOTP).
+There is no other sign-in: the data lives on the devices.
 
 ```sh
 npm run auth:setup             # new secret: shows a QR code, checks one code, writes .env
@@ -98,20 +94,19 @@ npm run auth:setup -- --new    # replace the secret (old authenticator entries s
 
 Scan the QR code (or type the setup key it prints), enter the code your app shows, then
 restart the server. The secret is stored in `.env` at the repository root. That file is
-gitignored; keep a copy, or the QR code, somewhere safe: backups don't include it.
+gitignored; keep a copy, or the QR code, somewhere safe.
 
 How it behaves:
 
-- A sign-in lasts `KM_SESSION_HOURS` (default 168 hours, one week). When it ends, a code
-  box appears over the page; unsaved edits stay and are saved after you sign in.
+- A device pairs once; it then has a token of its own and doesn't need a code again.
 - Each code works once.
-- Wrong codes are rationed: after 5 in a row, sign-in pauses for a minute, and at most 10
+- Wrong codes are rationed: after 5 in a row, pairing pauses for a minute, and at most 10
   are allowed per rolling 24 hours (a correct code doesn't reset that count). With a
-  6-digit code as the only factor, this keeps someone who can reach the server to about
-  a 1% chance per year of guessing a code.
-- While locked, every code is refused, including yours; open sessions keep working.
+  6-digit code as the only factor, this keeps someone who can reach the hub to about a
+  1% chance per year of guessing a code.
+- While locked, every code is refused, including yours; paired devices keep syncing.
   Restarting the server clears the lock.
-- The server refuses to start with sign-in on and no valid `KM_TOTP_SECRET`.
+- The server refuses to start with `KM_AUTH=totp` and no valid `KM_TOTP_SECRET`.
 
 ## Configuration
 
@@ -122,23 +117,20 @@ Variables already set in the environment win over the file.
 | ---------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `KM_HOST`              | `127.0.0.1`                        | Bind address; `0.0.0.0` to reach it on your LAN                                                                                          |
 | `KM_PORT`              | `4317`                             | HTTP port                                                                                                                                |
-| `KM_DB_PATH`           | `~/.knowledge-manager/km.sqlite`   | SQLite file (`:memory:` for a throwaway database)                                                                                        |
-| `KM_STATIC_DIR`        | `apps/web/dist`                    | Built web UI to serve                                                                                                                    |
+| `KM_DB_PATH`           | `~/.knowledge-manager/km.sqlite`   | The hub's SQLite file (`:memory:` for a throwaway one)                                                                                   |
+| `KM_STATIC_DIR`        | `apps/web/dist`                    | Built web app to serve                                                                                                                   |
 | `KM_ALLOWED_HOSTS`     | _(empty)_                          | Extra hostnames accepted in the `Host` header, comma-separated. Loopback is always allowed; anything else gets 403 (DNS-rebinding guard) |
-| `KM_AUTH`              | `totp`                             | `totp`: sign in with a code. `off`: no sign-in                                                                                           |
+| `KM_AUTH`              | `totp`                             | `totp`: pairing takes a code. `off`: no code                                                                                             |
 | `KM_TOTP_SECRET`       | _(empty)_                          | Authenticator secret (base32), written by `npm run auth:setup`                                                                           |
-| `KM_SESSION_HOURS`     | `168`                              | How long a sign-in lasts                                                                                                                 |
-| `KM_COOKIE_SECURE`     | `false`                            | `true` when the app is served over HTTPS                                                                                                 |
-| `KM_BACKUP_DIR`        | `backups/` next to the database    | Where Backup Now and Export Markdown write. Use an absolute path                                                                         |
+| `KM_HUB_KEEP_VERSIONS` | `100`                              | How many versions the hub keeps; older ones are dropped                                                                                  |
 | `KM_LEVEL_CONFIG`      | `level-config.json` next to the DB | The fields and levels table                                                                                                              |
-| `KM_HUB`               | `off`                              | `on`: this server is also a sync hub (see [Sync hub](#sync-hub))                                                                         |
-| `KM_HUB_KEEP_VERSIONS` | `100`                              | How many versions a hub keeps; older ones are dropped                                                                                    |
 | `KM_LOG_LEVEL`         | `info`                             | Server log level                                                                                                                         |
 
 ## Fields and levels table
 
-How much EXP a node earns, and how much each level needs, is set by whoever runs the
-server; the app has no screen for it. To change it, copy
+How much EXP a note earns, and how much each level needs, is set on the hub; the app
+has no screen for it. Devices fetch it when they connect and pull, so EXP counts the
+same everywhere. To change it, copy
 [`level-config.example.json`](level-config.example.json) to `level-config.json` next to
 the database (`/data/level-config.json` in Docker), edit it and restart.
 
@@ -154,113 +146,59 @@ the database (`/data/level-config.json` in Docker), edit it and restart.
 Missing keys use the defaults. A broken file stops the server with a message that says
 what is wrong.
 
-## Backups, restore and markdown export
+## The hub
 
-Both exports run when you ask for them, from the command palette (`F1`) on the desktop
-app:
+The hub keeps **versions of the whole graph** (notes, links, tags, layout, 5 Whys),
+compressed, each with its number, a SHA-256 hash, the device that pushed it and when.
+Pushing over a version a device hasn't pulled is refused unless the user confirms; the
+older version stays in the history.
 
-- **Backup Now** writes `km-<time>.sqlite`, a consistent copy of the whole database. It
-  is safe while the server runs. Sign-in sessions are left out, so you sign in again
-  after a restore.
-- **Export Markdown** writes `exports/<time>/` with one `.md` file per node: front matter
-  (id, type, dates, tag paths, properties, links as `[[wiki links]]`), then the content
-  and its 5 Whys sessions. It opens in Obsidian or any editor.
+**Connecting a device**: open the hub's address in the browser, then _Sync…_ in the
+command palette (or _Sync_ in the title bar). The hub's address is filled in; enter a
+current code and a name for the device, and connect. The first device pushes; the
+others pull.
 
-They go to `KM_BACKUP_DIR` (default `backups/` next to the database). Point it at another
-disk or a cloud-synced folder; a backup on the same disk as the database is lost with
-that disk. In Docker the default is inside the volume; `compose.yaml` has commented lines
-for a host folder.
-
-**Restore** from the terminal, with the server stopped:
+**Paired devices**: disconnecting (or connecting again) tells the hub to forget the old
+token. For a lost phone or an old PC, list and remove devices on the hub machine:
 
 ```sh
-npm run backup:restore            # list backups, newest first
-npm run backup:restore -- 1       # restore the newest (or pass a file name); --yes skips the prompt
+npm run hub:devices                 # list them
+npm run hub:devices -- --revoke 2   # remove number 2; its token stops working at once
 ```
 
-It refuses while the server is running, checks that the file is a healthy database this
-version can open, asks for confirmation, and first saves the current database as
-`km-before-restore-<time>.sqlite`, so a restore can itself be undone.
+**Backups**: the hub's database file is the history of every device's pushes. Copy
+`km.sqlite` (with the server stopped, or with `sqlite3 km.sqlite ".backup copy.sqlite"`)
+if you want a copy elsewhere. Each device can also keep its own copy in a file on disk
+(_Save This Device's Copy to a File…_).
 
-In Docker, stop the service first, then run the restore in a one-off container:
+Devices on different app versions can only sync if the data format matches; the app
+says so when it doesn't.
 
-```sh
-docker compose stop
-docker compose run --rm km node --import tsx apps/server/src/cli/restore.ts 1 --yes
-docker compose start
-```
+## Other devices and your phone
 
-## Sync hub
-
-Any Knowledge Manager server can be the hub: your main PC, or a small always-on
-machine (a home server, a VPS) that other devices reach over the LAN or the internet.
-
-1. On the hub, set `KM_HUB=on` (and, for Docker, publish it as described above) and
-   restart. Keep sign-in on (`KM_AUTH=totp`): pairing a device takes a code from the
-   hub's authenticator app, and wrong codes are rationed like sign-in.
-2. Other devices reach the hub by its address, so add it to the hub's
-   `KM_ALLOWED_HOSTS` (the LAN IP, or the domain name behind HTTPS), and bind it to
-   the network (`KM_HOST=0.0.0.0`, or `KM_PUBLISH_ADDR=0.0.0.0` in Docker).
-3. On each device, open **Sync…** in the command palette (or click _Sync_ in the title
-   bar), enter the hub's address (e.g. `http://192.168.1.20:4317`) and a current code,
-   and connect. The hub then gives that device a token of its own; the code is not
-   needed again.
-4. The first device pushes; the others pull.
-
-The hub's own graph is separate from its versions: to use the hub machine's app too,
-connect it to itself (`http://127.0.0.1:4317`) like any other device.
-
-Notes:
-
-- A version is the whole graph (notes, links, tags, layout, 5 Whys), compressed. Sign-in
-  sessions, settings and the hub token are never part of it.
-- **Paired devices**: each device has its own token; disconnecting (or connecting
-  again) tells the hub to forget the old one. For a lost phone or an old PC, list
-  and remove devices on the hub machine:
-
-  ```sh
-  npm run hub:devices                 # list them
-  npm run hub:devices -- --revoke 2   # remove number 2; its token stops working at once
-  ```
-
-- A hub's backups keep its versions but not its paired devices: after restoring a hub,
-  connect the devices again.
-- A pull that replaces unpushed changes first saves a backup named
-  `km-before-pull-<time>.sqlite` in the device's `KM_BACKUP_DIR`.
-- Devices on different app versions can only sync if the data format matches; the app
-  says so when it doesn't.
-- Over the internet, put the hub behind HTTPS (see [Security notes](#security-notes)).
-
-## Using it from your phone
-
-The server has to be reachable on your network:
+The hub has to be reachable from them:
 
 ```sh
 # from source
-npm run build
-KM_HOST=0.0.0.0 KM_ALLOWED_HOSTS=192.168.1.20 npm start     # your PC's LAN IP
+KM_HOST=0.0.0.0 KM_ALLOWED_HOSTS=192.168.1.20 npm start     # the hub machine's LAN IP
 ```
 
-With Docker, set `KM_PUBLISH_ADDR=0.0.0.0` and `KM_ALLOWED_HOSTS=<pc-ip>` in `.env`.
+With Docker, set `KM_PUBLISH_ADDR=0.0.0.0` and `KM_ALLOWED_HOSTS=<hub-ip>` in `.env`.
 Windows may ask whether Node can use the network: allow **Private** networks.
 
-Then open `http://<pc-ip>:4317` in the phone's browser (and "Add to home screen").
-Browsers only allow a full install (offline shell) over HTTPS or on `localhost`; over
-plain LAN HTTP the web app works as a bookmark. For a copy that works offline, use the
-Android app below.
+Then open `http://<hub-ip>:4317` on the other device and connect it (Sync). On a phone's
+browser, "Add to home screen" works too; browsers only allow a full install (offline
+shell) over HTTPS or on `localhost`. For a copy that works offline on the phone, use
+the Android app below.
 
 ## Android app
 
-`apps/mobile` is a Capacitor app that carries the web app and a read-only copy of
-your graph, pulled from a [sync hub](#sync-hub). It is meant for sideloading onto your
-own phone.
+`apps/mobile` is a Capacitor app that carries the web app and a read-only copy of your
+graph, pulled from the hub. It is meant for sideloading onto your own phone.
 
-One-time setup:
-
-1. Install [Android Studio](https://developer.android.com/studio); it brings the Android
-   SDK and a JDK. On the phone, enable developer options (tap _Build number_ seven times)
-   and turn on _USB debugging_.
-2. Set up a hub the phone can reach, and push your graph to it from a PC.
+One-time setup: install [Android Studio](https://developer.android.com/studio); it
+brings the Android SDK and a JDK. On the phone, enable developer options (tap _Build
+number_ seven times) and turn on _USB debugging_.
 
 Build and install:
 
@@ -283,27 +221,29 @@ The Gradle wrapper is pinned to 9.1.0 so it runs on Android Studio's bundled JDK
 
 In the app, tap _Sync_ in the title bar, enter the hub's address and a code from its
 authenticator app, then **Pull**. The phone pairs as a read-only device: the hub never
-accepts a push from it. Rebuild the app (`mobile:sync`, then install) after updating
-the code; the copy on the phone stays.
+accepts a push from it. Rebuild the app after updating the code; the copy on the phone
+stays.
 
 ## Security notes
 
-- Keep the server off the public internet unless you put HTTPS in front of it and accept
-  a single 6-digit code as the only factor.
-- On plain LAN HTTP, the sign-in code, the session cookie and sync traffic (including
-  device tokens and your whole graph) cross the Wi-Fi unencrypted. That is acceptable on
-  your own home network. Elsewhere, put HTTPS in front (for example Caddy or Tailscale),
-  set `KM_COOKIE_SECURE=true`, and give devices the hub's `https://` address.
-- A device's hub token is kept in its database (or, on the phone, in the app's storage)
-  and is left out of backups. The hub keeps only a hash of each token.
-- `.env` holds the sign-in secret. It is gitignored and not part of backups.
+- Keep the hub off the public internet unless you put HTTPS in front of it and accept
+  a single 6-digit code as the only factor for pairing.
+- On plain LAN HTTP, pairing codes, device tokens and sync traffic (your whole graph)
+  cross the Wi-Fi unencrypted. That is acceptable on your own home network. Elsewhere,
+  put HTTPS in front (for example Caddy or Tailscale) and give devices the hub's
+  `https://` address.
+- The web app's files are public (they hold no data); the hub answers only paired
+  devices. The hub keeps only a hash of each device token.
+- Each device's copy is as safe as that device: anyone using its browser profile can
+  open it.
+- `.env` holds the pairing secret. It is gitignored.
 
 ## Development
 
 ```sh
-npm run dev         # server :4317 + Vite :5173
-npm run check       # typecheck + ESLint + Prettier + unit and API tests
-npm run test:e2e    # builds the web app, starts a server on an in-memory DB, runs Playwright
+npm run dev         # hub :4317 + Vite :5173 (proxy /api)
+npm run check       # typecheck + ESLint + Prettier + unit tests
+npm run test:e2e    # builds the web app, starts a hub on an in-memory DB, runs Playwright
 ```
 
 End-to-end tests run twice: desktop Chrome and a Pixel 7 touch profile. Tests that need a

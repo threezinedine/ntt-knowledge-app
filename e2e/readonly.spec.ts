@@ -110,18 +110,6 @@ test.describe('read-only mode (the phone app)', () => {
     expect(asked.every((url) => url.includes('/api/hub/'))).toBe(true);
   });
 
-  test('a read-only session in a normal browser is read-only too', async ({ page, api }) => {
-    const node = await api.createNode({ title: 'Seen' });
-    await page.route('/api/auth/status', (r) =>
-      r.fulfill({
-        json: { enabled: true, signedIn: true, expiresAt: Date.now() + 3_600_000, readOnly: true },
-      }),
-    );
-    await page.goto(`/nodes/${node.id}`);
-    await expect(page.getByRole('heading', { level: 1, name: 'Seen' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Title' })).toHaveCount(0);
-  });
-
   test('the graph can be looked at, not rearranged', async ({ page, api, isMobile }) => {
     test.skip(isMobile, 'Mouse drag; touch drag goes through the same React Flow switch.');
     await api.createNode({ title: 'Still', position: { x: 0, y: 0 } });

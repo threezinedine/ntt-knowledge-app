@@ -8,13 +8,12 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit -p .",
     "auth:setup": "tsx src/cli/authSetup.ts",
-    "backup:restore": "tsx src/cli/restore.ts",
     "hub:devices": "tsx src/cli/hubDevices.ts"
   },
   "dependencies": {
-    "@fastify/cookie": "^11.1.5",
     "@fastify/static": "^10.1.12",
     "@km/core": "*",
+    "@km/engine": "*",
     "fastify": "^5.12.8",
     "tsx": "^4.23.15",
     "zod": "^4.6.7"

@@ -61,7 +61,7 @@ export function SyncIndicator() {
 
 /**
  * Can this page sync? A normal session: push and pull through its server.
- * The phone app: pull only, straight from the hub (api/phoneData.ts). A
+ * The phone app: pull only, through its own engine copy (local/worker.ts). A
  * read-only session in a browser: neither (its server refuses writes).
  */
 export function useCanSync(): boolean {
@@ -99,6 +99,19 @@ export function SyncHost() {
     },
     canSync,
   );
+
+  const status = useSyncStatus(canSync);
+  const unpushed = status.data?.connected === true && status.data.localChanged;
+  useEffect(() => {
+    if (!unpushed) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => {
+      window.removeEventListener('beforeunload', warn);
+    };
+  }, [unpushed]);
 
   useEffect(() => {
     let version: string | null = null;

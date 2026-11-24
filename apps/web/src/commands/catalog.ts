@@ -82,8 +82,20 @@ export const COMMANDS = [
     macKeys: ['Ctrl+Alt+N'],
   },
   {
-    id: 'km.backup.now',
-    title: 'cmd.backupNow',
+    id: 'km.local.saveToFile',
+    title: 'cmd.saveLocalToFile',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
+    id: 'km.local.openFromFile',
+    title: 'cmd.openLocalFromFile',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
+    id: 'km.local.stopSaving',
+    title: 'cmd.stopSavingToFile',
     category: 'cmdCategory.data',
     keys: [],
   },

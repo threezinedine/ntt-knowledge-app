@@ -9,7 +9,6 @@
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @km/server\" \"npm run dev -w @km/web\"",
     "auth:setup": "npm run auth:setup -w @km/server",
-    "backup:restore": "npm run backup:restore -w @km/server",
     "hub:devices": "npm run hub:devices -w @km/server",
     "mobile:sync": "npm run sync -w @km/mobile",
     "mobile:open": "npm run open -w @km/mobile",

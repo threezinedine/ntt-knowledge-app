@@ -1,7 +1,6 @@
 import type {
   ApiErrorBody,
   AuthStatus,
-  BackupResult,
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
@@ -11,7 +10,6 @@ import type {
   GraphNode,
   GraphSnapshot,
   LocalGraph,
-  MarkdownExportResult,
   NodePositionsInput,
   NodeEdges,
   SyncConnectInput,
@@ -24,7 +22,7 @@ import type {
   UpdateWhySessionInput,
   WhySession,
 } from '@km/core';
-import { isNativeApp } from '../features/readOnly';
+import { engineRequest } from '../local/engine';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -38,7 +36,7 @@ export class ApiError extends Error {
   }
 }
 
-/** The request never got an HTTP response (server down, offline, CORS, ...). */
+/** The request never got an answer (the engine failed to start, ...). */
 export class NetworkError extends Error {
   constructor(cause: unknown) {
     super(errorMessage(cause), { cause });
@@ -48,93 +46,26 @@ export class NetworkError extends Error {
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
-/** Browsers cap the total in-flight keepalive body at 64 KiB. */
-const KEEPALIVE_MAX_BYTES = 60 * 1024;
-
-async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
-  // The phone app answers from its own copy of the hub's data (phoneData.ts).
-  if (isNativeApp()) {
-    const { phoneRequest } = await import('./phoneData');
-    return (await phoneRequest(method, path, body)) as T;
-  }
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  const payload = body === undefined ? null : JSON.stringify(body);
-  if (payload !== null) headers['Content-Type'] = 'application/json';
-  let res: Response;
-  try {
-    res = await fetch(`/api${path}`, {
-      method,
-      headers,
-      body: payload,
-      // Lets writes issued while the page is closing (autosave flush) complete.
-      keepalive: method !== 'GET' && (payload?.length ?? 0) < KEEPALIVE_MAX_BYTES,
-    });
-  } catch (error) {
-    throw new NetworkError(error);
-  }
-  if (res.status === 204) return undefined as T;
-
-  const text = await res.text();
-  if (!res.ok) throw new ApiError(res.status, parseErrorBody(text));
-  return (text ? JSON.parse(text) : undefined) as T;
-}
-
 /**
- * A request to a sync hub from the page itself (the phone app, which has no
- * server of its own), with a device token instead of the session cookie.
- * The time limit is enforced here: the native HTTP layer may ignore signals.
+ * Every request is answered on this device, by the engine Worker holding its
+ * copy of the graph (local/engine.ts). Only sync, inside the engine, talks to
+ * the server.
  */
-export async function hubRequest<T>(
-  hubUrl: string,
-  method: 'GET' | 'POST' | 'DELETE',
-  path: string,
-  options: { token?: string; body?: unknown; timeoutMs: number },
-): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.token) headers.Authorization = `Bearer ${options.token}`;
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
-  let res: Response;
-  let text: string;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  let res: { status: number; body: unknown };
   try {
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        reject(new Error('Timed out'));
-      }, options.timeoutMs);
-    });
-    res = await Promise.race([
-      fetch(`${hubUrl}${path}`, {
-        method,
-        headers,
-        body: options.body === undefined ? null : JSON.stringify(options.body),
-        credentials: 'omit',
-      }),
-      timeout,
-    ]);
-    text = await Promise.race([res.text(), timeout]);
+    res = await engineRequest(method, path, body);
   } catch (error) {
     throw new NetworkError(error);
-  } finally {
-    clearTimeout(timer);
   }
-  if (!res.ok) throw new ApiError(res.status, parseErrorBody(text));
-  if (res.status === 204) return undefined as T;
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new ApiError(res.status, undefined);
+  if (res.status >= 400) {
+    throw new ApiError(res.status, isErrorBody(res.body) ? res.body : undefined);
   }
+  return res.body as T;
 }
 
-/** Our server always sends ApiErrorBody JSON; a proxy's HTML 502 does not. */
-function parseErrorBody(text: string): ApiErrorBody | undefined {
-  try {
-    const json = JSON.parse(text) as Partial<ApiErrorBody> | null;
-    return typeof json?.error?.code === 'string' ? (json as ApiErrorBody) : undefined;
-  } catch {
-    return undefined;
-  }
-}
+const isErrorBody = (value: unknown): value is ApiErrorBody =>
+  typeof (value as Partial<ApiErrorBody> | null)?.error?.code === 'string';
 
 const qs = (params: Record<string, string | undefined>): string => {
   const entries = Object.entries(params).filter((e): e is [string, string] => Boolean(e[1]));
@@ -185,9 +116,6 @@ export const api = {
       request<WhySession>('PATCH', `/whys/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/whys/${id}`),
   },
-  /** On the server's machine, into KM_BACKUP_DIR. */
-  backup: () => request<BackupResult>('POST', '/backups'),
-  exportMarkdown: () => request<MarkdownExportResult>('POST', '/exports/markdown'),
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),
   /** This device's sync with a hub (the hub itself is another server). */
@@ -200,10 +128,6 @@ export const api = {
   },
   auth: {
     status: () => request<AuthStatus>('GET', '/auth/status'),
-    /** The 6-digit authenticator code; sets the session cookie. */
-    login: (code: string, readOnly = false) =>
-      request<AuthStatus>('POST', '/auth/login', readOnly ? { code, readOnly } : { code }),
-    signOut: () => request<undefined>('POST', '/auth/logout'),
   },
 };
 

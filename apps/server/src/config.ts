@@ -1,5 +1,5 @@
-import { homedir, tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { base32Decode } from './auth/totp.js';
@@ -21,15 +21,6 @@ const envSchema = z.object({
     ),
   /** Exit when this process exits (set by the e2e config; see watchParent.ts). */
   KM_PARENT_PID: z.coerce.number().int().positive().optional(),
-  /**
-   * Folder for backups and markdown exports. Best on another disk or in a
-   * cloud-synced folder. Default: "backups" next to the database.
-   */
-  KM_BACKUP_DIR: z
-    .string()
-    .trim()
-    .optional()
-    .transform((v) => v || undefined), // empty in .env = the default
   /** EXP/level table (JSON). Default: level-config.json next to the database. */
   KM_LEVEL_CONFIG: z.string().optional(),
   /**
@@ -40,23 +31,6 @@ const envSchema = z.object({
   KM_AUTH: z.enum(['totp', 'off']).default('totp'),
   /** Authenticator secret (base32). Create it with `npm run auth:setup`. */
   KM_TOTP_SECRET: z.string().trim().optional(),
-  /** How long a sign-in lasts before the app asks for a code again. */
-  KM_SESSION_HOURS: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(24 * 365)
-    .default(24 * 7),
-  /** "true" when users reach the app over HTTPS (reverse proxy): Secure cookie. */
-  KM_COOKIE_SECURE: z
-    .enum(['true', 'false'])
-    .default('false')
-    .transform((v) => v === 'true'),
-  /**
-   * "on": this server is also a sync hub, keeping versions of the graph for
-   * the devices that push to it and pull from it.
-   */
-  KM_HUB: z.enum(['on', 'off']).default('off'),
   /** How many versions a hub keeps; older ones are dropped. */
   KM_HUB_KEEP_VERSIONS: z.coerce.number().int().min(1).max(10_000).default(100),
   KM_LOG_LEVEL: z
@@ -72,12 +46,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
 
 export interface AuthSettings {
   totpSecret: Buffer;
-  sessionTtlMs: number;
-  secureCookie: boolean;
 }
 
 /**
- * Sign-in settings, or null with KM_AUTH=off. Refuses to start without a
+ * Pairing settings, or null with KM_AUTH=off. Refuses to start without a
  * usable secret: a typo must never leave the server open.
  */
 export function authSettings(config: Config): AuthSettings | null {
@@ -97,18 +69,7 @@ export function authSettings(config: Config): AuthSettings | null {
   if (totpSecret.length < 16) {
     throw new Error(`KM_TOTP_SECRET is too short (needs 128+ bits). ${hint}`);
   }
-  return {
-    totpSecret,
-    sessionTtlMs: config.KM_SESSION_HOURS * 60 * 60 * 1000,
-    secureCookie: config.KM_COOKIE_SECURE,
-  };
-}
-
-/** Absolute. An in-memory database (tests) gets a folder in the OS temp dir. */
-export function backupDir(config: Config): string {
-  if (config.KM_BACKUP_DIR !== undefined) return resolve(config.KM_BACKUP_DIR);
-  if (config.KM_DB_PATH === ':memory:') return join(tmpdir(), 'km-backups');
-  return resolve(dirname(config.KM_DB_PATH), 'backups');
+  return { totpSecret };
 }
 
 export function levelConfigPath(config: Config): string {

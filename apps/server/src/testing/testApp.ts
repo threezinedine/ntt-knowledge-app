@@ -1,6 +1,7 @@
 import type { LevelConfig } from '@km/core';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { buildApp, type AppOptions } from '../app.js';
+import type { FetchLike } from '@km/engine';
 import { IN_MEMORY, openDatabase, type Database } from '../db/database.js';
 
 export interface TestApp {
@@ -17,14 +18,12 @@ export interface TestApp {
   close: () => Promise<void>;
 }
 
-/** A fresh in-memory app with a deterministic clock. */
+/** A fresh in-memory hub (the server) with a deterministic clock. */
 export async function createTestApp(
   options: {
     levelConfig?: LevelConfig;
     auth?: AppOptions['auth'];
-    backupDir?: string;
     hub?: AppOptions['hub'];
-    fetch?: AppOptions['fetch'];
   } = {},
 ): Promise<TestApp> {
   const db = openDatabase(IN_MEMORY);
@@ -59,12 +58,12 @@ export async function createTestApp(
  * test app can sync with another as its hub. A URL starting with
  * `http://unreachable` fails like a network error.
  */
-export function injectFetch(target: () => FastifyInstance): NonNullable<AppOptions['fetch']> {
+export function injectFetch(target: () => FastifyInstance): FetchLike {
   return async (url, init) => {
     if (url.startsWith('http://unreachable')) throw new TypeError('fetch failed');
     const { pathname, search } = new URL(url);
     const res = await target().inject({
-      method: (init.method ?? 'GET') as 'GET' | 'POST',
+      method: (init.method ?? 'GET') as 'GET' | 'POST' | 'DELETE',
       url: pathname + search,
       headers: init.headers as Record<string, string>,
       ...(typeof init.body === 'string' ? { payload: init.body } : {}),

@@ -40,7 +40,6 @@ export const keys = {
   tags: ['tags'] as const,
   /** Derived from nodes + tags: invalidated by any write to either. */
   exp: ['exp'] as const,
-  auth: ['auth'] as const,
   sync: ['sync'] as const,
   whys: (nodeId: string) => ['whys', nodeId] as const,
 };
@@ -151,49 +150,6 @@ export function useSyncPull() {
         // No note after the reload; the data is there either way.
       }
       window.location.reload();
-    },
-  });
-}
-
-export const useAuthStatus = () =>
-  useQuery({ queryKey: keys.auth, queryFn: api.auth.status, staleTime: 60_000 });
-
-/**
- * Signs in with an authenticator code, then refetches what failed while
- * signed out and saves pending edits at once (not at their next retry).
- */
-export function useLogin() {
-  const qc = useQueryClient();
-  return useMutation({
-    meta: NOT_AN_EDIT,
-    mutationFn: ({ code, readOnly }: { code: string; readOnly: boolean }) =>
-      api.auth.login(code, readOnly),
-    onSuccess: (status) => {
-      qc.setQueryData(keys.auth, status);
-      void flushAllAutosaves();
-      void qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== keys.auth[0] });
-    },
-  });
-}
-
-/**
- * Saves pending edits, signs out, then reloads the app: nothing of the
- * session (cached data, the open page) should outlive it.
- */
-export function useSignOut() {
-  const qc = useQueryClient();
-  return useMutation({
-    meta: NOT_AN_EDIT,
-    mutationFn: async () => {
-      await flushAllAutosaves();
-      // A flush that found a save already running returns before it ends.
-      for (let waited = 0; qc.isMutating() > 1 && waited < 5_000; waited += 50) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-      }
-      await api.auth.signOut();
-    },
-    onSettled: () => {
-      window.location.replace('/');
     },
   });
 }
@@ -440,8 +396,3 @@ export function useDeleteWhySession(nodeId: string) {
 }
 
 /** Writes a file on the server; nothing cached changes. */
-export const useBackupNow = () =>
-  useMutation({ meta: NOT_AN_EDIT, mutationFn: () => api.backup() });
-
-export const useExportMarkdown = () =>
-  useMutation({ meta: NOT_AN_EDIT, mutationFn: () => api.exportMarkdown() });

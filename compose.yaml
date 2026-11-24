@@ -2,11 +2,11 @@
 #
 # Optional env (shell or a .env file next to this file):
 #   KM_PORT=4317                  host port
-#   KM_PUBLISH_ADDR=127.0.0.1     set to 0.0.0.0 to reach it from your phone on the LAN
+#   KM_PUBLISH_ADDR=127.0.0.1     set to 0.0.0.0 to reach it from other devices on the LAN
 #   KM_ALLOWED_HOSTS=192.168.1.20 required with 0.0.0.0: the PC's LAN IP / hostname
 #
-# Sign-in (on by default): KM_TOTP_SECRET from the same .env, created on the
-# host with `npm run auth:setup`. KM_AUTH=off turns it off (local only).
+# Pairing devices (on by default) takes the code for KM_TOTP_SECRET from the same
+# .env, created on the host with `npm run auth:setup`. KM_AUTH=off: no code (local only).
 services:
   km:
     build: .
@@ -21,17 +21,10 @@ services:
       KM_LOG_LEVEL: ${KM_LOG_LEVEL:-info}
       KM_AUTH: ${KM_AUTH:-totp}
       KM_TOTP_SECRET: ${KM_TOTP_SECRET:-}
-      KM_SESSION_HOURS: ${KM_SESSION_HOURS:-168}
-      KM_COOKIE_SECURE: ${KM_COOKIE_SECURE:-false}
-      KM_HUB: ${KM_HUB:-off}
       KM_HUB_KEEP_VERSIONS: ${KM_HUB_KEEP_VERSIONS:-100}
-      # Backups / markdown exports ("Backup Now" in the app). Default /data/backups is
-      # inside the volume, so `docker compose down -v` deletes them too. To keep them on
-      # the host, uncomment both lines below (the host folder must be writable by uid 1000).
-      # KM_BACKUP_DIR: /backups
     volumes:
+      # The hub's versions (km.sqlite) and, if you add one, level-config.json.
       - km-data:/data
-      # - ${KM_BACKUP_HOST_DIR:-./backups}:/backups
 
 volumes:
   km-data:

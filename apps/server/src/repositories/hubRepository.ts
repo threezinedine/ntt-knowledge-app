@@ -1,7 +1,6 @@
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { SNAPSHOT_FORMAT, type HubVersion } from '@km/core';
-import { transaction } from '../db/database.js';
-import type { RepoContext } from './context.js';
+import { transaction, type RepoContext } from '@km/engine';
 import { hashToken, newSessionToken } from './sessionRepository.js';
 
 /** A device paired with this hub. */

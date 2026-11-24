@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
 import { IN_MEMORY, migrate, openDatabase, transaction } from './database.js';
-import { migrations } from './migrations.js';
+import { migrations } from '@km/engine';
 
 describe('database', () => {
   it('applies all migrations and records the version', () => {

@@ -1,8 +1,8 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { authSettings, backupDir, loadConfig } from './config.js';
+import { authSettings, loadConfig } from './config.js';
 import { loadEnvFile, setEnvValues } from './envFile.js';
 
 const SECRET = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'; // 160 bits
@@ -20,13 +20,8 @@ describe('authSettings', () => {
     expect(() => authSettings(loadConfig({ KM_TOTP_SECRET: 'JBSWY3DP' }))).toThrow(/too short/);
   });
 
-  it('decodes the secret and turns hours into a lifetime', () => {
-    const auth = authSettings(loadConfig({ KM_TOTP_SECRET: SECRET, KM_SESSION_HOURS: '12' }));
-    expect(auth?.totpSecret).toHaveLength(20);
-    expect(auth?.sessionTtlMs).toBe(12 * 60 * 60 * 1000);
-    expect(authSettings(loadConfig({ KM_TOTP_SECRET: SECRET }))?.sessionTtlMs).toBe(
-      7 * 24 * 60 * 60 * 1000,
-    );
+  it('decodes the secret', () => {
+    expect(authSettings(loadConfig({ KM_TOTP_SECRET: SECRET }))?.totpSecret).toHaveLength(20);
   });
 
   it('rejects an unknown mode (e.g. the old "google")', () => {
@@ -54,19 +49,5 @@ describe('setEnvValues', () => {
     );
     expect(setEnvValues('', { A: '1' })).toBe('A=1\n');
     expect(setEnvValues('KM_TOTP_SECRET=\n', { KM_TOTP_SECRET: 'X' })).toBe('KM_TOTP_SECRET=X\n');
-  });
-});
-
-describe('backupDir', () => {
-  it('is "backups" next to the database by default, also when left empty in .env', () => {
-    const db = join(tmpdir(), 'km', 'km.sqlite');
-    expect(backupDir(loadConfig({ KM_DB_PATH: db }))).toBe(join(tmpdir(), 'km', 'backups'));
-    expect(backupDir(loadConfig({ KM_DB_PATH: db, KM_BACKUP_DIR: '  ' }))).toBe(
-      join(tmpdir(), 'km', 'backups'),
-    );
-  });
-
-  it('takes KM_BACKUP_DIR, made absolute', () => {
-    expect(backupDir(loadConfig({ KM_BACKUP_DIR: 'some/dir' }))).toBe(resolve('some/dir'));
   });
 });

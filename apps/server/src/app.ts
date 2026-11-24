@@ -3,20 +3,11 @@ import fastifyStatic from '@fastify/static';
 import { DEFAULT_LEVEL_CONFIG, newId, type LevelConfig } from '@km/core';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { Database } from './db/database.js';
-import { registerAuth, type AuthOptions } from './http/auth.js';
+import { createLoginGuard, type AuthOptions } from './http/auth.js';
 import { registerErrorHandler } from './http/errorHandler.js';
 import { registerHostGuard } from './http/hostGuard.js';
-import { registerEdgeRoutes } from './http/routes/edgeRoutes.js';
-import { registerExpRoutes } from './http/routes/expRoutes.js';
-import { registerNodeRoutes } from './http/routes/nodeRoutes.js';
-import { registerTagRoutes } from './http/routes/tagRoutes.js';
-import { registerWhyRoutes } from './http/routes/whyRoutes.js';
-import { registerBackupRoutes } from './http/routes/backupRoutes.js';
 import { registerHubRoutes, type HubOptions } from './http/routes/hubRoutes.js';
-import { registerSyncRoutes } from './http/routes/syncRoutes.js';
-import { createRepositories } from './repositories/index.js';
-import type { FetchLike } from './sync/hubClient.js';
-import { createSyncService } from './sync/syncService.js';
+import { createHubRepository } from './repositories/hubRepository.js';
 
 export interface AppOptions {
   db: Database;
@@ -27,51 +18,30 @@ export interface AppOptions {
   allowedHosts?: readonly string[];
   now?: () => number;
   newId?: () => string;
-  /** EXP/level table (from the operator's config file). */
+  /** EXP/level table (from the operator's config file), handed to every device. */
   levelConfig?: LevelConfig;
-  /** Backups and markdown exports go here; omitted = no backup routes. */
-  backupDir?: string | undefined;
-  /** Authenticator-code sign-in. Omitted = no sign-in (KM_AUTH=off, and the API tests). */
+  /** Pairing needs the authenticator code. Omitted = KM_AUTH=off (and most tests). */
   auth?: AuthOptions | undefined;
-  /** Make this server a sync hub (KM_HUB=on). Omitted = not a hub. */
-  hub?: HubOptions | undefined;
-  /** How this server reaches a hub; tests swap in another app's `inject`. */
-  fetch?: FetchLike;
+  hub?: HubOptions;
 }
 
+/**
+ * The server: the one hub every device syncs with, and the host of the web
+ * app's files. It keeps versions of the graph; the devices do the rest.
+ */
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: options.logger ?? false, bodyLimit: 5 * 1024 * 1024 });
-  const repos = createRepositories({
-    db: options.db,
-    now: options.now ?? Date.now,
-    newId: options.newId ?? newId,
-  });
+  const now = options.now ?? Date.now;
+  const hub = createHubRepository({ db: options.db, now, newId: options.newId ?? newId });
 
   registerErrorHandler(app);
   registerHostGuard(app, options.allowedHosts ?? []);
-  const now = options.now ?? Date.now;
-  const guard = await registerAuth(app, repos.sessions, options.auth, now);
-  app.get('/api/health', () => ({ ok: true })); // public: see PUBLIC_API in http/auth.ts
-  registerNodeRoutes(app, repos);
-  registerEdgeRoutes(app, repos);
-  registerTagRoutes(app, repos);
-  registerWhyRoutes(app, repos);
-  if (options.backupDir !== undefined) {
-    registerBackupRoutes(app, options.db, repos, options.backupDir, now);
-  }
-  const levelConfig = options.levelConfig ?? DEFAULT_LEVEL_CONFIG;
-  registerExpRoutes(app, repos, levelConfig);
-  registerSyncRoutes(
-    app,
-    createSyncService({
-      db: options.db,
-      repos,
-      backupDir: options.backupDir,
-      now,
-      fetch: options.fetch ?? ((url, init) => fetch(url, init)),
-    }),
-  );
-  if (options.hub) registerHubRoutes(app, repos, { ...options.hub, guard, levelConfig });
+  app.get('/api/health', () => ({ ok: true }));
+  registerHubRoutes(app, hub, {
+    keepVersions: options.hub?.keepVersions ?? 100,
+    guard: createLoginGuard(options.auth, now),
+    levelConfig: options.levelConfig ?? DEFAULT_LEVEL_CONFIG,
+  });
 
   if (options.staticDir !== undefined && existsSync(options.staticDir)) {
     await registerSpa(app, options.staticDir);

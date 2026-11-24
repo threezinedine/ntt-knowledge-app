@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { RepoContext } from './context.js';
+import type { RepoContext } from '@km/engine';
 
 /** What goes in the cookie: 256 random bits. Only its hash is stored. */
 export function newSessionToken(): string {

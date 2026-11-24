@@ -1,80 +1,135 @@
 import type { CreateNodeInput, Edge, GraphNode, Tag } from '@km/core';
 import { test as base, expect, type APIRequestContext, type Page } from '@playwright/test';
 
-/** Thin typed wrapper over the public REST API for arranging test data. */
+/**
+ * The app keeps its data on the device (the engine Worker, in the browser's
+ * private file system), and each test gets a fresh browser context: so every
+ * test starts empty. Test data is arranged through that same engine, in the
+ * test's page (`window.__kmEngine`); only the hub's own routes go to the
+ * e2e server, which is the hub.
+ */
+
+/** What a Playwright APIResponse offers that the specs use. */
+interface Answer {
+  status: () => number;
+  ok: () => boolean;
+  json: () => Promise<unknown>;
+}
+
+const isHubPath = (url: string) => /^\/api\/(hub\/|health)/.test(url);
+
+/** Loads the app in `page` if it isn't yet, so its engine can take requests. */
+async function ensureEngine(page: Page): Promise<void> {
+  if (!/^https?:/.test(page.url())) await page.goto('/');
+  await page.waitForFunction(() => '__kmEngine' in window, null, { timeout: 15_000 });
+}
+
+/** One request to the page's engine, as `/api/...` used to go to the server. */
+export async function engineCall(
+  page: Page,
+  method: string,
+  url: string,
+  data?: unknown,
+): Promise<Answer> {
+  await ensureEngine(page);
+  const res = await page.evaluate(
+    async ([m, path, body]) => {
+      const engine = (
+        window as unknown as {
+          __kmEngine: {
+            request: (
+              m: string,
+              p: string,
+              b: unknown,
+            ) => Promise<{ status: number; body: unknown }>;
+          };
+        }
+      ).__kmEngine;
+      return engine.request(m, path, body);
+    },
+    [method, url.replace(/^\/api/, ''), data] as const,
+  );
+  return {
+    status: () => res.status,
+    ok: () => res.status < 400,
+    json: () => Promise.resolve(res.body),
+  };
+}
+
+/**
+ * `page.request` for the specs: app paths go to the page's engine (where the
+ * data is), hub paths to the server.
+ */
+function requestShim(page: Page, real: APIRequestContext) {
+  const send =
+    (method: string) =>
+    (url: string, options: { data?: unknown; headers?: Record<string, string> } = {}) =>
+      isHubPath(url)
+        ? real.fetch(url, { method, data: options.data, headers: options.headers })
+        : engineCall(page, method, url, options.data);
+  return {
+    get: send('GET'),
+    post: send('POST'),
+    put: send('PUT'),
+    patch: send('PATCH'),
+    delete: send('DELETE'),
+  };
+}
+
+/** Typed helpers for arranging test data in the page's engine. */
 export class Api {
-  constructor(private readonly request: APIRequestContext) {}
+  constructor(private readonly page: Page) {}
 
-  async createNode(input: CreateNodeInput): Promise<GraphNode> {
-    const res = await this.request.post('/api/nodes', { data: input });
-    expect(res.status()).toBe(201);
-    return (await res.json()) as GraphNode;
+  private async call<T>(method: string, url: string, data: unknown, expected: number): Promise<T> {
+    const res = await engineCall(this.page, method, url, data);
+    expect(res.status(), `${method} ${url}`).toBe(expected);
+    return (await res.json()) as T;
   }
 
-  async getNode(id: string): Promise<GraphNode> {
-    const res = await this.request.get(`/api/nodes/${id}`);
-    expect(res.status()).toBe(200);
-    return (await res.json()) as GraphNode;
+  createNode(input: CreateNodeInput): Promise<GraphNode> {
+    return this.call('POST', '/api/nodes', input, 201);
   }
 
-  async createEdge(fromId: string, toId: string, name: string): Promise<Edge> {
-    const res = await this.request.post('/api/edges', { data: { fromId, toId, name } });
-    expect(res.status()).toBe(201);
-    return (await res.json()) as Edge;
+  getNode(id: string): Promise<GraphNode> {
+    return this.call('GET', `/api/nodes/${id}`, undefined, 200);
   }
 
-  async createTag(name: string, parentId: string | null = null): Promise<Tag> {
-    const res = await this.request.post('/api/tags', { data: { name, parentId } });
-    expect(res.status()).toBe(201);
-    return (await res.json()) as Tag;
+  createEdge(fromId: string, toId: string, name: string): Promise<Edge> {
+    return this.call('POST', '/api/edges', { fromId, toId, name }, 201);
+  }
+
+  createTag(name: string, parentId: string | null = null): Promise<Tag> {
+    return this.call('POST', '/api/tags', { name, parentId }, 201);
   }
 
   /**
-   * Makes the server's current data the hub's newest version (the e2e server
-   * is its own hub), as another PC would by pushing.
+   * Pushes this page's data as the hub's newest version (the e2e server is
+   * the hub), as another device would.
    */
   async publishToHub(): Promise<void> {
-    const connect = await this.request.post('/api/sync/connect', {
-      data: { hubUrl: hubUrl(), code: '', deviceName: 'E2E PC' },
-    });
-    expect(connect.status()).toBe(200);
-    expect((await this.request.post('/api/sync/push', { data: { force: true } })).status()).toBe(
+    await this.call(
+      'POST',
+      '/api/sync/connect',
+      { hubUrl: hubUrl(), code: '', deviceName: 'E2E PC' },
       200,
     );
-  }
-
-  /** Deletes every node (cascading edges) and every tag, leaves first; forgets the hub. */
-  async reset(): Promise<void> {
-    await this.request.delete('/api/sync');
-    const nodes = (await (await this.request.get('/api/nodes?limit=500')).json()) as GraphNode[];
-    for (const node of nodes) await this.request.delete(`/api/nodes/${node.id}`);
-
-    for (;;) {
-      const tags = (await (await this.request.get('/api/tags')).json()) as Tag[];
-      if (tags.length === 0) break;
-      const parents = new Set(tags.map((c) => c.parentId));
-      for (const leaf of tags.filter((c) => !parents.has(c.id))) {
-        await this.request.delete(`/api/tags/${leaf.id}`);
-      }
-    }
+    await this.call('POST', '/api/sync/push', { force: true }, 200);
   }
 }
 
 /** The e2e server's own address: it is also the sync hub. */
 export const hubUrl = (): string => `http://127.0.0.1:${process.env.KM_E2E_PORT ?? '4399'}`;
 
-export const test = base.extend<{ api: Api; resetDatabase: undefined }>({
-  api: async ({ request }, use) => {
-    await use(new Api(request));
+export const test = base.extend<{ api: Api }>({
+  page: async ({ page }, use) => {
+    // The specs' `page.request` reaches the data where it now lives.
+    const real = page.request;
+    Object.defineProperty(page, 'request', { value: requestShim(page, real), configurable: true });
+    await use(page);
   },
-  // Every test starts from an empty database, whether or not it asks for `api`.
-  resetDatabase: [
-    async ({ api }, use) => {
-      await api.reset();
-      await use(undefined);
-    },
-    { auto: true },
-  ],
+  api: async ({ page }, use) => {
+    await use(new Api(page));
+  },
 });
 
 export { expect };

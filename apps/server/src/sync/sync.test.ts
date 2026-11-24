@@ -1,57 +1,48 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { DatabaseSync } from 'node:sqlite';
-import type {
-  ApiErrorBody,
-  GraphNode,
-  HubVersion,
-  PhoneView,
-  Snapshot,
-  SyncStatus,
-} from '@km/core';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { base32Decode, hotp, stepAt } from '../auth/totp.js';
-import { createBackup } from '../backup/backup.js';
+import type { ApiErrorBody, GraphNode, HubVersion, Snapshot, SyncStatus } from '@km/core';
 import {
   canonicalSnapshotJson,
   readSnapshot,
   replaceWithSnapshot,
   snapshotHash,
-} from '../repositories/snapshotRepository.js';
-import { createTestApp, injectFetch, type TestApp } from '../testing/testApp.js';
-import { PULL_BACKUP_PREFIX } from './syncService.js';
+  type FetchLike,
+} from '@km/engine';
+import { createTestApp as createDevice, type TestApp as Device } from '@km/engine/testing';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { base32Decode, hotp, stepAt } from '../auth/totp.js';
+import { seedFirstVersion } from '../seed.js';
+import { createTestApp, injectFetch, type TestApp as Hub } from '../testing/testApp.js';
+
+// Devices (a web app's or the phone's own copy, run by the engine) sync with
+// the one server, the hub.
 
 const HUB_URL = 'http://hub.test:4317';
 const SECRET = base32Decode('JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP');
 
-let hub: TestApp;
-let a: TestApp;
-let b: TestApp;
-let dir: string;
+let hub: Hub;
+let a: Device;
+let b: Device;
+let fetch: FetchLike;
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), 'km-sync-'));
   hub = await createTestApp({ hub: { keepVersions: 3 } });
-  const fetch = injectFetch(() => hub.app);
-  a = await createTestApp({ fetch, backupDir: join(dir, 'a') });
-  b = await createTestApp({ fetch, backupDir: join(dir, 'b') });
+  fetch = injectFetch(() => hub.app);
+  a = await createDevice({ fetch });
+  b = await createDevice({ fetch });
 });
 afterEach(async () => {
   await Promise.all([hub.close(), a.close(), b.close()]);
-  rmSync(dir, { recursive: true, force: true });
 });
 
-const connect = (t: TestApp, deviceName: string) =>
+const connect = (t: Device, deviceName: string) =>
   t.request<SyncStatus>('POST', '/api/sync/connect', { hubUrl: HUB_URL, code: '', deviceName });
-const status = async (t: TestApp) => (await t.request<SyncStatus>('GET', '/api/sync/status')).body;
-const push = (t: TestApp, force = false) =>
+const status = async (t: Device) => (await t.request<SyncStatus>('GET', '/api/sync/status')).body;
+const push = (t: Device, force = false) =>
   t.request<SyncStatus & ApiErrorBody>('POST', '/api/sync/push', { force });
-const pull = (t: TestApp, force = false) =>
+const pull = (t: Device, force = false) =>
   t.request<SyncStatus & ApiErrorBody>('POST', '/api/sync/pull', { force });
-const createNode = async (t: TestApp, title: string, content = '') =>
+const createNode = async (t: Device, title: string, content = '') =>
   (await t.request<GraphNode>('POST', '/api/nodes', { title, content })).body;
-const titles = async (t: TestApp) =>
+const titles = async (t: Device) =>
   (await t.request<GraphNode[]>('GET', '/api/nodes')).body.map((n) => n.title).sort();
 const connected = (s: SyncStatus) => {
   if (!s.connected) throw new Error('not connected');
@@ -79,7 +70,7 @@ describe('snapshots', () => {
       (await a.request<GraphNode>('GET', `/api/nodes/${node.id}`)).body,
     );
     expect(b.db.prepare('SELECT content_words FROM nodes').get()).toEqual({ content_words: 3 });
-    const hashOf = (t: TestApp) => snapshotHash(canonicalSnapshotJson(readSnapshot(t.db)));
+    const hashOf = (t: Device) => snapshotHash(canonicalSnapshotJson(readSnapshot(t.db)));
     expect(hashOf(b)).toBe(hashOf(a));
   });
 });
@@ -138,7 +129,7 @@ describe('sync through a hub', () => {
     expect(await titles(b)).toEqual(['A1', 'A2']);
   });
 
-  it('refuses to pull over changes the hub does not have; forced, it keeps a backup', async () => {
+  it('refuses to pull over changes the hub does not have, unless forced', async () => {
     await connect(a, 'PC A');
     await connect(b, 'PC B');
     await createNode(a, 'A1');
@@ -152,11 +143,6 @@ describe('sync through a hub', () => {
 
     expect((await pull(b, true)).status).toBe(200);
     expect(await titles(b)).toEqual(['A1']);
-    const backups = readdirSync(join(dir, 'b')).filter((f) => f.startsWith(PULL_BACKUP_PREFIX));
-    expect(backups).toHaveLength(1);
-    const copy = new DatabaseSync(join(dir, 'b', backups[0] ?? ''));
-    expect(copy.prepare('SELECT title FROM nodes').all()).toEqual([{ title: 'Only on B' }]);
-    copy.close();
   });
 
   it('pushing unchanged data adds no version', async () => {
@@ -186,9 +172,10 @@ describe('sync through a hub', () => {
     expect(res.body.error.reason).toBe('HUB_UNREACHABLE');
   });
 
-  it('a server without KM_HUB=on is not a hub', async () => {
-    const plain = await createTestApp();
-    const c = await createTestApp({ fetch: injectFetch(() => plain.app) });
+  it('something that is not a hub says so', async () => {
+    const c = await createDevice({
+      fetch: () => Promise.resolve(new Response('<html>nope</html>', { status: 404 })),
+    });
     const res = await c.request<ApiErrorBody>('POST', '/api/sync/connect', {
       hubUrl: HUB_URL,
       code: '',
@@ -196,7 +183,7 @@ describe('sync through a hub', () => {
     });
     expect(res.status).toBe(502);
     expect(res.body.error.reason).toBe('HUB_NOT_ENABLED');
-    await Promise.all([plain.close(), c.close()]);
+    await c.close();
   });
 
   it('push and pull need a connection', async () => {
@@ -222,7 +209,7 @@ describe('sync through a hub', () => {
 });
 
 describe('the hub', () => {
-  const pair = (t: TestApp, code = '', readOnly = false) =>
+  const pair = (t: Device, code = '', readOnly = false) =>
     t.request<{ token: string } & ApiErrorBody>('POST', '/api/hub/pair', {
       code,
       name: 'Phone',
@@ -245,7 +232,7 @@ describe('the hub', () => {
   it('pairs only with the authenticator code when sign-in is on', async () => {
     const guarded = await createTestApp({
       hub: { keepVersions: 10 },
-      auth: { totpSecret: SECRET, sessionTtlMs: 60_000, secureCookie: false },
+      auth: { totpSecret: SECRET },
     });
     expect((await pair(guarded, '000000')).status).toBe(401);
     const code = hotp(SECRET, stepAt(1_700_000_000_000));
@@ -286,24 +273,6 @@ describe('the hub', () => {
     expect(hub.db.prepare('SELECT COUNT(*) AS n FROM hub_versions').get()).toEqual({ n: 0 });
   });
 
-  it('serves the newest version as the phone app shows it', async () => {
-    await connect(a, 'PC A');
-    const node = await createNode(a, 'Seen on the phone', 'word word');
-    await push(a);
-    const { token } = (await pair(hub, '', true)).body;
-    const res = await hub.app.inject({
-      method: 'GET',
-      url: '/api/hub/latest/view',
-      headers: asDevice(token),
-    });
-    expect(res.statusCode).toBe(200);
-    const view = res.json<PhoneView>();
-    expect(view.head.version).toBe(1);
-    expect(view.nodes.map((n) => n.id)).toEqual([node.id]);
-    expect(view.graph.nodes.map((n) => n.title)).toEqual(['Seen on the phone']);
-    expect(view.exp.tags).toEqual([]);
-  });
-
   it('gzips what it sends when asked to', async () => {
     await connect(a, 'PC A');
     await createNode(a, 'Zip');
@@ -320,23 +289,11 @@ describe('the hub', () => {
   });
 });
 
-describe('backups', () => {
-  it('leave out the hub token', async () => {
-    await connect(a, 'PC A');
-    const result = createBackup(a.db, join(dir, 'bk'), Date.now());
-    const copy = new DatabaseSync(join(result.dir, result.file));
-    expect(copy.prepare('SELECT COUNT(*) AS n FROM sync_state').get()).toEqual({ n: 0 });
-    copy.close();
-    expect(existsSync(join(result.dir, result.file))).toBe(true);
-  });
-});
-
 describe('sync review fixes', () => {
   it('a pull refuses an edit that lands while the hub is answering', async () => {
     let pause: (() => Promise<void>) | null = null;
     const inner = injectFetch(() => hub.app);
-    const c = await createTestApp({
-      backupDir: join(dir, 'c'),
+    const c = await createDevice({
       fetch: async (url, init) => {
         if (url.endsWith('/api/hub/latest') && pause) await pause();
         return inner(url, init);
@@ -388,7 +345,7 @@ describe('sync review fixes', () => {
   });
 
   it('a hub error without a reason is a state, not a failed status', async () => {
-    const broken = await createTestApp({
+    const broken = await createDevice({
       fetch: () =>
         Promise.resolve(
           new Response(JSON.stringify({ error: { code: 'INTERNAL_ERROR', message: 'x' } }), {
@@ -438,7 +395,7 @@ describe('sync review fixes', () => {
   it('an empty pairing code doesn’t spend the owner’s wrong-code budget', async () => {
     const guarded = await createTestApp({
       hub: { keepVersions: 10 },
-      auth: { totpSecret: SECRET, sessionTtlMs: 60_000, secureCookie: false },
+      auth: { totpSecret: SECRET },
     });
     for (let i = 0; i < 12; i++) {
       const res = await guarded.request('POST', '/api/hub/pair', { code: '', name: 'X' });
@@ -452,23 +409,36 @@ describe('sync review fixes', () => {
     await guarded.close();
   });
 
-  it('a read-only session can’t push or pull', async () => {
-    const t = await createTestApp({
-      auth: { totpSecret: SECRET, sessionTtlMs: 60_000, secureCookie: false },
-    });
-    const login = await t.app.inject({
-      method: 'POST',
-      url: '/api/auth/login',
-      payload: { code: hotp(SECRET, stepAt(1_700_000_000_000)), readOnly: true },
-    });
-    const cookie = login.cookies.find((c) => c.name === 'km_session');
-    const res = await t.app.inject({
-      method: 'POST',
-      url: '/api/sync/push',
-      payload: {},
-      cookies: { km_session: cookie?.value ?? '' },
-    });
-    expect(res.statusCode).toBe(403);
-    await t.close();
+  it('a pull-only device (the phone) pulls but never pushes', async () => {
+    await connect(a, 'PC A');
+    await createNode(a, 'For the phone');
+    await push(a);
+    const phone = await createDevice({ fetch, readOnly: true });
+    expect((await connect(phone, 'Phone')).status).toBe(200);
+    expect((await pull(phone)).status).toBe(200);
+    expect(await titles(phone)).toEqual(['For the phone']);
+    expect((await push(phone)).status).toBe(403);
+    // Its own copy can't be edited either.
+    expect((await phone.request('POST', '/api/nodes', { title: 'x' })).status).toBe(403);
+    await phone.close();
+  });
+
+  it('a server with a graph from before makes it the first version', async () => {
+    const old = await createTestApp();
+    replaceWithSnapshot(old.db, readSnapshot(a.db));
+    await createNode(a, 'Old note');
+    replaceWithSnapshot(old.db, readSnapshot(a.db));
+    expect(seedFirstVersion(old.db)?.version).toBe(1);
+    expect(seedFirstVersion(old.db)).toBeNull(); // only once
+    await old.close();
+  });
+
+  it('gives devices the level table', async () => {
+    const res = await hub.request<{ levelConfig: { expPerNode: number } }>(
+      'GET',
+      '/api/hub/config',
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.levelConfig.expPerNode).toBe(10);
   });
 });

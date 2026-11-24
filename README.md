@@ -6,12 +6,13 @@ content, a type and a set of tags, and notes are joined by **named, directed lin
 markdown editor and arrange them on a graph canvas. Tags form a tree of fields of
 knowledge, and each field gains EXP and levels as you write about it.
 
-It runs as a small server on your own machine and stores everything in one SQLite
-file. You use it in the browser (installable as an app). Several machines can share
-the same graph through a sync hub, and a read-only Android app keeps a copy on your
-phone to browse offline.
+Each device keeps **its own copy** of the graph and works on it right there, also
+offline: the browser holds it in a database file of its own, and the Android app on
+the phone. One small server, **the hub**, keeps the versions you push to it, like a
+remote repository, and serves the web app. Others see your changes only after you push
+and they pull.
 
-Setup, configuration and backups: **[INSTALL.md](INSTALL.md)**.
+Setup and configuration: **[INSTALL.md](INSTALL.md)**.
 
 ## Contents
 
@@ -26,8 +27,7 @@ Setup, configuration and backups: **[INSTALL.md](INSTALL.md)**.
 - [Settings](#settings)
 - [Sync between devices](#sync-between-devices)
 - [Phone](#phone)
-- [Sign-in](#sign-in)
-- [Backups and export](#backups-and-export)
+- [Files and export](#files-and-export)
 - [Languages](#languages)
 - [How data is stored](#how-data-is-stored)
 
@@ -40,9 +40,8 @@ A note (node) has a **title**, a **type** (`note` by default; any short word, su
 - **Markdown editor** with three modes: _Edit_, _Split_ (editor and preview side by
   side) and _Preview_. The preview supports GitHub-flavoured markdown (tables, task
   lists, strikethrough).
-- **Autosave.** Changes save as you type; the header shows _Saved_, _Unsaved_,
-  _Saving…_ or _Save failed_. Edits are never lost when a sign-in expires: a code box
-  appears over the page and the edits save after you sign in.
+- **Autosave.** Changes save as you type, into this device's copy; the header shows
+  _Saved_, _Unsaved_, _Saving…_ or _Save failed_.
 - **Properties**: a JSON object for anything structured you want to keep on a note.
 - **Vim mode** (optional, per device) for the title and the content. A small indicator
   shows whether the keyboard is typing Latin letters, which matters with Vietnamese
@@ -102,8 +101,8 @@ fields with a progress bar; parents include everything under them.
   answered 5 Whys questions.
 - Deeper 5 Whys answers are worth more: each level down earns twice the one above.
 - Reaching a new level shows a short celebration.
-- The numbers (EXP per note, bonuses, level thresholds) are set by whoever runs the
-  server; see [INSTALL.md](INSTALL.md#fields-and-levels-table).
+- The numbers (EXP per note, bonuses, level thresholds) are set on the hub and handed to
+  every device; see [INSTALL.md](INSTALL.md#fields-and-levels-table).
 
 ## 5 Whys
 
@@ -178,63 +177,61 @@ Invalid entries are skipped and listed.
 
 ## Sync between devices
 
-Each machine keeps its own copy of the graph. To use the same graph on several
-machines, one server acts as the **hub** (on your network or on the internet), and
-every device syncs with it by hand.
+There is one hub (a server on your network or on the internet), and every device
+syncs with it **by hand**, like pushing to and pulling from a git remote.
 
 - The hub keeps **numbered versions** of the whole graph. Each version records which
   device pushed it and when, and has a hash that identifies its content exactly.
 - **Push** sends this device's copy to the hub as the newest version. **Pull** replaces
   this device's copy with the newest version.
+- Editing changes only this device's copy. Nobody else sees it until you push, and
+  nothing reaches you until you pull.
 - Nothing is merged. Whoever pushes last makes the newest version; older versions stay
   in the hub's history.
 - Nothing is overwritten without asking:
   - Pushing when the hub has a version this device hasn't pulled asks first.
-  - Pulling over changes that were never pushed asks first, and saves a backup of this
-    device before replacing them.
+  - Pulling over changes that were never pushed asks first.
 - The **title bar** shows where this device stands: up to date, changes not pushed, a
   newer version on the hub, or offline. It checks the hub every minute and when the
   network comes back.
-- If the hub has a newer version and you start editing anyway, you are warned once for
+- When someone pushes and you start editing an older copy, you are warned once for
   that version, then left to work.
 - Offline, everything works as usual; the title bar just says _Offline_.
+- Closing the page with changes that were never pushed asks first.
 
-A device connects once with the hub's address and the code from the hub's
-authenticator app (command palette: _Sync…_). Setting up a hub:
-[INSTALL.md](INSTALL.md#sync-hub).
+A device connects once (_Sync…_ in the command palette, or _Sync_ in the title bar)
+with the hub's address and a code from the hub's authenticator app. The level table
+for fields comes from the hub, so EXP counts the same everywhere. Setting up the hub:
+[INSTALL.md](INSTALL.md#the-hub).
 
 ## Phone
 
-- **Browser**: open the server's address and add it to the home screen. It's the full
-  app with a touch-friendly layout.
-- **Android app**: keeps a **read-only copy** of the graph on the phone, pulled from
-  the hub, so you can read notes and follow links without a network or the PC. Pull
-  again (title bar, _Sync_) for a newer version; the title bar says when the hub has
-  one, and when the phone is offline. Nothing can be created, changed or deleted on
-  the phone. Editing tools such as 5 Whys and Link check are left out to keep it
-  simple. Display settings for the graph have their own tab, and you can import a
-  settings file there.
+- **Browser**: open the hub's address and add it to the home screen. It's the full app
+  with a touch-friendly layout, with its own copy like any other device.
+- **Android app**: keeps a **read-only copy** of the graph on the phone, pulled from the
+  hub, so you can read notes and follow links without a network or the PC. Pull again
+  (title bar, _Sync_) for a newer version; the title bar says when the hub has one, and
+  when the phone is offline. Nothing can be created, changed or deleted on the phone,
+  and the hub never accepts a push from it. Editing tools such as 5 Whys and Link
+  check are left out to keep it simple. Display settings for the graph have their own
+  tab, and you can import a settings file there.
 
 See [INSTALL.md](INSTALL.md#android-app).
 
-## Sign-in
+## Files and export
 
-Single user. You sign in with the 6-digit code from an authenticator app (Google
-Authenticator or any TOTP app). Each code works once, wrong codes are rate-limited, and
-a sign-in lasts a week by default. Sign-in can be turned off for a machine only you can
-reach. Details: [INSTALL.md](INSTALL.md#sign-in-setup).
+In Chrome and Edge, from the command palette:
 
-## Backups and export
+- **Save This Device's Copy to a File…** keeps the copy in a database file you pick
+  (for example on another disk), written again after every change. Clearing the
+  browser's data then loses nothing. After a restart, the browser asks once before it
+  writes to the file again.
+- **Open a Copy from a File…** makes such a file this device's copy.
+- **Export Markdown…** writes one `.md` file per note into a folder you pick, with front
+  matter (type, tags, properties, links as `[[wiki links]]`) and its 5 Whys sessions.
+  Readable in Obsidian or any editor, without this app.
 
-From the command palette:
-
-- **Backup Now** saves a copy of the whole database.
-- **Export Markdown** writes one `.md` file per note, with front matter (type, tags,
-  properties, links as `[[wiki links]]`) and its 5 Whys sessions. Readable in Obsidian
-  or any editor, without this app.
-
-Restoring a backup is a terminal command that keeps a copy of the current database
-first. See [INSTALL.md](INSTALL.md#backups-restore-and-markdown-export).
+The app is open in one tab at a time: a second tab says so.
 
 ## Languages
 
@@ -244,10 +241,11 @@ check prompts can be in either language, independently of the interface.
 
 ## How data is stored
 
-- One SQLite file on the machine running the server (default
-  `~/.knowledge-manager/km.sqlite`).
+- On each device: a SQLite database in the browser's private storage for this site (or
+  in the Android app), plus the file on disk if you chose one. The app asks the browser
+  to keep it rather than clear it when space runs low.
+- On the hub: the versions devices pushed, in one SQLite file.
 - Nothing is sent to outside services. The AI features only copy text to your clipboard
-  for you to paste, and sync talks only to the hub you set up.
+  for you to paste, and sync talks only to your hub.
 - Records are never physically deleted: deletes are marked, and every change is
   timestamped.
-- A sync hub stores its versions in its own database, next to its own graph.

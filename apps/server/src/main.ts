@@ -1,5 +1,6 @@
 import { buildApp } from './app.js';
-import { authSettings, backupDir, levelConfigPath, loadConfig } from './config.js';
+import { authSettings, levelConfigPath, loadConfig } from './config.js';
+import { seedFirstVersion } from './seed.js';
 import { openDatabase } from './db/database.js';
 import { loadLevelConfig } from './levelConfig.js';
 import { DEFAULT_ENV_FILE, loadEnvFile } from './envFile.js';
@@ -22,22 +23,19 @@ const app = await buildApp({
   ],
   logger: { level: config.KM_LOG_LEVEL },
   levelConfig: level.config,
-  backupDir: backupDir(config),
   auth: auth ?? undefined,
-  hub: config.KM_HUB === 'on' ? { keepVersions: config.KM_HUB_KEEP_VERSIONS } : undefined,
+  hub: { keepVersions: config.KM_HUB_KEEP_VERSIONS },
 });
 if (envFile) app.log.info({ path: envFile }, 'Loaded .env');
 if (auth) {
-  app.log.info({ sessionHours: config.KM_SESSION_HOURS }, 'Sign-in on (authenticator code)');
+  app.log.info('Pairing a device needs the authenticator code');
 } else {
-  app.log.warn('Sign-in is OFF (KM_AUTH=off): anyone who can reach this server can use it');
+  app.log.warn('KM_AUTH=off: anyone who can reach this server can pair a device and push');
 }
 app.log.info({ path: levelPath, source: level.source }, 'Level config loaded');
-if (config.KM_HUB === 'on') {
-  app.log.info({ keepVersions: config.KM_HUB_KEEP_VERSIONS }, 'Sync hub on');
-  if (!auth) app.log.warn('Sync hub with sign-in OFF: anyone who can reach it can pair and push');
-}
-app.log.info({ dir: backupDir(config) }, 'Backups and exports go to');
+const seeded = seedFirstVersion(db);
+if (seeded)
+  app.log.info({ version: seeded.version }, "This server's graph became the first version");
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {

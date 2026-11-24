@@ -23,10 +23,12 @@ export default defineConfig({
       workbox: {
         // Never let the service worker answer API calls from cache.
         navigateFallbackDenylist: [/^\/api\//],
-        globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+        // The SQLite engine (.wasm) too: the app works offline, on this device's own copy.
+        globPatterns: ['**/*.{js,css,html,svg,woff2,wasm}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // The 3D view's three.js chunk (~1.5 MB) is optional: don't make every
         // install download it. Cached on first use instead. (Data comes from
-        // the server anyway, so the graph isn't usable offline either way.)
+        // this device's engine, so the 2D graph works offline without it.)
         globIgnores: ['**/Graph3D-*.js'],
         runtimeCaching: [
           {
@@ -38,6 +40,9 @@ export default defineConfig({
       },
     }),
   ],
+  // SQLite WebAssembly finds its .wasm next to its own module: don't pre-bundle it.
+  optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
+  worker: { format: 'es' },
   server: {
     port: 5173,
     proxy: { '/api': API_TARGET },

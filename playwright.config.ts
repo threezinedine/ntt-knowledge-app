@@ -1,4 +1,3 @@
-import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = Number(process.env.KM_E2E_PORT ?? 4399);
@@ -7,7 +6,7 @@ const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
   testDir: './e2e',
-  // Specs share one server + DB and reset it in `beforeEach`, so run serially.
+  // Data is per browser context (fresh each test); the hub's versions are shared, so serially.
   fullyParallel: false,
   workers: 1,
   forbidOnly: isCI,
@@ -39,14 +38,10 @@ export default defineConfig({
       // Always the default level table (the specs assert its numbers), never a
       // level-config.json that happens to sit on this machine.
       KM_LEVEL_CONFIG: 'e2e-uses-default-level-config.json',
-      // Backups and exports from the specs: inside the (gitignored) test output.
-      KM_BACKUP_DIR: fileURLToPath(new URL('./test-results/e2e-backups', import.meta.url)),
       KM_LOG_LEVEL: 'warn',
       // No Google in tests. Set explicitly so a developer's .env (which the
       // server reads, but never over an existing variable) can't turn it on.
       KM_AUTH: 'off',
-      // The server is its own sync hub in the specs (sync.spec.ts, the phone app).
-      KM_HUB: 'on',
       // Windows doesn't kill this server when Playwright dies (e.g. the UI-mode
       // window is closed); it would then hold the port and break the next run.
       KM_PARENT_PID: String(process.pid),

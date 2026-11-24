@@ -1,34 +1,27 @@
 import { gzipSync } from 'node:zlib';
 import {
-  expSnapshot,
   hubPairInputSchema,
   hubPushInputSchema,
-  newId,
   SNAPSHOT_FORMAT,
-  snapshotSchema,
   type HubPairResult,
   type HubVersion,
   type LevelConfig,
-  type PhoneView,
   type Snapshot,
 } from '@km/core';
+import {
+  AppError,
+  canonicalSnapshotJson,
+  ConflictError,
+  ForbiddenError,
+  replaceWithSnapshot,
+  snapshotHash,
+  TooManyRequestsError,
+  UnauthorizedError,
+} from '@km/engine';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { LoginGuard } from '../../auth/loginGuard.js';
 import { IN_MEMORY, openDatabase } from '../../db/database.js';
-import {
-  AppError,
-  ConflictError,
-  ForbiddenError,
-  TooManyRequestsError,
-  UnauthorizedError,
-} from '../../errors.js';
-import type { HubDevice } from '../../repositories/hubRepository.js';
-import { createRepositories, type Repositories } from '../../repositories/index.js';
-import {
-  canonicalSnapshotJson,
-  replaceWithSnapshot,
-  snapshotHash,
-} from '../../repositories/snapshotRepository.js';
+import type { HubDevice, HubRepository } from '../../repositories/hubRepository.js';
 import { parse } from '../validation.js';
 
 export interface HubOptions {
@@ -36,30 +29,37 @@ export interface HubOptions {
   keepVersions: number;
 }
 
-/** Every hub route but pairing; they authenticate with a device token, not the cookie. */
+/** Every hub route but pairing and the config; they authenticate with a device token. */
 export const HUB_ROUTE_PREFIX = '/api/hub/';
 const PAIR_ROUTE = '/api/hub/pair';
+const CONFIG_ROUTE = '/api/hub/config';
 
 /** A pushed snapshot can be far larger than a normal request. */
 const PUSH_BODY_LIMIT = 256 * 1024 * 1024;
 
 /**
- * The hub (KM_HUB=on): keeps numbered versions of the whole graph for the
- * devices that sync with it (see @km/core sync.ts). Devices pair once with
- * the authenticator code and then send a bearer token, so a device's own
- * server (PC) and the phone app can both talk to it without a browser session.
+ * The hub: the one server, keeping numbered versions of the whole graph for
+ * the devices that sync with it (see @km/core sync.ts). The devices (web
+ * app, phone app) keep their own copy and do all the work on it; they pair
+ * once with the authenticator code and then send a bearer token.
  */
 export function registerHubRoutes(
   app: FastifyInstance,
-  repos: Repositories,
+  hub: HubRepository,
   options: HubOptions & { guard: LoginGuard | undefined; levelConfig: LevelConfig },
 ): void {
+  const repos = { hub };
   const devices = new WeakMap<FastifyRequest, HubDevice>();
 
   // Deny by default, decided on the matched route like http/auth.ts.
   app.addHook('onRequest', (request, _reply, done) => {
     const route = request.routeOptions.url;
-    if (route === undefined || !route.startsWith(HUB_ROUTE_PREFIX) || route === PAIR_ROUTE) {
+    if (
+      route === undefined ||
+      !route.startsWith(HUB_ROUTE_PREFIX) ||
+      route === PAIR_ROUTE ||
+      route === CONFIG_ROUTE
+    ) {
       done();
       return;
     }
@@ -123,21 +123,8 @@ export function registerHubRoutes(
     return sendJson(request, reply, body);
   });
 
-  let viewCache: { hash: string; view: PhoneView } | null = null;
-  app.get('/api/hub/latest/view', (request, reply) => {
-    deviceOf(request);
-    const latest = repos.hub.latest();
-    if (!latest)
-      throw new AppError(404, 'NOT_FOUND', 'The hub has no version yet', undefined, 'HUB_EMPTY');
-    if (viewCache?.hash !== latest.head.hash) {
-      const snapshot = snapshotSchema.parse(JSON.parse(latest.json));
-      viewCache = {
-        hash: latest.head.hash,
-        view: phoneView(latest.head, snapshot, options.levelConfig),
-      };
-    }
-    return sendJson(request, reply, JSON.stringify(viewCache.view));
-  });
+  // The level table, so EXP counts the same on every device. Public: it holds no data.
+  app.get(CONFIG_ROUTE, () => ({ levelConfig: options.levelConfig }));
 
   app.post('/api/hub/versions', { bodyLimit: PUSH_BODY_LIMIT }, (request, reply) => {
     const device = deviceOf(request);
@@ -190,44 +177,18 @@ function sendJson(request: FastifyRequest, reply: FastifyReply, body: string): F
   return reply.send(body);
 }
 
-/** A throwaway database holding `snapshot` (it must be one a device could load). */
-function withSnapshotDb<T>(snapshot: Snapshot, fn: (repos: Repositories) => T): T {
+/** Refuses a snapshot that would fail to load on a device (dangling references, bad JSON). */
+function checkImportable(snapshot: Snapshot): void {
   const db = openDatabase(IN_MEMORY);
   try {
     replaceWithSnapshot(db, snapshot);
-    return fn(createRepositories({ db, now: Date.now, newId }));
-  } finally {
-    db.close();
-  }
-}
-
-/** Refuses a snapshot that would fail to load on a device (dangling references, bad JSON). */
-function checkImportable(snapshot: Snapshot): void {
-  try {
-    withSnapshotDb(snapshot, () => undefined);
   } catch (error) {
     throw new AppError(
       400,
       'VALIDATION_ERROR',
       `The snapshot can't be loaded: ${error instanceof Error ? error.message : String(error)}`,
     );
+  } finally {
+    db.close();
   }
-}
-
-/** The phone app's copy: the API answers it needs, computed from the snapshot. */
-export function phoneView(
-  head: HubVersion,
-  snapshot: Snapshot,
-  levelConfig: LevelConfig,
-): PhoneView {
-  return withSnapshotDb(snapshot, (r) => {
-    const { tags, nodes } = r.exp.inputs();
-    return {
-      head,
-      graph: { nodes: r.nodes.summaries(), edges: r.edges.all() },
-      nodes: r.nodes.all(),
-      tags: r.tags.all(),
-      exp: expSnapshot(tags, nodes, levelConfig),
-    };
-  });
 }
