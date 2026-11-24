@@ -2,6 +2,7 @@ import type {
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
+  CreateWhySessionInput,
   GraphNode,
   GraphSnapshot,
   NodePositionsInput,
@@ -9,6 +10,7 @@ import type {
   UpdateEdgeInput,
   UpdateNodeInput,
   UpdateTagInput,
+  UpdateWhySessionInput,
 } from '@km/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { flushAllAutosaves } from '../hooks/useAutosave';
@@ -31,6 +33,7 @@ export const keys = {
   /** Derived from nodes + tags: invalidated by any write to either. */
   exp: ['exp'] as const,
   auth: ['auth'] as const,
+  whys: (nodeId: string) => ['whys', nodeId] as const,
 };
 
 export const useNodeList = (q: string) =>
@@ -189,6 +192,7 @@ export function useDeleteNode() {
     mutationFn: (id: string) => api.nodes.remove(id),
     onSuccess: async (_, id) => {
       qc.removeQueries({ queryKey: keys.node(id) });
+      qc.removeQueries({ queryKey: keys.whys(id) });
       await invalidate();
     },
   });
@@ -279,5 +283,33 @@ export function useTagLink(kind: TaggableKind) {
         qc.invalidateQueries({ queryKey: keys.exp }),
       ]);
     },
+  });
+}
+
+export const useWhySessions = (nodeId: string) =>
+  useQuery({ queryKey: keys.whys(nodeId), queryFn: () => api.whys.list(nodeId) });
+
+export function useCreateWhySession(nodeId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateWhySessionInput) => api.whys.create(nodeId, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
+  });
+}
+
+export function useUpdateWhySession(nodeId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: UpdateWhySessionInput }) =>
+      api.whys.update(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
+  });
+}
+
+export function useDeleteWhySession(nodeId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.whys.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
   });
 }

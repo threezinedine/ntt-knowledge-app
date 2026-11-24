@@ -5,6 +5,7 @@ import { createTagLinkRepository } from './tagLinkRepository.js';
 import { createTagRepository } from './tagRepository.js';
 import { createExpRepository } from './expRepository.js';
 import { createSessionRepository } from './sessionRepository.js';
+import { createWhyRepository } from './whyRepository.js';
 
 export type Repositories = ReturnType<typeof createRepositories>;
 
@@ -20,7 +21,8 @@ export function createRepositories(ctx: RepoContext) {
   const edges = createEdgeRepository(ctx, nodes);
   const exp = createExpRepository(ctx);
   const sessions = createSessionRepository(ctx);
-  return { nodes, edges, tags, exp, sessions };
+  const whys = createWhyRepository(ctx, nodes);
+  return { nodes, edges, tags, exp, sessions, whys };
 }
 
 export type { RepoContext } from './context.js';

@@ -10,6 +10,7 @@ import { registerEdgeRoutes } from './http/routes/edgeRoutes.js';
 import { registerExpRoutes } from './http/routes/expRoutes.js';
 import { registerNodeRoutes } from './http/routes/nodeRoutes.js';
 import { registerTagRoutes } from './http/routes/tagRoutes.js';
+import { registerWhyRoutes } from './http/routes/whyRoutes.js';
 import { createRepositories } from './repositories/index.js';
 
 export interface AppOptions {
@@ -42,6 +43,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerNodeRoutes(app, repos);
   registerEdgeRoutes(app, repos);
   registerTagRoutes(app, repos);
+  registerWhyRoutes(app, repos);
   registerExpRoutes(app, repos, options.levelConfig ?? DEFAULT_LEVEL_CONFIG);
 
   if (options.staticDir !== undefined && existsSync(options.staticDir)) {

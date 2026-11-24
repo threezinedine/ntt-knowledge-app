@@ -134,6 +134,22 @@ export const COMMANDS = [
     when: 'cmdWhen.node',
   },
   {
+    id: 'km.node.whys',
+    title: 'cmd.openWhys',
+    category: 'cmdCategory.node',
+    keys: ['Alt+W'],
+    macKeys: ['Ctrl+Alt+W'],
+    when: 'cmdWhen.node',
+  },
+  {
+    id: 'km.node.whysCopyPrompt',
+    title: 'cmd.copyWhysPrompt',
+    category: 'cmdCategory.node',
+    keys: ['Alt+Shift+W'],
+    macKeys: ['Ctrl+Alt+Shift+W'],
+    when: 'cmdWhen.node',
+  },
+  {
     id: 'km.node.delete',
     title: 'cmd.deleteNode',
     category: 'cmdCategory.node',

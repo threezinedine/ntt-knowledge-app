@@ -4,6 +4,7 @@ import type {
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
+  CreateWhySessionInput,
   Edge,
   ExpSnapshot,
   GraphNode,
@@ -15,6 +16,8 @@ import type {
   UpdateEdgeInput,
   UpdateNodeInput,
   UpdateTagInput,
+  UpdateWhySessionInput,
+  WhySession,
 } from '@km/core';
 
 export class ApiError extends Error {
@@ -111,6 +114,15 @@ export const api = {
       request<GraphNode>('PUT', `/${kind}/${ownerId}/tags/${tagId}`),
     detach: (kind: TaggableKind, ownerId: string, tagId: string) =>
       request<GraphNode>('DELETE', `/${kind}/${ownerId}/tags/${tagId}`),
+  },
+  /** 5 Whys critique sessions of a node, newest first. */
+  whys: {
+    list: (nodeId: string) => request<WhySession[]>('GET', `/nodes/${nodeId}/whys`),
+    create: (nodeId: string, input: CreateWhySessionInput) =>
+      request<WhySession>('POST', `/nodes/${nodeId}/whys`, input),
+    update: (id: string, patch: UpdateWhySessionInput) =>
+      request<WhySession>('PATCH', `/whys/${id}`, patch),
+    remove: (id: string) => request<undefined>('DELETE', `/whys/${id}`),
   },
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),

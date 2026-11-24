@@ -23,7 +23,7 @@ export class AppError extends Error {
   }
 }
 
-export type EntityName = 'Node' | 'Edge' | 'Tag';
+export type EntityName = 'Node' | 'Edge' | 'Tag' | 'WhySession';
 
 export class NotFoundError extends AppError {
   constructor(entity: EntityName, id: string) {

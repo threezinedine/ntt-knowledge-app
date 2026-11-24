@@ -194,4 +194,20 @@ export const migrations: readonly string[] = [
   /* 8: read-only sessions (the phone app): every write is refused. */ `
   ALTER TABLE sessions ADD COLUMN read_only INTEGER NOT NULL DEFAULT 0 CHECK (read_only IN (0, 1));
   `,
+
+  /* 9: "5 Whys" critique sessions per node. The tree of whys is one JSON
+        column (validated by @km/core on the way in); each why carries its own
+        id inside it. Deleting the node tombstones its sessions. */ `
+  CREATE TABLE why_sessions (
+    id          TEXT PRIMARY KEY,
+    node_id     TEXT NOT NULL REFERENCES nodes (id),
+    summary     TEXT NOT NULL DEFAULT '',
+    conclusion  TEXT NOT NULL DEFAULT '',
+    whys        TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(whys)),
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    deleted_at  INTEGER
+  ) STRICT;
+  CREATE INDEX why_sessions_live_node ON why_sessions (node_id) WHERE deleted_at IS NULL;
+  `,
 ];

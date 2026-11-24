@@ -11,6 +11,7 @@ import { NodeTagsPanel } from './NodeTagsPanel';
 import { PropsEditor } from './PropsEditor';
 import { NodeView } from './NodeView';
 import { useReadOnly } from '../readOnly';
+import { WhysPanel } from '../whys/WhysPanel';
 
 export function NodePage() {
   const { id = '' } = useParams();
@@ -34,6 +35,7 @@ export function NodePage() {
       <aside className="node-side">
         <NodeTagsPanel node={node.data} />
         <EdgesPanel nodeId={node.data.id} />
+        <WhysPanel node={node.data} />
         <PropsEditor node={node.data} />
         <DeleteNodeButton nodeId={node.data.id} />
       </aside>

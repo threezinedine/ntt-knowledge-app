@@ -1730,3 +1730,293 @@ kbd {
     display: none;
   }
 }
+
+/* ---------- 5 Whys ---------- */
+
+.whys-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.whys-panel p {
+  margin: 0;
+}
+.whys-panel button {
+  align-self: flex-start;
+}
+.whys-dialog {
+  width: min(860px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: hidden;
+}
+.whys-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+.whys-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.whys-header h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.whys-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.whys-close:hover {
+  background: var(--bg-input);
+  color: var(--text);
+}
+.whys-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--warn);
+}
+.whys-confirm span {
+  flex: 1;
+}
+.whys-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+}
+.whys-body h3,
+.whys-body h4 {
+  margin: 0;
+  font-size: 14px;
+}
+.whys-guide {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.whys-guide summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.whys-guide ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+.whys-guide li + li {
+  margin-top: 4px;
+}
+.whys-guide kbd {
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-input);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.whys-list-header,
+.whys-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.whys-list-header h3 {
+  flex: 1;
+}
+.whys-sessions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.whys-session {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 400;
+}
+.whys-session:hover {
+  border-color: var(--accent);
+}
+.whys-session-summary {
+  font-weight: 600;
+}
+.whys-session-conclusion {
+  color: var(--warn);
+}
+.whys-session .muted {
+  font-size: 12px;
+}
+.whys-add {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.whys-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.whys-step p {
+  margin: 0;
+}
+.whys-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.whys-prompt,
+.whys-paste {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 12px;
+  resize: vertical;
+}
+.whys-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+.whys-texts {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 13px;
+}
+.whys-texts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.whys-texts dd {
+  margin: 0;
+}
+.why-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.why-tree .why-tree {
+  margin-left: 10px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+.why-item {
+  padding: 6px 0;
+}
+.why-item p {
+  margin: 0;
+}
+.why-question {
+  font-weight: 600;
+}
+.why-path {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.why-answer {
+  white-space: pre-wrap;
+  font-size: 13px;
+}
+.why-takeaway {
+  color: var(--ok);
+  font-size: 13px;
+}
+.why-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+.why-editor > .why-tree {
+  align-self: stretch;
+}
+.why-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.why-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.why-field input,
+.why-field textarea {
+  color: var(--text);
+  font-size: 13px;
+  resize: vertical;
+}
+.why-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.why-item-actions button {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+.whys-session-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.whys-actions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.whys-spacer {
+  flex: 1;
+}
+.whys-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.whys-panel-copy {
+  display: inline-flex;
+  gap: 4px;
+}
+.whys-panel-copy select {
+  padding: 4px 6px;
+  font-size: 12px;
+}
