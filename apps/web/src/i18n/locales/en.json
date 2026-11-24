@@ -130,6 +130,8 @@
   "cmd.openWhys": "Open 5 Whys",
   "cmd.copyWhysPrompt": "Copy 5 Whys Prompt",
   "cmd.copyLinkCheckPrompt": "Copy Link Check Prompt",
+  "cmd.backupNow": "Backup Now",
+  "cmd.exportMarkdown": "Export Markdown",
   "cmd.deleteNode": "Delete Node…",
   "cmd.togglePreview": "Toggle Preview",
   "cmd.previewToSide": "Open Preview to the Side",
@@ -253,6 +255,7 @@
   "error.reason.CODE_USED": "That code was just used. Wait for the next one.",
   "error.code.FORBIDDEN": "Not allowed.",
   "error.reason.READ_ONLY": "This device can only view, not change anything.",
+  "error.reason.BACKUP_FAILED": "Couldn’t write to the backup folder. Check KM_BACKUP_DIR and that the folder can be written to.",
   "whys.heading": "5 Whys",
   "whys.open": "Open 5 Whys",
   "whys.none": "No sessions yet.",
@@ -336,5 +339,10 @@
   "linkCheck.copied": "Link check prompt copied (notes: {notes}, links: {links}, characters: {chars}). Paste it into an AI chat.",
   "linkCheck.copyFailed": "Couldn’t copy the prompt. Check that the browser allows clipboard access, then try again.",
   "linkCheck.previewLabel": "Prompt size",
-  "linkCheck.copyNotReady": "Not loaded yet: wait until the size above shows, then copy again."
+  "linkCheck.copyNotReady": "Not loaded yet: wait until the size above shows, then copy again.",
+  "cmdCategory.data": "Data",
+  "backup.working": "Backing up…",
+  "backup.done": "Backup saved: {file} ({size}) in {dir}",
+  "export.working": "Exporting…",
+  "export.done": "Markdown export written to {dir} (notes: {files})"
 }

@@ -56,6 +56,14 @@ export function createWhyRepository(
       WHERE node_id = ? AND deleted_at IS NULL
       ORDER BY created_at DESC, id DESC`,
   );
+  const selectAll = db.prepare(
+    `SELECT ${COLUMNS.split(', ')
+      .map((c) => `w.${c}`)
+      .join(', ')}
+       FROM why_sessions w JOIN nodes n ON n.id = w.node_id AND n.deleted_at IS NULL
+      WHERE w.deleted_at IS NULL
+      ORDER BY w.created_at, w.id`,
+  );
   const insert = db.prepare(
     `INSERT INTO why_sessions (${COLUMNS})
      VALUES (:id, :node_id, :summary, :conclusion, :whys, :created_at, :updated_at)`,
@@ -92,6 +100,11 @@ export function createWhyRepository(
 
   return {
     get,
+
+    /** Every live session of a live node, oldest first (export). */
+    all(): WhySession[] {
+      return (selectAll.all() as unknown as WhySessionRow[]).map(toSession);
+    },
 
     /** Newest first. */
     forNode(nodeId: string): WhySession[] {

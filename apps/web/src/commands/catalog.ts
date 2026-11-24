@@ -82,6 +82,18 @@ export const COMMANDS = [
     macKeys: ['Ctrl+Alt+N'],
   },
   {
+    id: 'km.backup.now',
+    title: 'cmd.backupNow',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
+    id: 'km.backup.exportMarkdown',
+    title: 'cmd.exportMarkdown',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
     id: 'km.language.change',
     title: 'cmd.changeLanguage',
     category: 'cmdCategory.preferences',

@@ -1,5 +1,5 @@
-import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { homedir, tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { base32Decode } from './auth/totp.js';
@@ -21,6 +21,15 @@ const envSchema = z.object({
     ),
   /** Exit when this process exits (set by the e2e config; see watchParent.ts). */
   KM_PARENT_PID: z.coerce.number().int().positive().optional(),
+  /**
+   * Folder for backups and markdown exports. Best on another disk or in a
+   * cloud-synced folder. Default: "backups" next to the database.
+   */
+  KM_BACKUP_DIR: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => v || undefined), // empty in .env = the default
   /** EXP/level table (JSON). Default: level-config.json next to the database. */
   KM_LEVEL_CONFIG: z.string().optional(),
   /**
@@ -86,6 +95,13 @@ export function authSettings(config: Config): AuthSettings | null {
     sessionTtlMs: config.KM_SESSION_HOURS * 60 * 60 * 1000,
     secureCookie: config.KM_COOKIE_SECURE,
   };
+}
+
+/** Absolute. An in-memory database (tests) gets a folder in the OS temp dir. */
+export function backupDir(config: Config): string {
+  if (config.KM_BACKUP_DIR !== undefined) return resolve(config.KM_BACKUP_DIR);
+  if (config.KM_DB_PATH === ':memory:') return join(tmpdir(), 'km-backups');
+  return resolve(dirname(config.KM_DB_PATH), 'backups');
 }
 
 export function levelConfigPath(config: Config): string {

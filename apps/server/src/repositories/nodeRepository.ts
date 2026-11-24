@@ -63,6 +63,9 @@ export type NodeRepository = ReturnType<typeof createNodeRepository>;
 
 export function createNodeRepository({ db, now, newId }: RepoContext, links: TagLinkRepository) {
   const selectById = db.prepare(`${SELECT_NODE} WHERE n.id = ? AND n.deleted_at IS NULL`);
+  const selectAllNodes = db.prepare(
+    `${SELECT_NODE} WHERE n.deleted_at IS NULL ORDER BY n.title COLLATE NOCASE, n.id`,
+  );
   const insert = db.prepare(
     `INSERT INTO nodes (id, type, title, content, content_words, props, created_at, updated_at)
      VALUES (:id, :type, :title, :content, :words, :props, :ts, :ts)`,
@@ -139,6 +142,11 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
       const sql = `${SELECT_NODE} WHERE ${where.join(' AND ')}
                    ORDER BY n.updated_at DESC, n.id DESC LIMIT :limit`;
       return (db.prepare(sql).all(params) as unknown as NodeRow[]).map(toNode);
+    },
+
+    /** Every live node, by title (export). */
+    all(): GraphNode[] {
+      return (selectAllNodes.all() as unknown as NodeRow[]).map(toNode);
     },
 
     summaries(): NodeSummary[] {

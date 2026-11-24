@@ -1,5 +1,5 @@
 import { buildApp } from './app.js';
-import { authSettings, levelConfigPath, loadConfig } from './config.js';
+import { authSettings, backupDir, levelConfigPath, loadConfig } from './config.js';
 import { openDatabase } from './db/database.js';
 import { loadLevelConfig } from './levelConfig.js';
 import { DEFAULT_ENV_FILE, loadEnvFile } from './envFile.js';
@@ -22,6 +22,7 @@ const app = await buildApp({
   ],
   logger: { level: config.KM_LOG_LEVEL },
   levelConfig: level.config,
+  backupDir: backupDir(config),
   auth: auth ?? undefined,
 });
 if (envFile) app.log.info({ path: envFile }, 'Loaded .env');
@@ -31,6 +32,7 @@ if (auth) {
   app.log.warn('Sign-in is OFF (KM_AUTH=off): anyone who can reach this server can use it');
 }
 app.log.info({ path: levelPath, source: level.source }, 'Level config loaded');
+app.log.info({ dir: backupDir(config) }, 'Backups and exports go to');
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {

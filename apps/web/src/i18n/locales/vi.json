@@ -130,6 +130,8 @@
   "cmd.openWhys": "Mở 5 Whys",
   "cmd.copyWhysPrompt": "Copy prompt 5 Whys",
   "cmd.copyLinkCheckPrompt": "Copy prompt Link check",
+  "cmd.backupNow": "Backup ngay",
+  "cmd.exportMarkdown": "Export markdown",
   "cmd.deleteNode": "Xoá nút…",
   "cmd.togglePreview": "Bật/tắt xem trước",
   "cmd.previewToSide": "Mở xem trước bên cạnh",
@@ -253,6 +255,7 @@
   "error.reason.CODE_USED": "Mã này vừa được dùng. Hãy chờ mã tiếp theo.",
   "error.code.FORBIDDEN": "Không được phép.",
   "error.reason.READ_ONLY": "Thiết bị này chỉ được xem, không sửa được.",
+  "error.reason.BACKUP_FAILED": "Không ghi được vào thư mục backup. Kiểm tra KM_BACKUP_DIR và quyền ghi của thư mục đó.",
   "whys.heading": "5 Whys",
   "whys.open": "Mở 5 Whys",
   "whys.none": "Chưa có phiên nào.",
@@ -336,5 +339,10 @@
   "linkCheck.copied": "Đã copy prompt Link check (ghi chú: {notes}, liên kết: {links}, ký tự: {chars}). Dán vào AI chat nhé.",
   "linkCheck.copyFailed": "Không copy được prompt. Kiểm tra trình duyệt có cho phép dùng clipboard không rồi thử lại.",
   "linkCheck.previewLabel": "Độ dài prompt",
-  "linkCheck.copyNotReady": "Chưa tải xong: đợi dòng độ dài ở trên hiện ra rồi copy lại."
+  "linkCheck.copyNotReady": "Chưa tải xong: đợi dòng độ dài ở trên hiện ra rồi copy lại.",
+  "cmdCategory.data": "Dữ liệu",
+  "backup.working": "Đang backup…",
+  "backup.done": "Đã backup: {file} ({size}) trong {dir}",
+  "export.working": "Đang export…",
+  "export.done": "Đã export markdown vào {dir} (ghi chú: {files})"
 }

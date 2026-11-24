@@ -23,8 +23,13 @@ services:
       KM_TOTP_SECRET: ${KM_TOTP_SECRET:-}
       KM_SESSION_HOURS: ${KM_SESSION_HOURS:-168}
       KM_COOKIE_SECURE: ${KM_COOKIE_SECURE:-false}
+      # Backups / markdown exports ("Backup Now" in the app). Default /data/backups is
+      # inside the volume, so `docker compose down -v` deletes them too. To keep them on
+      # the host, uncomment both lines below (the host folder must be writable by uid 1000).
+      # KM_BACKUP_DIR: /backups
     volumes:
       - km-data:/data
+      # - ${KM_BACKUP_HOST_DIR:-./backups}:/backups
 
 volumes:
   km-data:

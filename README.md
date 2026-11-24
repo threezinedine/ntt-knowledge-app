@@ -26,7 +26,39 @@ KM_PUBLISH_ADDR=0.0.0.0
 KM_ALLOWED_HOSTS=192.168.1.20   # your PC's LAN IP
 ```
 
-Backup: `docker run --rm -v knowledge-manager-data:/data -v "$PWD":/backup busybox cp /data/km.sqlite /backup/`
+Backups: see [Backups and markdown export](#backups-and-markdown-export). In Docker they
+go to `/data/backups` inside the volume unless you mount a host folder (see `compose.yaml`).
+
+## Backups and markdown export
+
+Both run only when you ask, from the command palette (`F1`): **Backup Now** and
+**Export Markdown**. The toast says what was written and where. Not in the phone app.
+
+- **Backup Now** writes `km-<time>.sqlite`: a consistent copy of the whole database, safe
+  while the server runs, without sign-in sessions (you sign in again after a restore).
+- **Export Markdown** writes `exports/<time>/`, one `.md` per node: front matter with
+  id, type, dates, tag paths, props and links as `[[wiki links]]`, then the content and
+  its 5 Whys. Opens in Obsidian or any editor, no app needed.
+
+Where: `KM_BACKUP_DIR` in `.env` (default: `backups/` next to the database). Point it at
+another disk or a cloud-synced folder (Google Drive, OneDrive…), or a dead disk takes the
+backups with it. The authenticator secret is in `.env`, not in backups: keep `.env` (or
+the QR / setup key) somewhere safe yourself.
+
+**Restore** only from the terminal, with the server **stopped**:
+
+```sh
+npm run backup:restore              # list backups, newest first
+npm run backup:restore -- 1         # restore the newest (or give a file name)
+```
+
+It refuses while the server answers on `KM_PORT`, checks the file is a healthy database
+this build can open, asks for `yes` (`--yes` skips that), and first saves the current
+database as `km-before-restore-<time>.sqlite`, so a restore can be undone the same way.
+
+In Docker: `docker compose stop`, then
+`docker compose run --rm km node --import tsx apps/server/src/cli/restore.ts` (add the
+number and `--yes`), then `docker compose start`.
 
 ## Sign-in (authenticator code)
 

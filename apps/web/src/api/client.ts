@@ -1,6 +1,7 @@
 import type {
   ApiErrorBody,
   AuthStatus,
+  BackupResult,
   CreateEdgeInput,
   CreateNodeInput,
   CreateTagInput,
@@ -10,6 +11,7 @@ import type {
   GraphNode,
   GraphSnapshot,
   LocalGraph,
+  MarkdownExportResult,
   NodePositionsInput,
   NodeEdges,
   Tag,
@@ -128,6 +130,9 @@ export const api = {
       request<WhySession>('PATCH', `/whys/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/whys/${id}`),
   },
+  /** On the server's machine, into KM_BACKUP_DIR. */
+  backup: () => request<BackupResult>('POST', '/backups'),
+  exportMarkdown: () => request<MarkdownExportResult>('POST', '/exports/markdown'),
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),
   auth: {

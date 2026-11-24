@@ -19,7 +19,11 @@ export interface TestApp {
 
 /** A fresh in-memory app with a deterministic clock. */
 export async function createTestApp(
-  options: { levelConfig?: LevelConfig; auth?: AppOptions['auth'] } = {},
+  options: {
+    levelConfig?: LevelConfig;
+    auth?: AppOptions['auth'];
+    backupDir?: string;
+  } = {},
 ): Promise<TestApp> {
   const db = openDatabase(IN_MEMORY);
   let clock = 1_700_000_000_000;

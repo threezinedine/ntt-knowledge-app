@@ -328,3 +328,8 @@ export function useDeleteWhySession(nodeId: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
   });
 }
+
+/** Writes a file on the server; nothing cached changes. */
+export const useBackupNow = () => useMutation({ mutationFn: () => api.backup() });
+
+export const useExportMarkdown = () => useMutation({ mutationFn: () => api.exportMarkdown() });

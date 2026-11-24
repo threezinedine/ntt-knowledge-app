@@ -11,6 +11,7 @@ import { registerExpRoutes } from './http/routes/expRoutes.js';
 import { registerNodeRoutes } from './http/routes/nodeRoutes.js';
 import { registerTagRoutes } from './http/routes/tagRoutes.js';
 import { registerWhyRoutes } from './http/routes/whyRoutes.js';
+import { registerBackupRoutes } from './http/routes/backupRoutes.js';
 import { createRepositories } from './repositories/index.js';
 
 export interface AppOptions {
@@ -24,6 +25,8 @@ export interface AppOptions {
   newId?: () => string;
   /** EXP/level table (from the operator's config file). */
   levelConfig?: LevelConfig;
+  /** Backups and markdown exports go here; omitted = no backup routes. */
+  backupDir?: string | undefined;
   /** Authenticator-code sign-in. Omitted = no sign-in (KM_AUTH=off, and the API tests). */
   auth?: AuthOptions | undefined;
 }
@@ -44,6 +47,9 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   registerEdgeRoutes(app, repos);
   registerTagRoutes(app, repos);
   registerWhyRoutes(app, repos);
+  if (options.backupDir !== undefined) {
+    registerBackupRoutes(app, options.db, repos, options.backupDir, options.now ?? Date.now);
+  }
   registerExpRoutes(app, repos, options.levelConfig ?? DEFAULT_LEVEL_CONFIG);
 
   if (options.staticDir !== undefined && existsSync(options.staticDir)) {
