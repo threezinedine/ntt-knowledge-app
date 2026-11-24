@@ -23,14 +23,16 @@ export function uprightAngle(dx: number, dy: number): number {
   return deg;
 }
 
-/** An unlinked node. */
-export const MIN_RADIUS = 6;
-/** The least-linked of the linked nodes... */
-export const LINKED_MIN_RADIUS = 12;
-/** ...and the best-linked one. */
-export const MAX_RADIUS = 32;
-/** When every linked node has the same number of links. */
-export const EVEN_RADIUS = 18;
+/** Dot sizes, tunable in the graph settings (defaults there). */
+export interface RadiusSizes {
+  /** An unlinked node. */
+  unlinkedRadius: number;
+  /** The least-linked of the linked nodes... */
+  linkedMinRadius: number;
+  /** ...and the best-linked one. */
+  maxRadius: number;
+}
+export const DEFAULT_SIZES: RadiusSizes = { unlinkedRadius: 6, linkedMinRadius: 12, maxRadius: 32 };
 
 export interface DegreeRange {
   /** Fewest links of any linked node (0 when nothing is linked). */
@@ -40,15 +42,21 @@ export interface DegreeRange {
 
 /**
  * Size spread over the graph's own range of links (the user's choice, so
- * nodes never look alike): the least-linked node gets `LINKED_MIN_RADIUS`,
- * the best-linked `MAX_RADIUS`, the rest evenly in between. Even 2 vs 3
- * links shows. A link elsewhere can therefore resize the others.
+ * nodes never look alike): the least-linked node gets `linkedMinRadius`,
+ * the best-linked `maxRadius`, the rest evenly in between; when all linked
+ * nodes are even, half-way. Even 2 vs 3 links shows. A link elsewhere can
+ * therefore resize the others.
  */
-export function radiusForDegree(degree: number, range: DegreeRange): number {
-  if (degree <= 0) return MIN_RADIUS;
-  if (range.max <= range.min) return EVEN_RADIUS;
+export function radiusForDegree(
+  degree: number,
+  range: DegreeRange,
+  sizes: RadiusSizes = DEFAULT_SIZES,
+): number {
+  const { unlinkedRadius, linkedMinRadius, maxRadius } = sizes;
+  if (degree <= 0) return unlinkedRadius;
+  if (range.max <= range.min) return (linkedMinRadius + maxRadius) / 2;
   const share = Math.min(1, Math.max(0, (degree - range.min) / (range.max - range.min)));
-  return LINKED_MIN_RADIUS + (MAX_RADIUS - LINKED_MIN_RADIUS) * share;
+  return linkedMinRadius + (maxRadius - linkedMinRadius) * share;
 }
 
 /** Fewest and most links among the nodes that have any. */

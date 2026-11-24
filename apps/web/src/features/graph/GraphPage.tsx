@@ -21,9 +21,11 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
   type SubmitEvent,
 } from 'react';
@@ -41,9 +43,12 @@ import { readJson, writeJson } from '../../commands/storage';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { revealNodeId, useNodeContextMenu } from '../node/NodeContextMenu';
+import { SettingsIcon } from '../../components/icons';
 import { showToast } from '../../components/toast';
 import { CircleNode } from './CircleNode';
 import { useEdgeContextMenu } from './EdgeContextMenu';
+import { useGraphSettings } from './graphSettings';
+import { GraphSettingsPanel } from './GraphSettingsPanel';
 import { pushAway, type Circle } from './collide';
 import { EdgeRenameContext, FloatingEdge, GraphMarkers, type EdgeRename } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
@@ -63,6 +68,7 @@ const Graph3D = lazy(() => import('./Graph3D'));
 
 type GraphMode = '2d' | '3d';
 const MODE_KEY = 'km.graph.mode';
+const SETTINGS_OPEN_KEY = 'km.graph.settingsOpen';
 
 export function GraphPage() {
   const { t } = useI18n();
@@ -77,9 +83,61 @@ export function GraphPage() {
     setMode(mode === '3d' ? '2d' : '3d');
   });
   const tip = useCommandTooltip('km.graph.toggle3d');
+  // The settings panel sits beside the 2D canvas. Read-only (phone app) has its
+  // own tab for the display settings instead, so the graph view stays clean.
+  const readOnly = useReadOnly();
+  const [settingsOpen, setSettingsOpenState] = useState(() => readJson(SETTINGS_OPEN_KEY) === true);
+  // Focus moves into the panel when the user opens it (not when it is restored
+  // open on load), and back to the gear when it closes.
+  const [focusPanel, setFocusPanel] = useState(false);
+  const gearRef = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
+  const setSettingsOpen = (open: boolean) => {
+    // Only if focus was in the panel: closing it from a shortcut leaves focus alone.
+    const focusWasInside =
+      document.getElementById(panelId)?.contains(document.activeElement) === true;
+    setSettingsOpenState(open);
+    setFocusPanel(open);
+    writeJson(SETTINGS_OPEN_KEY, open);
+    if (!open && focusWasInside) gearRef.current?.focus();
+  };
+  const canTune = mode === '2d' && !readOnly;
+  useCommandHandler(
+    'km.graph.toggleSettings',
+    () => {
+      setSettingsOpen(!settingsOpen);
+    },
+    canTune,
+  );
+  const settingsTip = useCommandTooltip('km.graph.toggleSettings', { always: true });
 
   return (
-    <div className="graph-shell">
+    <div className={`graph-shell${canTune ? ' can-tune' : ''}`}>
+      {canTune && (
+        <button
+          type="button"
+          ref={gearRef}
+          className="graph-settings-toggle"
+          aria-label={t('cmd.graphSettings')}
+          aria-pressed={settingsOpen}
+          aria-controls={settingsOpen ? panelId : undefined}
+          {...settingsTip}
+          onClick={() => {
+            setSettingsOpen(!settingsOpen);
+          }}
+        >
+          <SettingsIcon size={16} />
+        </button>
+      )}
+      {canTune && settingsOpen && (
+        <GraphSettingsPanel
+          id={panelId}
+          focusOnMount={focusPanel}
+          onClose={() => {
+            setSettingsOpen(false);
+          }}
+        />
+      )}
       {/* Two toggle buttons, not tabs: no tab panel or arrow keys to promise. */}
       <div className="segmented graph-mode" role="group" aria-label={t('graph.mode')} {...tip}>
         {(['2d', '3d'] as const).map((m) => (
@@ -181,6 +239,12 @@ function GraphCanvas() {
   });
   // Read-only (phone app): look and navigate; no drag, connect, rename, delete.
   const readOnly = useReadOnly();
+  const settings = useGraphSettings();
+  const { unlinkedRadius, linkedMinRadius, maxRadius } = settings;
+  const sizes = useMemo(
+    () => ({ unlinkedRadius, linkedMinRadius, maxRadius }),
+    [unlinkedRadius, linkedMinRadius, maxRadius],
+  );
 
   const renameEdge = updateEdge.mutate; // stable, unlike the mutation object
   // Renaming a link: double-click it, or "Rename Link" with one link selected.
@@ -243,7 +307,11 @@ function GraphCanvas() {
     const origins = dragOrigins.current;
     if (!origins) return;
     const draggedCircles = new Map(dragged.map((n) => [n.id, circleOf(n)]));
-    const pushed = pushAway(draggedCircles, origins);
+    const pushed = pushAway(draggedCircles, origins, {
+      gap: settings.pushGap,
+      reach: settings.pushReach,
+      softness: settings.pushSoftness,
+    });
     pushedNow.current = pushed;
     setNodes((prev) =>
       prev.map((n) => {
@@ -272,9 +340,9 @@ function GraphCanvas() {
   useEffect(() => {
     if (!graph.data || dragging) return;
     const snapshot = graph.data;
-    setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev));
+    setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev, sizes));
     setEdges((prev) => toFlowEdges(snapshot.edges, prev));
-  }, [graph.data, dragging, setNodes, setEdges]);
+  }, [graph.data, dragging, setNodes, setEdges, sizes]);
 
   const adjacency = useMemo(() => buildAdjacency(edges), [edges]);
   const highlight = useMemo<GraphHighlight>(
@@ -293,7 +361,18 @@ function GraphCanvas() {
   };
 
   return (
-    <div className={`graph-page${dragging ? ' is-dragging' : ''}`} data-testid="graph-canvas">
+    <div
+      className={`graph-page${dragging ? ' is-dragging' : ''}`}
+      data-testid="graph-canvas"
+      style={
+        {
+          '--node-label-size': `${String(settings.nodeLabelSize)}px`,
+          '--node-label-opacity': String(settings.nodeLabelOpacity),
+          '--edge-width': `${String(settings.linkWidth)}px`,
+          '--edge-label-size': `${String(settings.linkLabelSize)}px`,
+        } as CSSProperties
+      }
+    >
       {nodeMenu.element}
       {edgeMenu.element}
       <GraphMarkers />

@@ -2,29 +2,35 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_NODE_COLOR,
   edgeGeometry,
+  DEFAULT_SIZES,
   degreeRange,
-  EVEN_RADIUS,
-  LINKED_MIN_RADIUS,
-  MAX_RADIUS,
-  MIN_RADIUS,
   radiusForDegree,
   typeColors,
   uprightAngle,
 } from './graphGeometry';
 
 describe('radiusForDegree', () => {
+  const { unlinkedRadius, linkedMinRadius, maxRadius } = DEFAULT_SIZES;
+
   it('spreads linked nodes from the fewest links to the most, so 2 vs 3 shows', () => {
     const range = { min: 2, max: 3 };
-    expect(radiusForDegree(0, range)).toBe(MIN_RADIUS);
-    expect(radiusForDegree(2, range)).toBe(LINKED_MIN_RADIUS);
-    expect(radiusForDegree(3, range)).toBe(MAX_RADIUS);
-    expect(radiusForDegree(26, { min: 2, max: 50 })).toBe((LINKED_MIN_RADIUS + MAX_RADIUS) / 2);
+    expect(radiusForDegree(0, range)).toBe(unlinkedRadius);
+    expect(radiusForDegree(2, range)).toBe(linkedMinRadius);
+    expect(radiusForDegree(3, range)).toBe(maxRadius);
+    expect(radiusForDegree(26, { min: 2, max: 50 })).toBe((linkedMinRadius + maxRadius) / 2);
   });
 
   it('gives one size when all linked nodes are even, and stays in bounds', () => {
-    expect(radiusForDegree(4, { min: 4, max: 4 })).toBe(EVEN_RADIUS);
-    expect(radiusForDegree(0, { min: 0, max: 0 })).toBe(MIN_RADIUS);
-    expect(radiusForDegree(9, { min: 2, max: 3 })).toBe(MAX_RADIUS);
+    expect(radiusForDegree(4, { min: 4, max: 4 })).toBe((linkedMinRadius + maxRadius) / 2);
+    expect(radiusForDegree(0, { min: 0, max: 0 })).toBe(unlinkedRadius);
+    expect(radiusForDegree(9, { min: 2, max: 3 })).toBe(maxRadius);
+  });
+
+  it('uses the sizes from the settings', () => {
+    const sizes = { unlinkedRadius: 3, linkedMinRadius: 10, maxRadius: 100 };
+    expect(radiusForDegree(0, { min: 1, max: 5 }, sizes)).toBe(3);
+    expect(radiusForDegree(1, { min: 1, max: 5 }, sizes)).toBe(10);
+    expect(radiusForDegree(5, { min: 1, max: 5 }, sizes)).toBe(100);
   });
 });
 

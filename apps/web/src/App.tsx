@@ -8,12 +8,20 @@ import { TooltipLayer } from './commands/TooltipLayer';
 import { useCommandTooltip } from './commands/useCommandTooltip';
 import { readJson, writeJson } from './commands/storage';
 import { Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
-import { GraphIcon, KeyboardIcon, SearchIcon, SidebarIcon, TagIcon } from './components/icons';
+import {
+  GraphIcon,
+  KeyboardIcon,
+  SearchIcon,
+  SettingsIcon,
+  SidebarIcon,
+  TagIcon,
+} from './components/icons';
 import { Toast } from './components/toast';
 import { BackupCommands } from './features/backup/BackupCommands';
 import { LevelUpCelebration } from './features/exp/LevelUpCelebration';
 import { SignOutButton } from './features/auth/SignOutButton';
 import { GraphPage } from './features/graph/GraphPage';
+import { GraphSettingsPage } from './features/graph/GraphSettingsPanel';
 import { NodePage } from './features/node/NodePage';
 import { TagsPage } from './features/tags/TagsPage';
 import { useReadOnly } from './features/readOnly';
@@ -81,6 +89,12 @@ export function App() {
             <TagIcon size={22} />
           </NavLink>
         )}
+        {/* The phone app tunes the graph's look on its own tab, not over the graph. */}
+        {readOnly && (
+          <NavLink to="/graph-settings" aria-label={t('graphSettings.title')}>
+            <SettingsIcon size={22} />
+          </NavLink>
+        )}
         <span className="activity-bar-spacer" />
         <SignOutButton />
         <button
@@ -107,6 +121,10 @@ export function App() {
           <Route path="/nodes/:id" element={<NodePage />} />
           <Route path="/tags" element={readOnly ? <Navigate to="/" replace /> : <TagsPage />} />
           <Route path="/shortcuts" element={<ShortcutsPage />} />
+          <Route
+            path="/graph-settings"
+            element={readOnly ? <GraphSettingsPage /> : <Navigate to="/" replace />}
+          />
           <Route path="/categories" element={<Navigate to="/tags" replace />} />
           <Route path="*" element={<p className="empty">{t('app.notFound')}</p>} />
         </Routes>

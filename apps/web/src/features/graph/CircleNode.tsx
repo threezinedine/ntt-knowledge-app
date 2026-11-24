@@ -6,10 +6,8 @@ import {
 } from '@xyflow/react';
 import type { CSSProperties } from 'react';
 import type { KmFlowNode } from './flowMapping';
+import { useGraphSettings } from './graphSettings';
 import { nodeHighlight, useGraphHighlight } from './highlight';
-
-/** Below this zoom, labels are hidden like in Obsidian to keep the graph readable. */
-const LABEL_MIN_ZOOM = 0.45;
 
 /**
  * Obsidian-style node: a coloured dot sized by link count, label underneath.
@@ -19,7 +17,9 @@ const LABEL_MIN_ZOOM = 0.45;
  */
 export function CircleNode({ id, data, selected }: NodeProps<KmFlowNode>) {
   const state = nodeHighlight(useGraphHighlight(), id);
-  const showLabel = useViewportStore((s) => s.transform[2] >= LABEL_MIN_ZOOM);
+  // Below this zoom, labels hide like in Obsidian to keep the graph readable.
+  const { labelMinZoom } = useGraphSettings();
+  const showLabel = useViewportStore((s) => s.transform[2] >= labelMinZoom);
   const size = data.radius * 2;
   const style = { width: size, height: size, '--node-color': data.color } as CSSProperties;
 

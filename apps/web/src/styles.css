@@ -666,6 +666,131 @@ button.small {
   z-index: 10;
   background: var(--bg-elev);
 }
+/* Graph settings: a gear right of the 2D | 3D switch, a panel under it. */
+.graph-shell.can-tune .graph-mode {
+  right: 59px;
+}
+.graph-settings-toggle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 34px;
+  padding: 0;
+  background: var(--bg-elev);
+  color: var(--muted);
+}
+.graph-settings-toggle[aria-pressed='true'],
+.graph-settings-toggle:hover {
+  color: var(--text);
+}
+.graph-settings {
+  position: absolute;
+  top: 58px;
+  right: 15px;
+  z-index: 11;
+  width: 290px;
+  max-height: calc(100% - 73px);
+  overflow-y: auto;
+  padding: 10px 14px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.graph-settings > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.graph-settings h2 {
+  margin: 0;
+  font-size: 13px;
+}
+.graph-settings-close {
+  display: flex;
+  padding: 4px;
+  border: none;
+  background: none;
+  color: var(--muted);
+}
+.graph-settings-close:hover {
+  color: var(--text);
+}
+.graph-settings-group {
+  padding: 10px 0 4px;
+  border-bottom: 1px solid var(--border);
+}
+.graph-settings-group:last-child {
+  border-bottom: none;
+}
+.graph-settings-group h3 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.graph-settings-slider,
+.graph-settings-switch {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+.graph-settings-switch {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.graph-settings-switch input {
+  width: auto;
+}
+.graph-settings-label {
+  display: flex;
+  justify-content: space-between;
+}
+.graph-settings-label output {
+  font-family: var(--mono);
+  color: var(--muted);
+}
+.graph-settings-slider input[type='range'] {
+  width: 100%;
+  padding: 0;
+  accent-color: var(--graph-accent, var(--accent));
+}
+.graph-settings-reset {
+  margin-bottom: 8px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+.graph-settings-reset:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+/* The phone app's own tab. */
+.graph-settings-page {
+  max-width: 480px;
+  padding: 16px;
+}
+.graph-settings-page h1 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+@media (max-width: 800px) {
+  .graph-settings {
+    left: 15px;
+    width: auto;
+  }
+}
 .graph-3d {
   position: absolute;
   inset: 0;
@@ -746,11 +871,13 @@ button.small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--node-label-size, 12px);
+  opacity: var(--node-label-opacity, 1);
   color: var(--graph-label);
   pointer-events: none;
 }
 .km-node--active .km-node-label {
+  opacity: 1;
   color: var(--text);
   font-weight: 600;
 }
@@ -784,7 +911,7 @@ button.small {
 
 .react-flow__edge-path.km-edge {
   stroke: var(--graph-line);
-  stroke-width: 1.2;
+  stroke-width: var(--edge-width, 1.2px);
   transition:
     stroke 120ms ease,
     opacity 120ms ease;
@@ -792,14 +919,14 @@ button.small {
 .react-flow__edge-path.km-edge--active,
 .react-flow__edge-path.km-edge.is-selected {
   stroke: var(--graph-accent);
-  stroke-width: 1.8;
+  stroke-width: calc(var(--edge-width, 1.2px) + 0.6px);
 }
 .react-flow__edge-path.km-edge--dim {
   opacity: 0.15;
 }
 .react-flow__edge-text {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--edge-label-size, 10px);
   fill: var(--graph-label);
   /* A halo in the canvas colour keeps the label readable over its own line. */
   stroke: var(--graph-bg);

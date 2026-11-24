@@ -1,6 +1,6 @@
 import type { Edge, NodeSummary } from '@km/core';
 import { describe, expect, it } from 'vitest';
-import { MIN_RADIUS } from './graphGeometry';
+import { DEFAULT_SIZES } from './graphGeometry';
 import {
   edgeLanes,
   fallbackPosition,
@@ -24,7 +24,17 @@ describe('toFlowNodes', () => {
       fallbackPosition(0),
       fallbackPosition(1),
     ]);
-    expect(nodes[0]?.data).toMatchObject({ label: 'A', nodeType: 'note', radius: MIN_RADIUS });
+    expect(nodes[0]?.data).toMatchObject({
+      label: 'A',
+      nodeType: 'note',
+      radius: DEFAULT_SIZES.unlinkedRadius,
+    });
+  });
+
+  it('sizes dots with the given sizes', () => {
+    const sizes = { unlinkedRadius: 3, linkedMinRadius: 10, maxRadius: 50 };
+    const nodes = toFlowNodes([summary('a'), summary('b')], [], [], sizes);
+    expect(nodes.map((n) => n.data.radius)).toEqual([3, 3]);
   });
 
   it('keeps selection across refetches', () => {

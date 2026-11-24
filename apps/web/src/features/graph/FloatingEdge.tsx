@@ -7,8 +7,9 @@ import {
 } from '@xyflow/react';
 import { createContext, useContext } from 'react';
 import { EdgeNameEditor } from './EdgeNameEditor';
-import type { KmFlowEdge, KmFlowNode } from './flowMapping';
+import { ARROW_SIZE, type KmFlowEdge, type KmFlowNode } from './flowMapping';
 import { edgeGeometry, type Circle } from './graphGeometry';
+import { useGraphSettings } from './graphSettings';
 import { edgeHighlight, useGraphHighlight } from './highlight';
 
 /** Which link is being renamed on the canvas, and what to do with the result. */
@@ -33,12 +34,12 @@ export function GraphMarkers() {
         <marker
           id={ACTIVE_ARROW_ID}
           viewBox="-10 -10 20 20"
-          markerWidth="14"
-          markerHeight="14"
+          markerWidth={ARROW_SIZE}
+          markerHeight={ARROW_SIZE}
           orient="auto-start-reverse"
           refX="0"
           refY="0"
-          markerUnits="strokeWidth"
+          markerUnits="userSpaceOnUse"
         >
           <polyline
             points="-5,-4 0,0 -5,4 -5,-4"
@@ -79,6 +80,7 @@ export function FloatingEdge({
   const targetNode = useInternalNode<KmFlowNode>(target);
   const state = edgeHighlight(useGraphHighlight(), source, target);
   const rename = useContext(EdgeRenameContext);
+  const { showArrows, showLinkLabels, linkLabelOpacity } = useGraphSettings();
   if (!sourceNode || !targetNode) return null;
 
   const { path, labelX, labelY, labelAngle } = edgeGeometry(
@@ -96,10 +98,17 @@ export function FloatingEdge({
       <BaseEdge
         id={id}
         path={path}
-        markerEnd={state === 'active' || selected ? `url(#${ACTIVE_ARROW_ID})` : markerEnd}
+        markerEnd={
+          !showArrows
+            ? undefined
+            : state === 'active' || selected
+              ? `url(#${ACTIVE_ARROW_ID})`
+              : markerEnd
+        }
         className={`km-edge km-edge--${state}${selected ? ' is-selected' : ''}`}
       />
-      {!editing && name && (
+      {/* Hidden labels still show on the hovered or selected link. */}
+      {!editing && name && (showLinkLabels || state === 'active' || selected) && (
         <text
           className="react-flow__edge-text"
           x={labelX}
@@ -107,7 +116,14 @@ export function FloatingEdge({
           dy={-5}
           textAnchor="middle"
           transform={`rotate(${String(labelAngle)} ${String(labelX)} ${String(labelY)})`}
-          style={{ opacity: state === 'dim' ? 0.15 : state === 'active' || selected ? 1 : 0.6 }}
+          style={{
+            opacity:
+              state === 'dim'
+                ? Math.min(0.15, linkLabelOpacity)
+                : state === 'active' || selected
+                  ? 1
+                  : linkLabelOpacity,
+          }}
         >
           {name}
         </text>

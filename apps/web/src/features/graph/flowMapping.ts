@@ -2,11 +2,13 @@ import type { Edge, NodeSummary, Position } from '@km/core';
 import { MarkerType, type Edge as FlowEdge, type Node as FlowNode } from '@xyflow/react';
 import {
   DEFAULT_NODE_COLOR,
+  DEFAULT_SIZES,
   degreeRange,
   PARALLEL_EDGE_SPACING,
   radiusForDegree,
   typeColors,
   type EdgeLane,
+  type RadiusSizes,
 } from './graphGeometry';
 
 export interface KmNodeData extends Record<string, unknown> {
@@ -24,6 +26,8 @@ const GRID_GAP_X = 160;
 const GRID_GAP_Y = 120;
 /** Must match `--graph-line` in styles.css (markers can't read CSS variables). */
 const EDGE_COLOR = '#4a4a52';
+/** Arrow head size in px (about what 14 stroke-widths of the default 1.2px line were). */
+export const ARROW_SIZE = 17;
 
 /** Deterministic fallback for nodes that were never placed on the canvas. */
 export function fallbackPosition(index: number): Position {
@@ -51,6 +55,7 @@ export function toFlowNodes(
   nodes: readonly NodeSummary[],
   edges: readonly Edge[],
   previous: readonly KmFlowNode[],
+  sizes: RadiusSizes = DEFAULT_SIZES,
 ): KmFlowNode[] {
   const prevById = new Map(previous.map((n) => [n.id, n]));
   const degree = degrees(edges);
@@ -69,7 +74,7 @@ export function toFlowNodes(
       data: {
         label: node.title,
         nodeType: node.type,
-        radius: radiusForDegree(degree.get(node.id) ?? 0, range),
+        radius: radiusForDegree(degree.get(node.id) ?? 0, range, sizes),
         color: colors.get(node.type) ?? DEFAULT_NODE_COLOR,
       },
       selected: prev?.selected ?? false,
@@ -118,7 +123,14 @@ export function toFlowEdges(edges: readonly Edge[], previous: readonly KmFlowEdg
     target: edge.toId,
     label: edge.name,
     data: { name: edge.name, lane: lanes.get(edge.id) ?? { offset: 0, loopIndex: 0 } },
-    markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: EDGE_COLOR },
+    // Fixed size in px: in stroke-width units, a thick line (graph settings) got huge arrows.
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: ARROW_SIZE,
+      height: ARROW_SIZE,
+      markerUnits: 'userSpaceOnUse',
+      color: EDGE_COLOR,
+    },
     selected: prevById.get(edge.id)?.selected ?? false,
   }));
 }

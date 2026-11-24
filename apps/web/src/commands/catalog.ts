@@ -207,6 +207,13 @@ export const COMMANDS = [
     when: 'cmdWhen.graph',
   },
   {
+    id: 'km.graph.toggleSettings',
+    title: 'cmd.graphSettings',
+    category: 'cmdCategory.graph',
+    keys: [],
+    when: 'cmdWhen.graph',
+  },
+  {
     id: 'km.graph.fitView',
     title: 'cmd.fitView',
     category: 'cmdCategory.graph',
