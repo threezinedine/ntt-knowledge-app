@@ -1,207 +1,222 @@
 # Knowledge Manager
 
-A personal, local-first knowledge graph: nodes and **named, directed links**
-(graph-database style), a markdown editor, a visual graph editor, and a tag tree
-whose tags are fields of knowledge that level up as you write nodes about them. Runs as a local server + installable PWA (desktop and Android).
+A personal knowledge base where notes are nodes in a graph. Each note has markdown
+content, a type and a set of tags, and notes are joined by **named, directed links**
+("CPU _contains_ Cache", "Cache _speeds up_ Memory access"). You edit notes in a
+markdown editor and arrange them on a graph canvas. Tags form a tree of fields of
+knowledge, and each field gains EXP and levels as you write about it.
 
-## Quick start (Docker, one command)
+It runs as a small server on your own machine and stores everything in one SQLite
+file. You use it in the browser (installable as an app), and a read-only Android app
+lets you browse it from your phone.
 
-```sh
-docker compose up -d --build     # or: npm run docker:up
-```
+Setup, configuration and backups: **[INSTALL.md](INSTALL.md)**.
 
-Open http://localhost:4317. That one container is the API server and the web UI.
-Data persists in the `knowledge-manager-data` volume across restarts and rebuilds.
+## Contents
 
-```sh
-npm run docker:logs     # follow logs
-npm run docker:down     # stop (data is kept)
-docker compose down -v  # stop AND delete all data
-```
+- [Notes](#notes)
+- [Links](#links)
+- [Graph view](#graph-view)
+- [Tags and fields](#tags-and-fields)
+- [5 Whys](#5-whys)
+- [Link check](#link-check)
+- [Finding things](#finding-things)
+- [Keyboard and commands](#keyboard-and-commands)
+- [Settings](#settings)
+- [Phone](#phone)
+- [Sign-in](#sign-in)
+- [Backups and export](#backups-and-export)
+- [Languages](#languages)
+- [How data is stored](#how-data-is-stored)
 
-Phone on the same Wi-Fi: create a `.env` next to `compose.yaml` with
+## Notes
 
-```sh
-KM_PUBLISH_ADDR=0.0.0.0
-KM_ALLOWED_HOSTS=192.168.1.20   # your PC's LAN IP
-```
+A note (node) has a **title**, a **type** (`note` by default; any short word, such as
+`concept` or `person`), **markdown content**, **tags**, **links** and optional
+**properties**.
 
-Backups: see [Backups and markdown export](#backups-and-markdown-export). In Docker they
-go to `/data/backups` inside the volume unless you mount a host folder (see `compose.yaml`).
+- **Markdown editor** with three modes: _Edit_, _Split_ (editor and preview side by
+  side) and _Preview_. The preview supports GitHub-flavoured markdown (tables, task
+  lists, strikethrough).
+- **Autosave.** Changes save as you type; the header shows _Saved_, _Unsaved_,
+  _Saving…_ or _Save failed_. Edits are never lost when a sign-in expires: a code box
+  appears over the page and the edits save after you sign in.
+- **Properties**: a JSON object for anything structured you want to keep on a note.
+- **Vim mode** (optional, per device) for the title and the content. A small indicator
+  shows whether the keyboard is typing Latin letters, which matters with Vietnamese
+  input methods (Telex/VNI) that turn vim commands into letters.
+- **Quick focus**: `Alt+K` jumps to the title and `Alt+J` to the content; `Enter` in the
+  title moves to the content.
+- Deleting a note asks first and also removes its links.
 
-## Backups and markdown export
+## Links
 
-Both run only when you ask, from the command palette (`F1`): **Backup Now** and
-**Export Markdown**. The toast says what was written and where. Not in the phone app.
+Links are directed and named: _from_ → **relation** → _to_. The relation is free text
+(`contains`, `depends on`, `thuộc về`, ...), so you use your own vocabulary.
 
-- **Backup Now** writes `km-<time>.sqlite`: a consistent copy of the whole database, safe
-  while the server runs, without sign-in sessions (you sign in again after a restore).
-- **Export Markdown** writes `exports/<time>/`, one `.md` per node: front matter with
-  id, type, dates, tag paths, props and links as `[[wiki links]]`, then the content and
-  its 5 Whys. Opens in Obsidian or any editor, no app needed.
+- Create a link on the note page (pick the direction, the relation and the other note),
+  or on the graph by dragging from one dot to another.
+- A note page lists **outgoing** and **incoming** links; click one to go to the other
+  note.
+- Rename a link in place (double-click it on the graph, or use its menu), or delete it.
+- Two notes can have several links between them, in either direction, and a note can
+  link to itself. Each one is drawn separately.
 
-Where: `KM_BACKUP_DIR` in `.env` (default: `backups/` next to the database). Point it at
-another disk or a cloud-synced folder (Google Drive, OneDrive…), or a dead disk takes the
-backups with it. The authenticator secret is in `.env`, not in backups: keep `.env` (or
-the QR / setup key) somewhere safe yourself.
+## Graph view
 
-**Restore** only from the terminal, with the server **stopped**:
+The home screen shows all notes as dots on a 2D canvas.
 
-```sh
-npm run backup:restore              # list backups, newest first
-npm run backup:restore -- 1         # restore the newest (or give a file name)
-```
+- **Your layout is kept.** Drag dots where you want them; positions are saved. Dragging
+  a dot gently pushes nearby dots aside, and they settle back once you move on.
+- **Size shows connections.** The best-linked note gets the biggest dot and the
+  least-linked the smallest, so hubs stand out even in a small graph.
+- **Colour shows type.** Plain notes are grey; each other type gets its own colour.
+- **Hover a dot** to highlight it, its links and its neighbours, and to dim the rest.
+- **Names hide when zoomed out** to keep the picture readable.
+- Double-click a dot to open the note. Right-click a dot for _Open, Rename, Tags,
+  Reveal in Graph, Copy Title, Copy Link, Delete_. Right-click a link for _Rename,
+  Open either end, Delete_.
+- A minimap, zoom controls and _Fit to screen_ (`Shift+1`).
+- **Graph settings** (gear button): dot sizes, text size and strength of node and link
+  names, line thickness, arrows on/off, link names on/off, and how strongly dragging
+  pushes other dots. Changes apply immediately and are saved on that device.
+- A **3D view** (`Shift+3`) is available as an experiment: you can look around, but it
+  doesn't create links or save a layout.
 
-It refuses while the server answers on `KM_PORT`, checks the file is a healthy database
-this build can open, asks for `yes` (`--yes` skips that), and first saves the current
-database as `km-before-restore-<time>.sqlite`, so a restore can be undone the same way.
+## Tags and fields
 
-In Docker: `docker compose stop` first. **This matters**: `compose run` starts a new
-container, which can't see the running one over the network; the command still refuses
-while the database file is open, but stop the service anyway. Then
-`docker compose run --rm km node --import tsx apps/server/src/cli/restore.ts` (add the
-number and `--yes`), then `docker compose start`.
+One tag tree is shared by all notes, and a note can have any number of tags.
 
-## Sign-in (authenticator code)
+- **Tags page**: create tags, nest them by drag and drop, rename them, give them a
+  colour, and move them to the top level.
+- On a note, add tags by dragging them from the tag palette, from the _+ tag_ picker, or
+  with `Alt+G`.
 
-The app asks for the 6-digit code from **Google Authenticator** (or any TOTP
-app). Set it up once:
+Every tag is also a **field of knowledge** with EXP and a level. The sidebar lists your
+fields with a progress bar; parents include everything under them.
 
-```sh
-npm run auth:setup      # makes the secret, shows a QR code, checks one code
-```
+- A note adds EXP to each of its tags and their parent tags: a base amount, plus a
+  bonus for longer content (capped, so padding doesn't pay), plus a bonus for its
+  answered 5 Whys questions.
+- Deeper 5 Whys answers are worth more: each level down earns twice the one above.
+- Reaching a new level shows a short celebration.
+- The numbers (EXP per note, bonuses, level thresholds) are set by whoever runs the
+  server; see [INSTALL.md](INSTALL.md#fields-and-levels-table).
 
-Scan the QR with the app (or type the setup key it prints), enter the code it
-shows, and the secret is saved to the repo-root `.env` (gitignored) with
-`KM_AUTH=totp`. Restart the server. The secret never appears on the web.
+## 5 Whys
 
-- A sign-in lasts `KM_SESSION_HOURS` (168 = a week). When it ends, a box asks
-  for a new code over the page; unsaved edits are kept and saved after.
-- Wrong codes are rationed: 5 in a row pause sign-in for a minute, and at most
-  10 per rolling 24 hours (a successful sign-in doesn't reset that). Each code
-  works once. With one 6-digit code as the only factor, that limits someone
-  who can reach the server to about a **1% chance a year** of guessing in.
-  Keep the server unreachable from the internet unless you accept that.
-- While locked, every code is refused, yours too (your open sessions keep
-  working). So anyone who can reach the server can keep you from signing in by
-  spending the budget; restarting the server clears the lock. Another reason
-  to keep it off the open internet.
-- Served over HTTPS (reverse proxy)? Set `KM_COOKIE_SECURE=true`.
-- `npm run auth:setup -- --show` shows the QR again (new phone);
-  `-- --new` replaces the secret.
-- `KM_AUTH=off` turns sign-in off, for a machine only you can reach.
-- The server won't start with sign-in on but no valid `KM_TOTP_SECRET`
-  (also after upgrading a Docker setup: run `auth:setup` or set `KM_AUTH=off`).
+A way to test your own understanding of a note. An AI asks "why?" about what you wrote,
+then "why?" about your answer, and so on until you reach the root. You can use any AI
+chat; the app doesn't call an AI itself.
 
-## Local development
+1. On a note, open **5 Whys** (`Alt+W`) and copy the prompt (English or Vietnamese). It
+   contains the note's title, content, links and earlier sessions.
+2. Paste it into a new chat (ChatGPT, Claude, Gemini, ...). The AI asks one question at a
+   time and you answer in your own words. You can ask it to dig deeper into your last
+   answer, or to move to another point of the note.
+3. Type `end`. The AI replies with the session as JSON. Paste the whole reply into the
+   app; it finds the JSON, shows a preview, and saves it.
 
-Requires **Node.js ≥ 24**.
+Each note keeps all its sessions. A session is shown as a tree (deeper whys under the
+why they dig into) with a summary and a conclusion. You can edit every question, answer
+and takeaway, add or remove whys, or edit the session as JSON. Answered whys add EXP to
+the note's fields.
 
-```sh
-npm install
-npm run auth:setup   # sign-in code (or KM_AUTH=off in .env), see above
-npm run dev          # http://localhost:5173 (UI) → API on :4317
-```
+## Link check
 
-Production-style (one process, one port):
+Copies a prompt (`Alt+Shift+L`) that asks an AI chat to fact-check the links around a
+note: whether each relation is true, points the right way and uses the right word. You
+pick how far out to look (the note's direct neighbours, or more levels). The prompt
+includes the titles, tags and content of those notes. The AI gives every link a verdict
+(correct, needs a fix, wrong, or unsure) and suggests the concrete change.
 
-```sh
-npm run build
-npm start            # http://127.0.0.1:4317
-```
+## Finding things
 
-Data lives in `~/.knowledge-manager/km.sqlite` by default.
+- **Sidebar**: all notes, most recently edited first, with a title search
+  (`Ctrl+Shift+F`).
+- **Go to Note** (`Ctrl+P`): type part of a title and press Enter.
+- **Command palette** (`F1` or `Ctrl+Shift+P`): every action, with recently used
+  commands first.
+- **Reveal in Graph** (from a note's menu): opens the graph centred on that note.
 
-| Env var            | Default                            | Purpose                                                                                                                           |
-| ------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `KM_HOST`          | `127.0.0.1`                        | Bind address (`0.0.0.0` to reach it on LAN)                                                                                       |
-| `KM_PORT`          | `4317`                             | HTTP port                                                                                                                         |
-| `KM_DB_PATH`       | `~/.knowledge-manager/km.sqlite`   | SQLite file (`:memory:` for throwaway)                                                                                            |
-| `KM_STATIC_DIR`    | `apps/web/dist`                    | Built UI to serve                                                                                                                 |
-| `KM_LOG_LEVEL`     | `info`                             | Pino log level                                                                                                                    |
-| `KM_ALLOWED_HOSTS` | _(empty)_                          | Extra hostnames accepted in `Host` (comma-separated). Loopback is always allowed; everything else gets 403 (DNS-rebinding guard). |
-| `KM_LEVEL_CONFIG`  | `level-config.json` next to the DB | EXP / level table (see below)                                                                                                     |
-| `KM_AUTH`          | `totp`                             | `totp` = sign in with an authenticator code; `off` = no sign-in (local only). See above.                                          |
+## Keyboard and commands
 
-### Fields, EXP and levels
+Most actions are commands, with shortcuts in the style of VS Code. The **Keyboard
+Shortcuts** page (`Ctrl+K Ctrl+S`) lists them all; you can search, add, change, remove
+or reset any binding, including two-step chords such as `Ctrl+K V`. Conflicts are shown.
 
-Every tag is a field. A field's EXP is the sum over the distinct nodes tagged with it
-or with any tag below it: each node is worth `expPerNode` plus one per `wordsPerExp`
-words of content (at most `maxContentExpPerNode`), plus its **5 Whys**: every why you
-answered earns `expPerWhy` at the top level and twice as much per level deeper (5, 10,
-20, 40, … by default), across all the node's sessions, at most `maxWhysExpPerNode` per
-node. Unanswered whys earn nothing. `levelThresholds` lists the total
-EXP for level 2, 3, ... The sidebar shows each field's level under the node list.
+| Action                       | Shortcut                     |
+| ---------------------------- | ---------------------------- |
+| Command palette              | `F1`, `Ctrl+Shift+P`         |
+| Go to note                   | `Ctrl+P`                     |
+| New note                     | `Alt+N`                      |
+| Rename note                  | `F2`                         |
+| Add link / add tag           | `Alt+L` / `Alt+G`            |
+| 5 Whys / copy its prompt     | `Alt+W` / `Alt+Shift+W`      |
+| Copy link check prompt       | `Alt+Shift+L`                |
+| Toggle preview / to the side | `Ctrl+K Ctrl+V` / `Ctrl+K V` |
+| Graph / Tags page            | `Alt+1` / `Alt+2`            |
+| Fit graph, zoom in, zoom out | `Shift+1`, `=`, `-`          |
+| Toggle sidebar               | `Ctrl+B`                     |
 
-The table is set by whoever runs the server, not from the app: copy
-[`level-config.example.json`](level-config.example.json) to `level-config.json` next to
-the database (`/data/level-config.json` in Docker), edit, restart. Missing keys use the
-defaults; a broken file stops the server with a message saying what is wrong.
+On macOS, `Ctrl` is `Cmd`, and the `Alt+` shortcuts are `Ctrl+Alt+` (or `Ctrl+` for the
+page switches), because `Option+letter` types characters there.
 
-### Using it on Android
+## Settings
 
-Run the server with `KM_HOST=0.0.0.0 KM_ALLOWED_HOSTS=<pc-ip>`, open `http://<pc-ip>:4317` on the phone and
-use "Add to home screen". Note: browsers only enable the service worker (offline
-shell, true install) on `https` or `localhost`. Over plain LAN http it works as a
-bookmarked web app. Proper install needs HTTPS (e.g. a reverse proxy or Tailscale).
+Personal settings are stored per device (in the browser), not on the server: graph
+settings, keyboard shortcuts, display language, vim mode, and the prompt languages and
+depth of 5 Whys and Link check.
 
-### Android app (read-only, Capacitor)
+To use the same settings on another device, **Export Settings…** saves them as a JSON
+file and **Import Settings…** loads one (command palette, or the buttons at the bottom
+of the graph settings). Importing replaces only the settings in the file and leaves the
+rest. Shortcuts carry over between Windows and macOS (`Ctrl` becomes `Cmd` and back).
+Invalid entries are skipped and listed.
 
-`apps/mobile` is an Android app that opens the web app from your server and
-shows it **read-only**: browse the graph, read nodes and follow links; nothing
-can be created, edited or deleted. The server enforces it too: the app signs in
-with a read-only session, and every write from it gets `403`.
+## Phone
 
-One-time setup on the PC:
+- **Browser**: open the server's address and add it to the home screen. It's the full
+  app with a touch-friendly layout.
+- **Android app**: opens the same server **read-only**. You can browse the graph, read
+  notes and follow links; nothing can be created, changed or deleted, and the server
+  enforces that too. Editing tools such as 5 Whys and Link check are left out to keep
+  it simple. Display settings for the graph have their own tab, and you can import a
+  settings file there.
 
-1. Install [Android Studio](https://developer.android.com/studio) (brings the
-   Android SDK and the right JDK). On the phone: _Settings → About phone → tap
-   Build number 7×_, then _Developer options → USB debugging_ on.
-2. In `.env`: `KM_MOBILE_SERVER_URL=http://<pc-wifi-ip>:4317` (`ipconfig`
-   shows the Wi-Fi IPv4). A DHCP reservation in the router keeps it fixed.
-3. Run the server so the phone can reach it (production build, not Vite):
+Both need the phone to reach your PC (same Wi-Fi). See
+[INSTALL.md](INSTALL.md#using-it-from-your-phone).
 
-   ```sh
-   npm run build
-   KM_HOST=0.0.0.0 KM_ALLOWED_HOSTS=<pc-wifi-ip> npm start
-   ```
+## Sign-in
 
-   Windows may ask to allow Node through the firewall: allow **Private** networks.
-   With sign-in on (`npm run auth:setup`), the app asks for the code like the web.
+Single user. You sign in with the 6-digit code from an authenticator app (Google
+Authenticator or any TOTP app). Each code works once, wrong codes are rate-limited, and
+a sign-in lasts a week by default. Sign-in can be turned off for a machine only you can
+reach. Details: [INSTALL.md](INSTALL.md#sign-in-setup).
 
-4. Build and install:
+## Backups and export
 
-   ```sh
-   npm run mobile:sync     # after changing KM_MOBILE_SERVER_URL or Capacitor config
-   npm run mobile:open     # opens Android Studio: press ▶ Run with the phone plugged in
-   # or, with the SDK on PATH:  npm run mobile:run
-   ```
+From the command palette:
 
-   Or build the APK without opening Android Studio (PowerShell), then copy
-   `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk` to the phone:
+- **Backup Now** saves a copy of the whole database.
+- **Export Markdown** writes one `.md` file per note, with front matter (type, tags,
+  properties, links as `[[wiki links]]`) and its 5 Whys sessions. Readable in Obsidian
+  or any editor, without this app.
 
-   ```powershell
-   $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
-   $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-   cd apps/mobile/android; .\gradlew.bat assembleDebug
-   ```
+Restoring a backup is a terminal command that keeps a copy of the current database
+first. See [INSTALL.md](INSTALL.md#backups-restore-and-markdown-export).
 
-The app needs the PC on and the same Wi-Fi (it shows a retry page otherwise).
+## Languages
 
-- It is plain http on the LAN: the sign-in code and the session cookie cross
-  the Wi-Fi unencrypted, so anyone on that network could listen in. Fine on
-  your own home Wi-Fi; anywhere else, put HTTPS in front (e.g. Caddy or
-  Tailscale), then use an `https://` `KM_MOBILE_SERVER_URL` and
-  `KM_COOKIE_SECURE=true`.
-- It is built for installing on your own phone (sideloading). An app that only
-  opens a server URL is not what the Play Store accepts.
+The interface is in **English** and **Vietnamese** (command palette: _Change Display
+Language_). It follows the browser's language until you pick one. The 5 Whys and Link
+check prompts can be in either language, independently of the interface.
 
-## Quality gates
+## How data is stored
 
-```sh
-npm run check      # typecheck + eslint (strict, type-aware) + prettier + vitest
-npm run test:e2e   # Playwright: desktop Chrome + Pixel 7
-```
-
-See `CLAUDE.md` for architecture and conventions, and `.claude/agents/critic.md`
-for the review agent.
+- One SQLite file on the machine running the server (default
+  `~/.knowledge-manager/km.sqlite`).
+- Nothing is sent to outside services. The AI features only copy text to your clipboard
+  for you to paste.
+- Records are never physically deleted: deletes are marked, and every change is
+  timestamped. This is groundwork for syncing between devices, which doesn't exist yet.

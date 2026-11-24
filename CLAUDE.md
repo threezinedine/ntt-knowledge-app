@@ -45,6 +45,11 @@ Product decisions already made (don't re-ask): the phone app only views graph an
 (see Sign-in → Read-only); the 3D graph is parked; tasks are gone; sync, spaced
 repetition (maybe on the phone) are later ideas, not started.
 
+Docs (English): `README.md` describes the product's features for a reader (no install
+steps, plain wording, no hype); `INSTALL.md` holds setup, configuration, backups and the
+Android build. A user-visible feature change updates the README; a new env var, command
+or setup step updates INSTALL.md.
+
 ## Layout
 
 - `packages/core`: zod schemas, shared types, pure domain logic (tag tree, cycle
@@ -110,7 +115,7 @@ a `dependencies` entry of `@km/server` or `@km/core`, or the image breaks.
   The `sessions` table is device-local secret state: never sync it.
 - `auth/loginGuard.ts`: codes work once (`CODE_USED`); wrong codes are rationed
   (5 in a row → 1 min pause, 10 per rolling 24 h, not reset by a success; in memory,
-  a restart clears it). Keep the ~1%/year guess odds documented in the README if this
+  a restart clears it). Keep the ~1%/year guess odds documented in INSTALL.md if this
   changes.
 - Read-only: a session made with `readOnly: true` (the phone app) gets 403 `READ_ONLY`
   on anything but GET/HEAD. In the web app, `features/readOnly.ts`
