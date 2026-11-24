@@ -39,6 +39,38 @@ test.describe('fields and levels', () => {
     await expect(row).toContainText('Lv 2');
   });
 
+  // Which level-ups count (not on load, not a regained level) is unit-tested in
+  // levelUps.test.ts; this covers the card itself.
+  test('a level up is congratulated, then the card goes away', async ({ page, api }) => {
+    await page.clock.install();
+    const tag = await api.createTag('Rust');
+    for (let i = 0; i < 4; i++) await api.createNode({ title: `R${i}`, tagIds: [tag.id] });
+    const a = await api.createNode({ title: 'Ownership' });
+    const b = await api.createNode({ title: 'Traits' });
+    const cheer = page.getByRole('status').filter({ hasText: 'Level up!' });
+    const row = fields(page).getByTestId('field-Rust');
+    const addTag = (title: string) =>
+      page.getByRole('combobox', { name: `Add tag to ${title}` }).selectOption({ label: 'Rust' });
+
+    await page.goto(`/nodes/${a.id}`);
+    await expect(row).toContainText('Lv 1');
+    await addTag('Ownership');
+    await expect(cheer).toContainText('Rust reached level 2');
+    await page.clock.runFor(6000); // by itself after 5 s
+    await expect(cheer).toHaveCount(0);
+
+    // Level 3 at 150 EXP (15 nodes). Reloaded at Lv 2: nothing to celebrate yet.
+    for (let i = 0; i < 9; i++) await api.createNode({ title: `S${i}`, tagIds: [tag.id] });
+    await page.goto(`/nodes/${b.id}`);
+    await expect(row).toContainText('Lv 2');
+    await expect(cheer).toHaveCount(0);
+    await addTag('Traits');
+    await expect(cheer).toContainText('Rust reached level 3');
+    await expect(cheer.getByRole('button', { name: 'Dismiss' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(cheer).toHaveCount(0);
+  });
+
   test('there is no control to change levels', async ({ page, api }) => {
     await api.createTag('Solo');
     await page.goto('/');

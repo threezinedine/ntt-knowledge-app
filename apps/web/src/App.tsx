@@ -10,6 +10,7 @@ import { readJson, writeJson } from './commands/storage';
 import { Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
 import { GraphIcon, KeyboardIcon, SearchIcon, SidebarIcon, TagIcon } from './components/icons';
 import { Toast } from './components/toast';
+import { LevelUpCelebration } from './features/exp/LevelUpCelebration';
 import { SignOutButton } from './features/auth/SignOutButton';
 import { GraphPage } from './features/graph/GraphPage';
 import { NodePage } from './features/node/NodePage';
@@ -112,6 +113,7 @@ export function App() {
       <QuickInput />
       <TooltipLayer />
       <Toast />
+      <LevelUpCelebration />
     </div>
   );
 }
