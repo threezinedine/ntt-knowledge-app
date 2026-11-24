@@ -1,10 +1,12 @@
 import type { LevelConfig } from '@km/core';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { buildApp, type AppOptions } from '../app.js';
-import { IN_MEMORY, openDatabase } from '../db/database.js';
+import { IN_MEMORY, openDatabase, type Database } from '../db/database.js';
 
 export interface TestApp {
   app: FastifyInstance;
+  /** The raw database, to arrange states the API can't produce. */
+  db: Database;
   /** Advances the fake clock (ms). */
   tick: (ms?: number) => void;
   request: <T = unknown>(
@@ -25,6 +27,7 @@ export async function createTestApp(
 
   return {
     app,
+    db,
     tick: (ms = 1) => {
       clock += ms;
     },

@@ -17,7 +17,8 @@ import { flushAllAutosaves } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
 import { useTagIndex } from '../tags/useTagIndex';
 import {
-  copyTextWhenReady,
+  copyPrompt,
+  NothingCachedError,
   PROMPT_LANGUAGES,
   usePromptLanguage,
   type PromptLanguage,
@@ -40,7 +41,8 @@ function tagPathsOf(tags: readonly Tag[]): TagPaths {
 /**
  * Side panel of a node: copy a prompt for any AI chat to fact-check every
  * link in this node's local graph (level 1–3), with a preview of its size.
- * Nothing comes back into the app, so it works in read-only mode too.
+ * Editable node page only: the phone app (read-only) just views the graph
+ * and notes.
  */
 export function LinkCheckPanel({ nodeId }: { nodeId: string }) {
   const { t, errorText } = useI18n();
@@ -60,21 +62,27 @@ export function LinkCheckPanel({ nodeId }: { nodeId: string }) {
   );
   const copyTip = useCommandTooltip('km.node.copyLinkCheckPrompt');
 
-  /** From the event handler itself (see copyTextWhenReady). Fresh data, typed text saved first. */
+  /**
+   * From the event handler itself (see copyPrompt): fresh data with the typed
+   * text saved first, or on plain http what the preview already shows.
+   */
   const copy = () => {
     const fresh = <T,>(queryKey: readonly unknown[], queryFn: () => Promise<T>) =>
       qc.query({ queryKey, queryFn, staleTime: 0 });
-    const built = (async () => {
+    const later = async () => {
       await flushAllAutosaves();
       const [local, tags]: [LocalGraph, Tag[]] = await Promise.all([
         fresh(keys.localGraph(nodeId, depth), () => api.nodes.localGraph(nodeId, depth)),
         fresh(keys.tags, api.tags.list),
       ]);
       return { local, text: buildLinkCheckPrompt(local, tagPathsOf(tags), lang) };
-    })();
-    void copyTextWhenReady(built.then((b) => b.text)).then(
-      async () => {
-        const { local, text } = await built;
+    };
+    const now = () =>
+      graph.data
+        ? { local: graph.data, text: buildLinkCheckPrompt(graph.data, tagPaths, lang) }
+        : null;
+    void copyPrompt(later, now).then(
+      ({ local, text }) => {
         showToast(
           t('linkCheck.copied', {
             notes: local.nodes.length,
@@ -83,8 +91,10 @@ export function LinkCheckPanel({ nodeId }: { nodeId: string }) {
           }),
         );
       },
-      () => {
-        showToast(t('linkCheck.copyFailed'));
+      (err: unknown) => {
+        showToast(
+          t(err instanceof NothingCachedError ? 'linkCheck.copyNotReady' : 'linkCheck.copyFailed'),
+        );
       },
     );
   };
@@ -126,7 +136,11 @@ export function LinkCheckPanel({ nodeId }: { nodeId: string }) {
         </button>
       </div>
       {graph.isError && <p className="error">{errorText(graph.error)}</p>}
-      <p className="muted link-check-preview" data-testid="link-check-preview">
+      <p
+        className="muted link-check-preview"
+        role="status"
+        aria-label={t('linkCheck.previewLabel')}
+      >
         {graph.data && chars !== null
           ? t('linkCheck.preview', {
               notes: graph.data.nodes.length,

@@ -53,16 +53,18 @@ describe('buildLinkCheckPrompt', () => {
         '## [N1] CPU (starting note)',
         'Tags: Computer / Hardware',
         'Description:',
-        '<<<',
+        '<<<N1',
         'Runs instructions.',
-        '>>>',
+        'N1>>>',
         'Outgoing links:',
         '- -[USES]-> [N2] Cache (L1)',
         'Incoming links:',
         '- [N3] Compiler -[TARGETS]-> (L2)',
       ].join('\n'),
     );
-    expect(p).toContain('## [N3] Compiler (1 link away)\nTags: none\nDescription:\n<<<\n(empty)');
+    expect(p).toContain(
+      '## [N3] Compiler (1 link away)\nTags: none\nDescription:\n<<<N3\n(empty)\nN3>>>',
+    );
   });
 
   it('marks links leaving the scope as context only, and lists the ones to check', () => {

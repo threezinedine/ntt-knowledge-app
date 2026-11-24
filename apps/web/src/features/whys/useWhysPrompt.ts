@@ -5,7 +5,7 @@ import { keys } from '../../api/queries';
 import { showToast } from '../../components/toast';
 import { flushAllAutosaves } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
-import { copyTextWhenReady, usePromptLanguage as usePromptLanguageFor } from '../ai/copyPrompt';
+import { copyPrompt, usePromptLanguage as usePromptLanguageFor } from '../ai/copyPrompt';
 import type { PromptLanguage } from '../ai/copyPrompt';
 import { buildWhysPrompt, type PromptInput } from './prompt';
 
@@ -35,7 +35,7 @@ export function useCopyWhysPrompt(nodeId: string) {
     // refetched (a link just added, a session just saved) is quoted stale.
     const fresh = <T>(queryKey: readonly unknown[], queryFn: () => Promise<T>) =>
       qc.query({ queryKey, queryFn, staleTime: 0 });
-    const built = (async () => {
+    const later = async () => {
       await flushAllAutosaves();
       const [node, edges, sessions] = await Promise.all([
         fresh(keys.node(nodeId), () => api.nodes.get(nodeId)),
@@ -46,10 +46,20 @@ export function useCopyWhysPrompt(nodeId: string) {
         text: buildWhysPrompt(promptInput(node, edges, sessions), lang),
         sessions: sessions.length,
       };
-    })();
-    return copyTextWhenReady(built.then((b) => b.text)).then(
-      async () => {
-        const { text, sessions } = await built;
+    };
+    // Plain http (no Clipboard API): what is cached, built in the gesture.
+    const now = () => {
+      const node = qc.getQueryData<GraphNode>(keys.node(nodeId));
+      const sessions = qc.getQueryData<WhySession[]>(keys.whys(nodeId));
+      if (!node || !sessions) return null;
+      const edges = qc.getQueryData<NodeEdges>(keys.nodeEdges(nodeId));
+      return {
+        text: buildWhysPrompt(promptInput(node, edges, sessions), lang),
+        sessions: sessions.length,
+      };
+    };
+    return copyPrompt(later, now).then(
+      ({ text, sessions }) => {
         showToast(t('whys.promptCopiedFull', { count: sessions, chars: text.length }));
       },
       () => {

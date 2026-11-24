@@ -82,6 +82,9 @@ a `dependencies` entry of `@km/server` or `@km/core`, or the image breaks.
   on anything but GET/HEAD. In the web app, `features/readOnly.ts`
   (`isNativeApp()` / `useReadOnly()`) hides every editing control, and `NodeView`
   replaces the editor. A new editing control must check `useReadOnly()`.
+  The phone only **views** the graph and nodes: feature panels (5 Whys, Link check,
+  anything new) mount only in `NodePage`'s editable branch, never in `NodeView`,
+  unless the user asks for one there (e.g. spaced repetition later).
 - Web: when a session ends mid-work, `AuthGate` shows a code dialog **over** the app
   (it stays mounted, so unsaved edits survive); `flushAllAutosaves()` saves them after
   sign-in and before sign-out.

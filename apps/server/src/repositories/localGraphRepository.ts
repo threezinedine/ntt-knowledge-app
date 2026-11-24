@@ -6,14 +6,17 @@ export type LocalGraphRepository = ReturnType<typeof createLocalGraphRepository>
 
 /** Read-only view over nodes and edges: a node's neighbourhood, for the link check. */
 export function createLocalGraphRepository(
-  nodes: Pick<NodeRepository, 'getOrThrow' | 'get'>,
+  nodes: Pick<NodeRepository, 'getOrThrow' | 'get' | 'summaries'>,
   edges: Pick<EdgeRepository, 'all'>,
 ) {
   return {
     of(rootId: string, depth: number): LocalGraph {
       // node:sqlite is synchronous: these reads see one consistent state.
       nodes.getOrThrow(rootId);
-      const all = edges.all();
+      // Only links between live nodes: after a sync a node's tombstone may
+      // arrive before its links' ones, and the search must not walk through it.
+      const live = new Set(nodes.summaries().map((n) => n.id));
+      const all = edges.all().filter((e) => live.has(e.fromId) && live.has(e.toId));
       const distance = localDistances(rootId, all, depth);
       const { inner, boundary } = splitLocalEdges(distance, all);
 

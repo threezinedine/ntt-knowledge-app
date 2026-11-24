@@ -5,7 +5,6 @@ import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { flushAllAutosaves } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
-import { useReadOnly } from '../readOnly';
 import { PROMPT_LANGUAGES, type PromptLanguage } from './prompt';
 import { useCopyWhysPrompt, usePromptLanguage } from './useWhysPrompt';
 import { WhysDialog } from './WhysDialog';
@@ -13,10 +12,10 @@ import { WhysDialog } from './WhysDialog';
 /**
  * Side panel of a node: how many 5 Whys sessions it has, the way in, and a
  * one-press copy of the full prompt for an AI chat (button or shortcut).
+ * Editable node page only: the phone app (read-only) has no 5 Whys.
  */
 export function WhysPanel({ node }: { node: GraphNode }) {
   const { t } = useI18n();
-  const readOnly = useReadOnly();
   const sessions = useWhySessions(node.id);
   const [open, setOpenState] = useState(false);
   // The prompt quotes the saved notes: save what is still being typed first.
@@ -31,14 +30,9 @@ export function WhysPanel({ node }: { node: GraphNode }) {
   useCommandHandler('km.node.whys', () => {
     setOpen(true);
   });
-  // Its result can only be saved by a writer, so read-only mode has no copy.
-  useCommandHandler(
-    'km.node.whysCopyPrompt',
-    () => {
-      void copyPrompt(lang);
-    },
-    !readOnly,
-  );
+  useCommandHandler('km.node.whysCopyPrompt', () => {
+    void copyPrompt(lang);
+  });
   const count = sessions.data?.length;
 
   return (
@@ -61,33 +55,31 @@ export function WhysPanel({ node }: { node: GraphNode }) {
         >
           {t('whys.open')}
         </button>
-        {!readOnly && (
-          <span className="whys-panel-copy">
-            <button
-              type="button"
-              className="subtle"
-              {...copyTip}
-              onClick={() => {
-                void copyPrompt(lang);
-              }}
-            >
-              {t('whys.copyPrompt')}
-            </button>
-            <select
-              aria-label={t('whys.promptLang')}
-              value={lang}
-              onChange={(e) => {
-                setLang(e.target.value as PromptLanguage);
-              }}
-            >
-              {PROMPT_LANGUAGES.map((l) => (
-                <option key={l} value={l}>
-                  {l.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </span>
-        )}
+        <span className="whys-panel-copy">
+          <button
+            type="button"
+            className="subtle"
+            {...copyTip}
+            onClick={() => {
+              void copyPrompt(lang);
+            }}
+          >
+            {t('whys.copyPrompt')}
+          </button>
+          <select
+            aria-label={t('whys.promptLang')}
+            value={lang}
+            onChange={(e) => {
+              setLang(e.target.value as PromptLanguage);
+            }}
+          >
+            {PROMPT_LANGUAGES.map((l) => (
+              <option key={l} value={l}>
+                {l.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </span>
       </div>
       {open && (
         <WhysDialog

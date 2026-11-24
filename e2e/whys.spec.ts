@@ -171,7 +171,7 @@ test.describe('5 Whys', () => {
     await page.getByRole('textbox', { name: 'Title' }).fill('Cache memory');
     await panel.getByRole('button', { name: 'Copy prompt' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Prompt copied' })).toContainText(
-      /Prompt copied \(\d+ characters, 1 earlier sessions\)/,
+      /Prompt copied \(characters: \d+, earlier sessions: 1\)/,
     );
     // Windows' clipboard turns \n into \r\n.
     const copied = (await page.evaluate<string>('navigator.clipboard.readText()')).replace(
@@ -195,7 +195,7 @@ test.describe('5 Whys', () => {
       .toContain('Tiêu đề: Cache memory');
   });
 
-  test('the phone app only shows sessions', async ({ page, api }) => {
+  test('the phone app has no 5 Whys and no link check: it only views', async ({ page, api }) => {
     const node = await api.createNode({ title: 'Cache' });
     await page.request.post(`/api/nodes/${node.id}/whys`, {
       data: { summary: 'Read me', whys: [{ question: 'Why?', answer: 'Because' }] },
@@ -204,16 +204,12 @@ test.describe('5 Whys', () => {
       content: 'window.Capacitor = { isNativePlatform: () => true, getPlatform: () => "android" };',
     });
     await page.goto(`/nodes/${node.id}`);
-    await page.getByRole('button', { name: 'Open 5 Whys' }).click();
-    const d = dialog(page);
-    await expect(d.getByRole('button', { name: 'Add' })).toHaveCount(0);
-    await d.getByRole('button', { name: /Read me/ }).click();
-    await expect(d.getByRole('list', { name: 'Whys' })).toContainText('Because');
-    await expect(d.getByRole('textbox')).toHaveCount(0);
-    await expect(d.getByRole('button', { name: 'Delete session' })).toHaveCount(0);
-    await d.getByRole('button', { name: 'Close' }).click();
-    await expect(
-      page.getByRole('region', { name: '5 Whys' }).getByRole('button', { name: 'Copy prompt' }),
-    ).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1, name: 'Cache' })).toBeVisible();
+    await expect(page.getByRole('region', { name: '5 Whys' })).toHaveCount(0);
+    await expect(page.getByRole('region', { name: 'Link check' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Copy prompt|Open 5 Whys/ })).toHaveCount(0);
+    // Their shortcuts have no handler there either.
+    await page.keyboard.press('Alt+W');
+    await expect(dialog(page)).toHaveCount(0);
   });
 });

@@ -323,7 +323,7 @@
   "whys.deleteConfirmButton": "Xoá",
   "whys.deleted": "Đã xoá phiên",
   "whys.missing": "Phiên này không còn nữa. Hãy quay lại danh sách.",
-  "whys.promptCopiedFull": "Đã copy prompt ({chars} ký tự, {count} phiên trước). Dán vào AI chat nhé.",
+  "whys.promptCopiedFull": "Đã copy prompt (ký tự: {chars}, phiên trước: {count}). Dán vào AI chat nhé.",
   "whys.copyPromptFailed": "Không copy được prompt. Mở 5 Whys → Thêm rồi copy ở đó.",
   "linkCheck.heading": "Link check",
   "linkCheck.help": "Copy prompt cho AI chat bất kỳ: AI kiểm chứng mọi liên kết quanh ghi chú này (tiêu đề, tag, mô tả, liên kết vào và ra) rồi trả về một báo cáo.",
@@ -331,8 +331,10 @@
   "linkCheck.levelN": "Level {level}",
   "linkCheck.promptLang": "Ngôn ngữ prompt",
   "linkCheck.copy": "Copy prompt",
-  "linkCheck.preview": "{notes} ghi chú · {links} liên kết cần check · {chars} ký tự",
+  "linkCheck.preview": "Ghi chú: {notes} · liên kết cần check: {links} · ký tự: {chars}",
   "linkCheck.noLinks": "Level này chưa có liên kết nào: AI sẽ không có gì để check.",
-  "linkCheck.copied": "Đã copy prompt Link check ({notes} ghi chú, {links} liên kết, {chars} ký tự). Dán vào AI chat nhé.",
-  "linkCheck.copyFailed": "Không copy được prompt. Thử lại, hoặc dùng trình duyệt khác."
+  "linkCheck.copied": "Đã copy prompt Link check (ghi chú: {notes}, liên kết: {links}, ký tự: {chars}). Dán vào AI chat nhé.",
+  "linkCheck.copyFailed": "Không copy được prompt. Kiểm tra trình duyệt có cho phép dùng clipboard không rồi thử lại.",
+  "linkCheck.previewLabel": "Độ dài prompt",
+  "linkCheck.copyNotReady": "Chưa tải xong: đợi dòng độ dài ở trên hiện ra rồi copy lại."
 }

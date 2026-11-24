@@ -323,7 +323,7 @@
   "whys.deleteConfirmButton": "Delete",
   "whys.deleted": "Session deleted",
   "whys.missing": "This session no longer exists. Go back to the list.",
-  "whys.promptCopiedFull": "Prompt copied ({chars} characters, {count} earlier sessions). Paste it into an AI chat.",
+  "whys.promptCopiedFull": "Prompt copied (characters: {chars}, earlier sessions: {count}). Paste it into an AI chat.",
   "whys.copyPromptFailed": "Couldn’t copy the prompt. Open 5 Whys → Add and copy it from there.",
   "linkCheck.heading": "Link check",
   "linkCheck.help": "Copy a prompt for any AI chat: it fact-checks every link around this note (titles, tags, descriptions, links in and out) and replies with a report.",
@@ -331,8 +331,10 @@
   "linkCheck.levelN": "Level {level}",
   "linkCheck.promptLang": "Prompt language",
   "linkCheck.copy": "Copy prompt",
-  "linkCheck.preview": "{notes} notes · {links} links to check · {chars} characters",
+  "linkCheck.preview": "Notes: {notes} · links to check: {links} · characters: {chars}",
   "linkCheck.noLinks": "No links at this level yet: the AI will have nothing to check.",
-  "linkCheck.copied": "Link check prompt copied ({notes} notes, {links} links, {chars} characters). Paste it into an AI chat.",
-  "linkCheck.copyFailed": "Couldn’t copy the prompt. Try again, or use another browser."
+  "linkCheck.copied": "Link check prompt copied (notes: {notes}, links: {links}, characters: {chars}). Paste it into an AI chat.",
+  "linkCheck.copyFailed": "Couldn’t copy the prompt. Check that the browser allows clipboard access, then try again.",
+  "linkCheck.previewLabel": "Prompt size",
+  "linkCheck.copyNotReady": "Not loaded yet: wait until the size above shows, then copy again."
 }

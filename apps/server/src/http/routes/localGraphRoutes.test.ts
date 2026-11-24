@@ -81,6 +81,15 @@ describe('local graph API', () => {
     expect(names(res.edges)).toEqual(['USES']);
   });
 
+  it('does not walk through a deleted node whose links were not tombstoned (sync)', async () => {
+    // Memory deleted, but its links left live, as a sync could leave them.
+    t.db.prepare('UPDATE nodes SET deleted_at = 1 WHERE id = ?').run(id('Memory'));
+    const res = (await local(id('CPU'), '?depth=3')).body;
+    expect(titles(res).map(([title]) => title)).toEqual(['CPU', 'Cache', 'Compiler']);
+    expect(names(res.edges)).toEqual(['TARGETS', 'USES']);
+    expect(res.boundary).toEqual([]);
+  });
+
   it('validates depth and 404s for an unknown node', async () => {
     for (const q of ['?depth=0', '?depth=4', '?depth=x', '?depth=1&extra=1']) {
       const res = await local(id('CPU'), q);

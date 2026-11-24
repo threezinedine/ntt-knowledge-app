@@ -27,7 +27,12 @@ export const keys = {
   node: (id: string) => ['nodes', 'detail', id] as const,
   allNodeEdges: ['nodes', 'edges'] as const,
   nodeEdges: (id: string) => ['nodes', 'edges', id] as const,
-  /** Under 'nodes': any node or edge change makes it stale. */
+  /**
+   * Under 'nodes', so edge and node create/delete make it stale; node edits
+   * and tag links invalidate `allLocalGraphs` themselves (it quotes titles,
+   * descriptions and tags).
+   */
+  allLocalGraphs: ['nodes', 'local'] as const,
   localGraph: (id: string, depth: number) => ['nodes', 'local', id, depth] as const,
   graph: ['graph'] as const,
   relations: ['relations'] as const,
@@ -145,6 +150,7 @@ export function useUpdateNode() {
       }
       if (labelChanged) stale.push(keys.graph, keys.allNodeEdges); // titles shown there
       if (patch.content !== undefined) stale.push(keys.exp); // longer notes earn more
+      if (labelChanged || patch.content !== undefined) stale.push(keys.allLocalGraphs);
       if (patch.position !== undefined) {
         qc.setQueryData<GraphSnapshot>(
           keys.graph,
@@ -289,6 +295,7 @@ export function useTagLink(kind: TaggableKind) {
       await Promise.all([
         qc.invalidateQueries({ queryKey: keys.nodeLists }),
         qc.invalidateQueries({ queryKey: keys.exp }),
+        qc.invalidateQueries({ queryKey: keys.allLocalGraphs }), // tags are quoted there
       ]);
     },
   });

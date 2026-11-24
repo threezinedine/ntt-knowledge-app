@@ -20,16 +20,16 @@ test.describe('link check', () => {
     await page.goto(`/nodes/${cpu.id}`);
     const panel = page.getByRole('region', { name: 'Link check' });
     const level = panel.getByRole('combobox', { name: 'Local graph level' });
-    const preview = panel.getByTestId('link-check-preview');
+    const preview = panel.getByRole('status', { name: 'Prompt size' });
     await expect(level).toHaveValue('1');
-    await expect(preview).toContainText(/^2 notes · 1 links to check · \d+ characters$/);
+    await expect(preview).toHaveText(/^Notes: 2 · links to check: 1 · characters: \d+$/);
     await level.selectOption('2');
-    await expect(preview).toContainText(/^3 notes · 2 links to check/);
+    await expect(preview).toContainText('Notes: 3 · links to check: 2');
 
     await panel.getByRole('button', { name: 'Copy prompt' }).click();
     await expect(
       page.getByRole('status').filter({ hasText: 'Link check prompt copied' }),
-    ).toContainText(/\(3 notes, 2 links, \d+ characters\)/);
+    ).toContainText(/\(notes: 3, links: 2, characters: \d+\)/);
     // Windows' clipboard turns \n into \r\n.
     const copied = (await page.evaluate<string>('navigator.clipboard.readText()')).replace(
       /\r\n/g,
@@ -53,17 +53,46 @@ test.describe('link check', () => {
       .toContain('Ghi chú gốc: [N1] CPU. Level 2');
   });
 
-  test('shows the preview in the phone app too (nothing is saved back)', async ({ page, api }) => {
-    const a = await api.createNode({ title: 'Alone' });
+  test('copies from a browser on another PC, where plain http has no Clipboard API', async ({
+    page,
+    api,
+  }) => {
+    const a = await api.createNode({ title: 'Rust', content: 'Ownership.' });
+    const b = await api.createNode({ title: 'Borrowing' });
+    await api.createEdge(a.id, b.id, 'HAS');
+    // http://<lan-ip>: not a secure context, so no navigator.clipboard;
+    // record what the old copy command copies instead.
     await page.addInitScript({
-      content: 'window.Capacitor = { isNativePlatform: () => true, getPlatform: () => "android" };',
+      content: `
+        Object.defineProperty(navigator, 'clipboard', { value: undefined });
+        window.__copied = null;
+        document.execCommand = (cmd) => {
+          if (cmd !== 'copy') return false;
+          window.__copied = document.activeElement && document.activeElement.value;
+          return true;
+        };`,
     });
     await page.goto(`/nodes/${a.id}`);
     const panel = page.getByRole('region', { name: 'Link check' });
-    await expect(panel.getByTestId('link-check-preview')).toContainText(
-      '1 notes · 0 links to check',
+    await expect(panel.getByRole('status', { name: 'Prompt size' })).toContainText(
+      'Notes: 2 · links to check: 1',
+    );
+    await panel.getByRole('button', { name: 'Copy prompt' }).click();
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Link check prompt copied' }),
+    ).toBeVisible();
+    const copied = await page.evaluate<string | null>('window.__copied');
+    expect(copied).toContain('- L1: [N1] Rust -[HAS]-> [N2] Borrowing');
+    expect(copied).toContain('Ownership.');
+  });
+
+  test('says when a level has no links to check', async ({ page, api }) => {
+    const a = await api.createNode({ title: 'Alone' });
+    await page.goto(`/nodes/${a.id}`);
+    const panel = page.getByRole('region', { name: 'Link check' });
+    await expect(panel.getByRole('status', { name: 'Prompt size' })).toContainText(
+      'Notes: 1 · links to check: 0',
     );
     await expect(panel.getByText(/No links at this level yet/)).toBeVisible();
-    await expect(panel.getByRole('button', { name: 'Copy prompt' })).toBeVisible();
   });
 });

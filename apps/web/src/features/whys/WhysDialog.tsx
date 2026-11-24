@@ -20,7 +20,6 @@ import {
 import { CloseIcon } from '../../components/icons';
 import { showToast } from '../../components/toast';
 import { useI18n } from '../../i18n/context';
-import { useReadOnly } from '../readOnly';
 import { buildWhysPrompt, PROMPT_LANGUAGES, WHYS_COMMANDS, type PromptLanguage } from './prompt';
 import { promptInput, usePromptLanguage } from './useWhysPrompt';
 import { WhyTreeEditor, WhyTreeView } from './WhyTree';
@@ -34,8 +33,9 @@ interface Props {
 
 /**
  * The 5 Whys of one node: past sessions, a new one (prompt for an AI chat,
- * then paste its JSON back), and editing a saved one. Read-only mode only
- * shows them. Leaving a view with unsaved edits asks first.
+ * then paste its JSON back), and editing a saved one. Leaving a view with
+ * unsaved edits asks first. Only on the editable node page: the phone app
+ * (read-only) shows no 5 Whys at all.
  */
 export function WhysDialog({ node, onClose }: Props) {
   const { t, errorText } = useI18n();
@@ -217,7 +217,6 @@ function SessionList({
   onOpen: (id: string) => void;
 }) {
   const { t, locale } = useI18n();
-  const readOnly = useReadOnly();
   const date = useMemo(
     () => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }),
     [locale],
@@ -227,11 +226,9 @@ function SessionList({
       <Guide open={!loading && sessions.length === 0} />
       <div className="whys-list-header">
         <h3>{t('whys.list')}</h3>
-        {!readOnly && (
-          <button type="button" onClick={onAdd}>
-            {t('whys.add')}
-          </button>
-        )}
+        <button type="button" onClick={onAdd}>
+          {t('whys.add')}
+        </button>
       </div>
       {loading && <p className="muted">{t('common.loading')}</p>}
       {!loading && sessions.length === 0 && <p className="muted">{t('whys.none')}</p>}
@@ -439,7 +436,6 @@ function SessionDetail({
   onDeleted: () => void;
 }) {
   const { t, errorText } = useI18n();
-  const readOnly = useReadOnly();
   const update = useUpdateWhySession(session.nodeId);
   const remove = useDeleteWhySession(session.nodeId);
   const copy = useCopy();
@@ -460,26 +456,6 @@ function SessionDetail({
   useEffect(() => {
     onDirtyChange(dirty);
   }, [dirty, onDirtyChange]);
-
-  if (readOnly) {
-    return (
-      <div className="whys-session-detail">
-        <SessionTexts summary={session.summary} conclusion={session.conclusion} />
-        <WhyTreeView items={session.whys} label={t('whys.tree')} />
-        <div className="dialog-actions">
-          <button
-            type="button"
-            className="subtle"
-            onClick={() => {
-              copy(whysDocument(session), t('whys.jsonCopied'));
-            }}
-          >
-            {t('whys.copyJson')}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   const applyJson = () => {
     const res = parseWhysText(json);
