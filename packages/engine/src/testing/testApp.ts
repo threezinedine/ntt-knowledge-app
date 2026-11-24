@@ -26,11 +26,22 @@ export interface TestApp {
  * the app's API in-process (the engine, as the web app runs it in a Worker).
  */
 export function createTestApp(
-  options: { levelConfig?: LevelConfig; fetch?: FetchLike; readOnly?: boolean } = {},
+  options: {
+    levelConfig?: LevelConfig;
+    fetch?: FetchLike;
+    readOnly?: boolean;
+    /** Another SQLite underneath (the browser's WebAssembly one); default node:sqlite. */
+    db?: Database;
+    newId?: () => string;
+  } = {},
 ): Promise<TestApp> {
-  const db = memoryDb();
+  const db = options.db ?? memoryDb();
   let clock = 1_700_000_000_000;
-  const repos = createRepositories({ db, now: () => clock, newId: () => crypto.randomUUID() });
+  const repos = createRepositories({
+    db,
+    now: () => clock,
+    newId: options.newId ?? (() => crypto.randomUUID()),
+  });
   if (options.levelConfig) repos.settings.set('levelConfig', JSON.stringify(options.levelConfig));
   const sync = createSyncService({
     db,

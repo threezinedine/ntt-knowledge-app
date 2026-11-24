@@ -5,7 +5,7 @@ import { useCommandHandler } from '../../commands/registry';
 import { showToast } from '../../components/toast';
 import { flushAllAutosaves } from '../../hooks/useAutosave';
 import { useI18n } from '../../i18n/context';
-import { importDatabase, markdownFiles } from '../../local/engine';
+import { importDatabase, markdownFiles, reloadAfterClosing } from '../../local/engine';
 import { useReadOnly } from '../readOnly';
 import type { SyncStatus } from '@km/core';
 import {
@@ -48,19 +48,21 @@ export function LocalFileCommands() {
   useCommandHandler(
     'km.local.openFromFile',
     () => {
+      // Always asked: this device's copy may be the only one (never pushed).
       const status = qc.getQueryData<SyncStatus>(keys.sync);
-      if (status?.connected && status.localChanged && !window.confirm(t('local.confirmOpen')))
-        return;
+      const safe = status?.connected === true && !status.localChanged;
+      if (!window.confirm(t(safe ? 'local.confirmOpen' : 'local.confirmOpenOnly'))) return;
       void (async () => {
         await flushAllAutosaves();
         const bytes = await pickDatabaseFile();
         if (!bytes) return;
         try {
           await importDatabase(bytes);
-          window.location.reload();
         } catch {
           showToast(t('local.openFailed'));
+          return;
         }
+        await reloadAfterClosing();
       })();
     },
     can,
@@ -70,9 +72,13 @@ export function LocalFileCommands() {
     'km.backup.exportMarkdown',
     () => {
       void (async () => {
-        const files = await markdownFiles();
-        const folder = await writeToFolder(files);
-        if (folder !== null) showToast(t('export.done', { files: files.length, dir: folder }));
+        try {
+          const files = await markdownFiles();
+          const folder = await writeToFolder(files);
+          if (folder !== null) showToast(t('export.done', { files: files.length, dir: folder }));
+        } catch {
+          showToast(t('export.failed'));
+        }
       })();
     },
     can,

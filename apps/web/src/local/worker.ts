@@ -7,6 +7,7 @@ import {
   createSyncService,
   markdownExport,
   migrate,
+  migrations,
   type Database,
   type FetchLike,
   type LocalApi,
@@ -43,8 +44,12 @@ const fetchViaPage: FetchLike = (url, init) =>
   new Promise<Response>((resolve, reject) => {
     const id = ++fetchSeq;
     pendingFetches.set(id, (r) => {
-      if (r.error !== undefined) reject(new TypeError(r.error));
-      else resolve(new Response(r.status === 204 ? null : r.text, { status: r.status }));
+      // A native HTTP layer can report odd statuses (-1): treat them as no answer.
+      if (r.error !== undefined || r.status < 200 || r.status > 599) {
+        reject(new TypeError(r.error ?? `No HTTP answer (${String(r.status)})`));
+        return;
+      }
+      resolve(new Response(r.status === 204 ? null : r.text, { status: r.status }));
     });
     const headers: Record<string, string> = {};
     new Headers(init.headers).forEach((v, k) => {
@@ -54,9 +59,60 @@ const fetchViaPage: FetchLike = (url, init) =>
       method: init.method ?? 'GET',
       headers,
       body: typeof init.body === 'string' ? init.body : null,
+      // The engine's time limit, enforced by the page (a signal can't cross over).
+      timeoutMs: timeoutOf(init.signal),
     };
     post({ type: 'fetch', id, url, init: message });
   });
+
+/** HubClient passes AbortSignal.timeout(ms); the page needs the number. */
+const timeouts = new WeakMap<AbortSignal, number>();
+const realTimeout = AbortSignal.timeout.bind(AbortSignal);
+AbortSignal.timeout = (ms: number) => {
+  const signal = realTimeout(ms);
+  timeouts.set(signal, ms);
+  return signal;
+};
+const timeoutOf = (signal: AbortSignal | null | undefined): number =>
+  (signal ? timeouts.get(signal) : undefined) ?? 30_000;
+
+/**
+ * A database file the user picked, checked and cleaned in memory before it
+ * replaces anything: it must be a Knowledge Manager database this version can
+ * open (migrated here, on the copy), and it loses the device-local secrets of
+ * wherever it came from (its hub link and token, a hub's devices and versions).
+ */
+function prepareImport(bytes: Uint8Array): Uint8Array {
+  const mem = new sqlite3.oo1.DB(':memory:');
+  try {
+    const p = sqlite3.wasm.allocFromTypedArray(bytes);
+    const capi = sqlite3.capi;
+    const rc = capi.sqlite3_deserialize(
+      mem.pointer as never,
+      'main',
+      p,
+      bytes.byteLength,
+      bytes.byteLength,
+      capi.SQLITE_DESERIALIZE_FREEONCLOSE | capi.SQLITE_DESERIALIZE_RESIZEABLE,
+    );
+    if (rc !== 0) throw new Error('Not an SQLite database');
+    const copy = wasmDatabase(sqlite3, mem);
+    const check = copy.prepare('PRAGMA quick_check').get() as Record<string, unknown> | undefined;
+    if (Object.values(check ?? {})[0] !== 'ok') throw new Error('The database file is damaged');
+    const version = (copy.prepare('PRAGMA user_version').get() as { user_version: number })
+      .user_version;
+    if (version === 0) throw new Error('Not a Knowledge Manager database');
+    if (version > migrations.length) throw new Error('Made by a newer version of the app');
+    configure(copy);
+    migrate(copy);
+    copy.exec(
+      'DELETE FROM sync_state; DELETE FROM hub_devices; DELETE FROM hub_versions; DELETE FROM sessions; VACUUM;',
+    );
+    return capi.sqlite3_js_db_export(mem.pointer as never);
+  } finally {
+    mem.close();
+  }
+}
 
 function open(): void {
   const raw = pool ? new pool.OpfsSAHPoolDb(FILE) : new sqlite3.oo1.DB(':memory:');
@@ -93,7 +149,14 @@ async function init(): Promise<Storage> {
         preserveOnInitFailure: true,
       } as Parameters<Sqlite3Static['installOpfsSAHPoolVfs']>[0]);
       break;
-    } catch {
+    } catch (error) {
+      // Only a lock is worth waiting for; anything else (no sync access
+      // handles, a private window refusing OPFS) means memory only.
+      if (!/NoModificationAllowed|InvalidState|lock|access handle/i.test(String(error))) {
+        pool = null;
+        open();
+        return 'memory';
+      }
       if (attempt >= 20) return 'busy';
       await new Promise((resolve) => setTimeout(resolve, 150));
     }
@@ -108,8 +171,16 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
   const msg = event.data;
   if (msg.type === 'init') {
     options = { readOnly: msg.readOnly, suggestedName: msg.suggestedName };
-    ready = init();
-    post({ type: 'ready', storage: await ready });
+    ready = init().catch((error: unknown) => {
+      console.error(error);
+      return 'failed' as const;
+    });
+    const storage = await ready;
+    post({
+      type: 'ready',
+      storage,
+      ...(storage === 'failed' ? { error: 'The local database could not be opened' } : {}),
+    });
     return;
   }
   if (msg.type === 'fetchResult') {
@@ -117,7 +188,17 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
     pendingFetches.delete(msg.id);
     return;
   }
-  await ready;
+  if ((await ready) === 'failed' || (await ready) === 'busy') {
+    if (msg.type === 'request') {
+      post({
+        type: 'response',
+        id: msg.id,
+        status: 503,
+        body: { error: { code: 'INTERNAL_ERROR', message: 'The local database is not open' } },
+      });
+    }
+    return;
+  }
   switch (msg.type) {
     case 'request': {
       const res = await handle({ method: msg.method, path: msg.path, body: msg.body });
@@ -136,21 +217,37 @@ self.onmessage = async (event: MessageEvent<ToWorker>) => {
       return;
     }
     case 'import': {
+      if (!pool) {
+        post({ type: 'imported', id: msg.id, error: 'No file storage here' });
+        return;
+      }
+      let clean: Uint8Array;
       try {
-        if (!pool) throw new Error('No file storage here');
+        clean = prepareImport(msg.bytes);
+      } catch (error) {
+        // Nothing was touched.
+        post({ type: 'imported', id: msg.id, error: String(error) });
+        return;
+      }
+      const previous = pool.exportFile(FILE); // to put back if anything fails
+      try {
         db.close();
-        await pool.importDb(FILE, msg.bytes);
+        await pool.importDb(FILE, clean);
         open();
         post({ type: 'imported', id: msg.id });
         post({ type: 'changed' });
       } catch (error) {
-        try {
-          open();
-        } catch {
-          // Leave it; the page reports the error.
-        }
+        await pool.importDb(FILE, previous);
+        open();
         post({ type: 'imported', id: msg.id, error: String(error) });
       }
+      return;
+    }
+    case 'close': {
+      // Before the page reloads: let the next page open the file at once.
+      db.close();
+      pool?.pauseVfs();
+      post({ type: 'closed', id: msg.id });
       return;
     }
     case 'markdown': {

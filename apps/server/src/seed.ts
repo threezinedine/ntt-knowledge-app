@@ -29,3 +29,16 @@ export function seedFirstVersion(db: Database, now: () => number = Date.now): Hu
     Number.MAX_SAFE_INTEGER,
   );
 }
+
+/**
+ * True when this server's own graph tables hold data that is in none of the
+ * hub's versions (edited here before the hub took over, after versions already
+ * existed). Nothing is lost, but no device can pull it: the log says so.
+ */
+export function hasUnversionedGraph(db: Database): boolean {
+  const snapshot = readSnapshot(db);
+  if (isEmptySnapshot(snapshot)) return false;
+  const hash = snapshotHash(canonicalSnapshotJson(snapshot));
+  const row = db.prepare('SELECT 1 AS x FROM hub_versions WHERE hash = ?').get(hash);
+  return row === undefined;
+}

@@ -215,7 +215,7 @@ export const migrations: readonly string[] = [
         sync_state: this device's link to a hub (one row at most). The token is
         a secret the device sends to the hub: device-local, never synced, and
         left out of backups.
-        hub_devices / hub_versions: only used on a hub (KM_HUB=on). Devices
+        hub_devices / hub_versions: only used on the hub (the server). Devices
         store a SHA-256 of their token, like sessions. A version is a whole
         snapshot (gzipped canonical JSON); numbers only grow. */ `
   CREATE TABLE sync_state (

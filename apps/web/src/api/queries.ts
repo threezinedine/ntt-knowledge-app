@@ -15,6 +15,7 @@ import type {
 } from '@km/core';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { flushAllAutosaves } from '../hooks/useAutosave';
+import { reloadAfterClosing } from '../local/engine';
 import { api } from './client';
 
 /**
@@ -149,7 +150,7 @@ export function useSyncPull() {
       } catch {
         // No note after the reload; the data is there either way.
       }
-      window.location.reload();
+      void reloadAfterClosing();
     },
   });
 }

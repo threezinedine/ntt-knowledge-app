@@ -15,21 +15,24 @@ const fakeFolderPicker = (page: Page) =>
   page.addInitScript(() => {
     const written: Record<string, string> = {};
     (window as unknown as { __written: typeof written }).__written = written;
+    const folder = {
+      name: 'notes',
+      // The export makes a fresh subfolder; its files land in `written` too.
+      getDirectoryHandle: () => Promise.resolve(folder),
+      getFileHandle: (name: string) =>
+        Promise.resolve({
+          createWritable: () =>
+            Promise.resolve({
+              write: (text: string) => {
+                written[name] = text;
+                return Promise.resolve();
+              },
+              close: () => Promise.resolve(),
+            }),
+        }),
+    };
     (window as unknown as { showDirectoryPicker: unknown }).showDirectoryPicker = () =>
-      Promise.resolve({
-        name: 'notes',
-        getFileHandle: (name: string) =>
-          Promise.resolve({
-            createWritable: () =>
-              Promise.resolve({
-                write: (text: string) => {
-                  written[name] = text;
-                  return Promise.resolve();
-                },
-                close: () => Promise.resolve(),
-              }),
-          }),
-      });
+      Promise.resolve(folder);
   });
 
 test.describe('markdown export and files on disk (command palette)', () => {
@@ -45,9 +48,9 @@ test.describe('markdown export and files on disk (command palette)', () => {
     await api.createEdge(a.id, b.id, 'HAS');
     await page.goto('/');
     await runCommand(page, 'Export Markdown');
-    await expect(page.getByRole('status').filter({ hasText: 'written to notes' })).toContainText(
-      '(notes: 2)',
-    );
+    await expect(
+      page.getByRole('status').filter({ hasText: 'written to notes/km-export-' }),
+    ).toContainText('(notes: 2)');
     const written = await page.evaluate(
       () => (window as unknown as { __written: Record<string, string> }).__written,
     );
@@ -112,5 +115,59 @@ test.describe('this device’s copy', () => {
     await expect(second.getByRole('heading', { name: 'Open in another tab' })).toBeVisible({
       timeout: 10_000,
     });
+  });
+});
+
+test.describe('opening a copy from a file', () => {
+  /** A file picker that hands over `bytes` (or junk), in the page. */
+  const fakeOpenPicker = (page: Page, bytes: number[]) =>
+    page.addInitScript((data: number[]) => {
+      (window as unknown as { showOpenFilePicker: unknown }).showOpenFilePicker = () =>
+        Promise.resolve([{ getFile: () => Promise.resolve(new Blob([new Uint8Array(data)])) }]);
+    }, bytes);
+
+  test('asks first, then this device’s copy is the file’s', async ({ page, api, isMobile }) => {
+    test.skip(isMobile, 'The palette needs a hardware keyboard; one profile is enough here.');
+    const kept = await api.createNode({ title: 'In the file' });
+    await page.goto('/');
+    const bytes = await page.evaluate(async () =>
+      Array.from(
+        await (
+          window as unknown as { __kmEngine: { exportDatabase: () => Promise<Uint8Array> } }
+        ).__kmEngine.exportDatabase(),
+      ),
+    );
+    await page.request.delete(`/api/nodes/${kept.id}`);
+    await fakeOpenPicker(page, bytes);
+    await page.reload();
+    let asked = '';
+    page.once('dialog', (d) => {
+      asked = d.message();
+      void d.accept();
+    });
+    await runCommand(page, 'Open a Copy from a File');
+    await expect(
+      page.getByRole('navigation', { name: 'Nodes' }).getByRole('link', { name: /In the file/ }),
+    ).toBeVisible();
+    expect(asked).toContain('replaces this device’s copy');
+  });
+
+  test('a file that isn’t one changes nothing', async ({ page, api, isMobile }) => {
+    test.skip(isMobile, 'The palette needs a hardware keyboard; one profile is enough here.');
+    await api.createNode({ title: 'Still here' });
+    await fakeOpenPicker(
+      page,
+      Array.from({ length: 4096 }, (_, i) => i % 251),
+    );
+    await page.goto('/');
+    page.once('dialog', (d) => void d.accept());
+    await runCommand(page, 'Open a Copy from a File');
+    await expect(
+      page.getByRole('status').filter({ hasText: 'isn’t a Knowledge Manager database' }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole('navigation', { name: 'Nodes' }).getByRole('link', { name: /Still here/ }),
+    ).toBeVisible();
   });
 });

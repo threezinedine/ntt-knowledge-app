@@ -20,15 +20,15 @@ export function LocalGate({ children }: { children: ReactNode }) {
   }, []);
 
   // The app shows at once (as it always did); its first answers wait for the engine.
-  if (storage === 'busy') {
+  if (storage === 'busy' || storage === 'failed') {
     return (
       <main className="auth-page">
         <div className="auth-card">
           <span className="auth-logo" aria-hidden="true">
             ◆
           </span>
-          <h1>{t('local.busyTitle')}</h1>
-          <p className="muted">{t('local.busy')}</p>
+          <h1>{t(storage === 'busy' ? 'local.busyTitle' : 'local.failedTitle')}</h1>
+          <p className="muted">{t(storage === 'busy' ? 'local.busy' : 'local.failed')}</p>
           <button
             type="button"
             onClick={() => {

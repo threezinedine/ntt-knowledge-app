@@ -5,7 +5,7 @@ import type { GraphNode } from './schemas/node.js';
 import type { Tag } from './schemas/tag.js';
 
 /**
- * Sync through a hub: one server (KM_HUB=on) keeps numbered versions of the
+ * Sync through the hub: the one server keeps numbered versions of the
  * whole graph, each a snapshot with a SHA-256 hash. Every device keeps only
  * its current copy. Pushing makes this device's copy the hub's newest
  * version; pulling replaces this device's copy with the newest version.
@@ -168,7 +168,7 @@ export interface HubLatest {
   snapshot: Snapshot;
 }
 
-/** POST /api/sync/connect (on the device): pair this device's server with a hub. */
+/** POST /api/sync/connect (the device's local API): pair this device with the hub. */
 export const syncConnectInputSchema = z.strictObject({
   hubUrl: hubUrlSchema,
   code: pairCodeSchema,

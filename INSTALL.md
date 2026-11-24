@@ -235,7 +235,9 @@ stays.
 - The web app's files are public (they hold no data); the hub answers only paired
   devices. The hub keeps only a hash of each device token.
 - Each device's copy is as safe as that device: anyone using its browser profile can
-  open it.
+  open it. A file it is saved to carries the device's hub token too (it can push):
+  keep that file private. Opening such a file on another device drops the token, so
+  that device connects again.
 - `.env` holds the pairing secret. It is gitignored.
 
 ## Development

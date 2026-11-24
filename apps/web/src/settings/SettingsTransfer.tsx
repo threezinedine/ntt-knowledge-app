@@ -5,6 +5,7 @@ import { copyTextNow } from '../features/ai/copyPrompt';
 import { isNativeApp } from '../features/readOnly';
 import { flushAllAutosaves } from '../hooks/useAutosave';
 import { useI18n } from '../i18n/context';
+import { reloadAfterClosing } from '../local/engine';
 import { IMPORT_NOTE_KEY, PENDING_IMPORT_KEY, type PendingImport } from './bootImport';
 import {
   browserStorage,
@@ -81,7 +82,7 @@ export function useSettingsTransfer(): {
       } catch {
         // Staged above already.
       }
-      window.location.reload();
+      void reloadAfterClosing();
     });
   };
 

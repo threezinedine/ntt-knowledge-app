@@ -1,6 +1,6 @@
 import { buildApp } from './app.js';
 import { authSettings, levelConfigPath, loadConfig } from './config.js';
-import { seedFirstVersion } from './seed.js';
+import { hasUnversionedGraph, seedFirstVersion } from './seed.js';
 import { openDatabase } from './db/database.js';
 import { loadLevelConfig } from './levelConfig.js';
 import { DEFAULT_ENV_FILE, loadEnvFile } from './envFile.js';
@@ -34,8 +34,14 @@ if (auth) {
 }
 app.log.info({ path: levelPath, source: level.source }, 'Level config loaded');
 const seeded = seedFirstVersion(db);
-if (seeded)
+if (seeded) {
   app.log.info({ version: seeded.version }, "This server's graph became the first version");
+} else if (hasUnversionedGraph(db)) {
+  app.log.warn(
+    "This server's own graph tables hold data that is in no hub version (edited here before " +
+      'the hub took over). Devices cannot pull it; it is left untouched in the database.',
+  );
+}
 
 let shuttingDown = false;
 async function shutdown(signal: string): Promise<void> {

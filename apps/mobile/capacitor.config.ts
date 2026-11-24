@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 /**
  * The Android app ships the web app itself (apps/web/dist, built by
  * `npm run mobile:sync`) and keeps its own read-only copy of the graph,
- * pulled from a sync hub (apps/web/src/api/phoneData.ts). It works offline;
+ * pulled from the hub (the engine Worker, apps/web/src/local). It works offline;
  * it only needs the hub to get a newer version. The hub's address is entered
  * in the app (Sync), not baked in.
  */

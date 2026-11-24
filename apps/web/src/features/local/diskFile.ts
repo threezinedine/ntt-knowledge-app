@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { exportDatabase, onDataChanged } from '../../local/engine';
+import { exportDatabase, onBeforeReload, onDataChanged } from '../../local/engine';
 
 /**
  * Keeps a copy of this device's database in a file the user picked on disk
@@ -75,7 +75,21 @@ async function kv<T>(mode: IDBTransactionMode, op: (s: IDBObjectStore) => IDBReq
   }
 }
 
-async function write(): Promise<void> {
+// Writes run one after another, and a change during one queues one more:
+// the file always ends with the newest data.
+let writing: Promise<void> = Promise.resolve();
+let dirty = false;
+function write(): Promise<void> {
+  dirty = true;
+  writing = writing.then(async () => {
+    if (!dirty) return;
+    dirty = false;
+    await writeNow();
+  });
+  return writing;
+}
+
+async function writeNow(): Promise<void> {
   if (!handle || state.paused) return;
   try {
     const bytes = await exportDatabase();
@@ -98,6 +112,13 @@ export function startDiskFile(): void {
   onDataChanged(() => {
     clearTimeout(timer);
     timer = setTimeout(() => void write(), 1_500);
+  });
+  // A reload (after a pull, an opened file) mustn't drop the write waiting above.
+  onBeforeReload(async () => {
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    timer = undefined;
+    await write();
   });
   void kv<Handle | undefined>('readonly', (s) => s.get('handle'))
     .then(async (saved) => {
@@ -182,10 +203,14 @@ export async function writeToFolder(
   } catch {
     return null;
   }
+  // A folder of its own each time: never over notes already in the picked folder
+  // (an Obsidian vault, say), and no stale notes of deleted nodes mixed in.
+  const name = `km-export-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+  const target = await dir.getDirectoryHandle(name, { create: true });
   for (const f of files) {
-    const out = await (await dir.getFileHandle(f.name, { create: true })).createWritable();
+    const out = await (await target.getFileHandle(f.name, { create: true })).createWritable();
     await out.write(f.content);
     await out.close();
   }
-  return dir.name;
+  return `${dir.name}/${name}`;
 }

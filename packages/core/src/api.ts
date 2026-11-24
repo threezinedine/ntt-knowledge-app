@@ -37,7 +37,6 @@ export const API_ERROR_REASONS = [
   'CODE_USED',
   'LOCKED_OUT',
   'READ_ONLY',
-  'BACKUP_FAILED',
   /** Sync: the hub has a version this device hasn't pulled (push with force to overwrite). */
   'SYNC_BEHIND',
   /** Sync: this device has changes the hub doesn't (pull with force to overwrite). */
@@ -66,21 +65,4 @@ export interface ApiErrorBody {
     message: string;
     details?: unknown;
   };
-}
-
-/** POST /api/backups: a copy of the database (without sign-in sessions). */
-export interface BackupResult {
-  /** File name inside `dir`. */
-  file: string;
-  /** The backup folder on the server's machine (KM_BACKUP_DIR). */
-  dir: string;
-  sizeBytes: number;
-  createdAt: number;
-}
-
-/** POST /api/exports/markdown: one .md file per node, written on the server's machine. */
-export interface MarkdownExportResult {
-  /** The folder the files were written to. */
-  dir: string;
-  files: number;
 }

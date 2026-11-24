@@ -41,13 +41,15 @@ export function wasmDatabase(sqlite3: Sqlite3Static, db: Oo1Db): Database {
       if (count === 0 || params.length === 0) return;
       const [first, ...rest] = params;
       if (isNamed(first)) {
+        // Like node:sqlite: unknown names are an error, and no mixing with positional values.
+        if (rest.length > 0) throw new Error('Named and positional parameters together');
         const named: Record<string, SqlValue> = {};
-        for (const name of names) {
-          const key = name.slice(1);
-          if (name !== '' && key in first) named[name] = first[key] ?? null;
+        for (const key of Object.keys(first)) {
+          const name = names.find((n) => n.slice(1) === key);
+          if (name === undefined) throw new Error(`Unknown named parameter '${key}'`);
+          named[name] = first[key] ?? null;
         }
         stmt.bind(named);
-        if (rest.length > 0) stmt.bind(rest as SqlValue[]);
       } else {
         stmt.bind(params as SqlValue[]);
       }

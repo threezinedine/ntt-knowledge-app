@@ -288,7 +288,6 @@
   "error.reason.CODE_USED": "That code was just used. Wait for the next one.",
   "error.code.FORBIDDEN": "Not allowed.",
   "error.reason.READ_ONLY": "This device can only view, not change anything.",
-  "error.reason.BACKUP_FAILED": "Couldn’t write to the backup folder. Check KM_BACKUP_DIR and that the folder can be written to.",
   "whys.heading": "5 Whys",
   "whys.open": "Open 5 Whys",
   "whys.none": "No sessions yet.",
@@ -388,7 +387,7 @@
   "sync.state.changesNew": "Changes not pushed yet (never synced)",
   "sync.state.behind": "A newer version is on the hub: version {version}",
   "sync.state.diverged": "Changed here, and a newer version is on the hub: version {version}",
-  "sync.connectIntro": "Connect this device to a hub: a Knowledge Manager server started with KM_HUB=on. Each device keeps its own copy. Push makes this device’s copy the hub’s newest version; Pull replaces this device’s copy with the newest version.",
+  "sync.connectIntro": "Connect this device to the hub: the Knowledge Manager server this app comes from. Each device keeps its own copy. Push makes this device’s copy the hub’s newest version; Pull replaces this device’s copy with the newest version.",
   "sync.hubUrl": "Hub address",
   "sync.code": "Code from the hub’s authenticator app",
   "sync.codeHint": "Leave it empty if the hub runs with sign-in off.",
@@ -426,7 +425,7 @@
   "error.reason.SYNC_NOT_CONNECTED": "This device isn’t connected to a hub.",
   "error.reason.HUB_UNREACHABLE": "Can’t reach the hub. Check the address and the network.",
   "error.reason.HUB_DENIED": "The hub no longer accepts this device. Disconnect and connect again.",
-  "error.reason.HUB_NOT_ENABLED": "No hub at that address (the server needs KM_HUB=on).",
+  "error.reason.HUB_NOT_ENABLED": "No Knowledge Manager hub at that address.",
   "error.reason.HUB_INCOMPATIBLE": "The hub’s data is from a different version of the app. Update the app.",
   "error.reason.HUB_EMPTY": "The hub has no version yet: push one from a device first.",
   "error.reason.HUB_HOST_REFUSED": "The hub refused the address used to reach it: add it to the hub’s KM_ALLOWED_HOSTS.",
@@ -446,5 +445,9 @@
   "local.stopped": "No longer saving to a file",
   "local.confirmOpen": "This device has changes that aren’t on the hub. Opening a file replaces them. Open anyway?",
   "local.openFailed": "That file isn’t a Knowledge Manager database.",
-  "sync.unsavedLeave": "Changes not pushed yet"
+  "sync.unsavedLeave": "Changes not pushed yet",
+  "local.confirmOpenOnly": "Opening a file replaces this device’s copy, which may be the only copy of your data (it isn’t on a hub). Save it to a file first if you want to keep it. Open anyway?",
+  "local.failedTitle": "The local database couldn’t be opened",
+  "local.failed": "This device’s copy of your data couldn’t be opened. Try again; if it keeps failing, the browser console says why.",
+  "export.failed": "The markdown export failed."
 }

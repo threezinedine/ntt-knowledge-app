@@ -15,7 +15,7 @@ const HEAD_TIMEOUT_MS = 5_000;
 const TRANSFER_TIMEOUT_MS = 120_000;
 
 /**
- * Talks to a hub from this device's server. Every failure becomes an
+ * Talks to the hub from this device's engine. Every failure becomes an
  * AppError the web app can show: never a 401 (that would look like this
  * server's own sign-in ending), so the hub's refusals are 502s with the
  * hub's reason.
@@ -122,7 +122,7 @@ export class HubClient {
     if (body?.code === 'FORBIDDEN_HOST') {
       return hubError('HUB_HOST_REFUSED', 'The hub refused its own address (KM_ALLOWED_HOSTS)');
     }
-    // A missing route: a Knowledge Manager without KM_HUB=on, or another server.
+    // A missing route: not a Knowledge Manager hub (or an older one).
     if (status === 404 || body === undefined) {
       return hubError('HUB_NOT_ENABLED', `No hub at ${this.baseUrl} (HTTP ${String(status)})`);
     }

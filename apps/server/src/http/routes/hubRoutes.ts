@@ -33,6 +33,8 @@ export interface HubOptions {
 export const HUB_ROUTE_PREFIX = '/api/hub/';
 const PAIR_ROUTE = '/api/hub/pair';
 const CONFIG_ROUTE = '/api/hub/config';
+/** Everything else under /api needs a device token (deny by default). */
+const PUBLIC_ROUTES = new Set(['/api/health', PAIR_ROUTE, CONFIG_ROUTE]);
 
 /** A pushed snapshot can be far larger than a normal request. */
 const PUSH_BODY_LIMIT = 256 * 1024 * 1024;
@@ -54,12 +56,8 @@ export function registerHubRoutes(
   // Deny by default, decided on the matched route like http/auth.ts.
   app.addHook('onRequest', (request, _reply, done) => {
     const route = request.routeOptions.url;
-    if (
-      route === undefined ||
-      !route.startsWith(HUB_ROUTE_PREFIX) ||
-      route === PAIR_ROUTE ||
-      route === CONFIG_ROUTE
-    ) {
+    // Unmatched requests fall through to the 404 handler; outside /api is the web app.
+    if (route === undefined || !route.startsWith('/api') || PUBLIC_ROUTES.has(route)) {
       done();
       return;
     }

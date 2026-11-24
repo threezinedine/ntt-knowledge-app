@@ -5,6 +5,7 @@ import { useCommandHandler } from '../../commands/registry';
 import { SyncIcon } from '../../components/icons';
 import { showToast } from '../../components/toast';
 import { useI18n } from '../../i18n/context';
+import { hasWritten, memoryOnly } from '../../local/engine';
 import { isNativeApp, useReadOnly } from '../readOnly';
 import { SyncDialog } from './SyncDialog';
 import { dismissSyncWarning, openSyncDialog, useSyncUi } from './syncStore';
@@ -59,11 +60,7 @@ export function SyncIndicator() {
   );
 }
 
-/**
- * Can this page sync? A normal session: push and pull through its server.
- * The phone app: pull only, through its own engine copy (local/worker.ts). A
- * read-only session in a browser: neither (its server refuses writes).
- */
+/** Every device syncs: a browser pushes and pulls; the phone app only pulls. */
 export function useCanSync(): boolean {
   const readOnly = useReadOnly();
   return !readOnly || isNativeApp();
@@ -103,9 +100,9 @@ export function SyncHost() {
   const status = useSyncStatus(canSync);
   const unpushed = status.data?.connected === true && status.data.localChanged;
   useEffect(() => {
-    if (!unpushed) return;
     const warn = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
+      // In memory-only mode (a private window) everything is lost on close.
+      if (unpushed || (memoryOnly() && hasWritten())) e.preventDefault();
     };
     window.addEventListener('beforeunload', warn);
     return () => {

@@ -209,9 +209,14 @@ export function createLocalApi({ repos, sync, readOnly }: LocalApiOptions) {
         ) {
           throw new ForbiddenError('READ_ONLY', 'This device can only read');
         }
-        const params = Object.fromEntries(
-          route.keys.map((k, i) => [k, decodeURIComponent(match[i + 1] ?? '')]),
-        );
+        let params: Record<string, string>;
+        try {
+          params = Object.fromEntries(
+            route.keys.map((k, i) => [k, decodeURIComponent(match[i + 1] ?? '')]),
+          );
+        } catch {
+          return errorResponse(400, 'BAD_REQUEST', 'Malformed path');
+        }
         const body = await route.handler({ params, query, body: request.body });
         if (body === undefined) return { status: 204, body: undefined };
         return { status: route.created ? 201 : 200, body };

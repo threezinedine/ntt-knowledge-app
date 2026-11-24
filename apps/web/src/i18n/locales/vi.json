@@ -288,7 +288,6 @@
   "error.reason.CODE_USED": "Mã này vừa được dùng. Hãy chờ mã tiếp theo.",
   "error.code.FORBIDDEN": "Không được phép.",
   "error.reason.READ_ONLY": "Thiết bị này chỉ được xem, không sửa được.",
-  "error.reason.BACKUP_FAILED": "Không ghi được vào thư mục backup. Kiểm tra KM_BACKUP_DIR và quyền ghi của thư mục đó.",
   "whys.heading": "5 Whys",
   "whys.open": "Mở 5 Whys",
   "whys.none": "Chưa có phiên nào.",
@@ -388,7 +387,7 @@
   "sync.state.changesNew": "Có thay đổi chưa đẩy lên (chưa đồng bộ lần nào)",
   "sync.state.behind": "Hub có bản mới hơn: bản {version}",
   "sync.state.diverged": "Máy này đã sửa, và hub có bản mới hơn: bản {version}",
-  "sync.connectIntro": "Kết nối máy này với một hub: một server Knowledge Manager chạy với KM_HUB=on. Mỗi máy giữ bản riêng của mình. Đẩy lên: bản của máy này thành bản mới nhất trên hub. Lấy về: thay bản của máy này bằng bản mới nhất.",
+  "sync.connectIntro": "Kết nối máy này với hub: server Knowledge Manager mà app này được mở từ đó. Mỗi máy giữ bản riêng. Đẩy lên: bản của máy này thành bản mới nhất trên hub. Lấy về: thay bản của máy này bằng bản mới nhất.",
   "sync.hubUrl": "Địa chỉ hub",
   "sync.code": "Mã trong app xác thực của hub",
   "sync.codeHint": "Để trống nếu hub tắt đăng nhập.",
@@ -426,7 +425,7 @@
   "error.reason.SYNC_NOT_CONNECTED": "Máy này chưa kết nối hub.",
   "error.reason.HUB_UNREACHABLE": "Không kết nối được hub. Kiểm tra địa chỉ và mạng.",
   "error.reason.HUB_DENIED": "Hub không còn nhận máy này. Ngắt kết nối rồi kết nối lại.",
-  "error.reason.HUB_NOT_ENABLED": "Không có hub ở địa chỉ đó (server cần KM_HUB=on).",
+  "error.reason.HUB_NOT_ENABLED": "Không có hub Knowledge Manager ở địa chỉ đó.",
   "error.reason.HUB_INCOMPATIBLE": "Dữ liệu trên hub là của phiên bản app khác. Hãy cập nhật app.",
   "error.reason.HUB_EMPTY": "Hub chưa có bản nào: đẩy một bản từ một máy trước.",
   "error.reason.HUB_HOST_REFUSED": "Hub từ chối địa chỉ dùng để kết nối: thêm nó vào KM_ALLOWED_HOSTS của hub.",
@@ -446,5 +445,9 @@
   "local.stopped": "Đã ngừng lưu ra file",
   "local.confirmOpen": "Máy này có thay đổi chưa có trên hub. Mở file sẽ thay chúng. Vẫn mở?",
   "local.openFailed": "File đó không phải database của Knowledge Manager.",
-  "sync.unsavedLeave": "Có thay đổi chưa đẩy lên"
+  "sync.unsavedLeave": "Có thay đổi chưa đẩy lên",
+  "local.confirmOpenOnly": "Mở file sẽ thay bản của máy này, có thể là bản duy nhất của dữ liệu (chưa có trên hub). Muốn giữ thì lưu ra file trước. Vẫn mở?",
+  "local.failedTitle": "Không mở được database trên máy",
+  "local.failed": "Không mở được bản dữ liệu của máy này. Thử lại; nếu vẫn lỗi, console của trình duyệt ghi lý do.",
+  "export.failed": "Xuất markdown bị lỗi."
 }

@@ -40,7 +40,7 @@ Windows-only notes below (Git Bash vitest quirk, Android `JAVA_HOME` paths) don'
 on Linux/macOS; there `npm run check` works from any shell.
 
 Product decisions already made (don't re-ask): the phone app only views graph and nodes
-(see Sign-in → Read-only); the 3D graph is parked; tasks are gone; spaced repetition
+(see Pairing, secrets and read-only); the 3D graph is parked; tasks are gone; spaced repetition
 (maybe on the phone) is a later idea, not started.
 
 Architecture and sync (the user's design, don't re-ask): like git + GitHub. **One

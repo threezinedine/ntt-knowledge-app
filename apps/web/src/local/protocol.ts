@@ -8,12 +8,16 @@ export type Storage =
   /** Only in memory: OPFS isn't available here (e.g. a private window). Gone on reload. */
   | 'memory'
   /** The file is held by another tab of this app. */
-  | 'busy';
+  | 'busy'
+  /** The database couldn't be opened at all (see the console). */
+  | 'failed';
 
 export interface FetchInit {
   method: string;
   headers: Record<string, string>;
   body: string | null;
+  /** No answer within this: the hub counts as unreachable. */
+  timeoutMs: number;
 }
 
 export interface FetchResult {
@@ -30,10 +34,12 @@ export type ToWorker =
   | { type: 'export'; id: number }
   | { type: 'import'; id: number; bytes: Uint8Array }
   | { type: 'markdown'; id: number }
+  | { type: 'close'; id: number }
   | { type: 'fetchResult'; id: number; result: FetchResult };
 
 export type FromWorker =
-  | { type: 'ready'; storage: Storage }
+  | { type: 'ready'; storage: Storage; error?: string }
+  | { type: 'closed'; id: number }
   | { type: 'response'; id: number; status: number; body: unknown }
   | { type: 'exported'; id: number; bytes?: Uint8Array; error?: string }
   | { type: 'imported'; id: number; error?: string }
