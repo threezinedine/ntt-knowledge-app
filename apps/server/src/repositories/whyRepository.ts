@@ -23,7 +23,8 @@ interface WhySessionRow {
   updated_at: number;
 }
 
-const storedWhysSchema = z.array(whyItemSchema);
+/** A session's `whys` column as stored (also read by expRepository). */
+export const storedWhysSchema = z.array(whyItemSchema);
 
 const toSession = (row: WhySessionRow): WhySession => ({
   id: row.id,

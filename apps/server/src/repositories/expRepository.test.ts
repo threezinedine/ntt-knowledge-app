@@ -17,6 +17,34 @@ const words = (id: string) =>
     updated_at: number;
   };
 
+describe('5 Whys inputs', () => {
+  // (Not-JSON can't happen: the column has CHECK json_valid.)
+  it('skips a session whose tree has the wrong shape instead of failing', () => {
+    const repos = createRepositories({ db, now: () => 10, newId: () => crypto.randomUUID() });
+    const n = repos.nodes.create({
+      type: 'note',
+      title: 'N',
+      content: '',
+      props: {},
+      position: null,
+      tagIds: [],
+    });
+    const insert = db.prepare(
+      `INSERT INTO why_sessions (id, node_id, summary, conclusion, whys, created_at, updated_at)
+       VALUES (?, ?, '', '', ?, 1, 1)`,
+    );
+    insert.run(crypto.randomUUID(), n.id, '[{"question": 1}]');
+    insert.run(
+      crypto.randomUUID(),
+      n.id,
+      JSON.stringify([
+        { id: crypto.randomUUID(), question: 'Q', answer: 'A', takeaway: '', children: [] },
+      ]),
+    );
+    expect(repos.exp.inputs().nodes).toEqual([{ words: 0, tagIds: [], whyDepths: [1] }]);
+  });
+});
+
 describe('content_words cache', () => {
   it('is backfilled once for rows written before it existed, without bumping updated_at', () => {
     db.exec(`INSERT INTO nodes (id, type, title, content, created_at, updated_at)

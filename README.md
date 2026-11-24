@@ -127,7 +127,10 @@ Data lives in `~/.knowledge-manager/km.sqlite` by default.
 
 Every tag is a field. A field's EXP is the sum over the distinct nodes tagged with it
 or with any tag below it: each node is worth `expPerNode` plus one per `wordsPerExp`
-words of content (at most `maxContentExpPerNode`). `levelThresholds` lists the total
+words of content (at most `maxContentExpPerNode`), plus its **5 Whys**: every why you
+answered earns `expPerWhy` at the top level and twice as much per level deeper (5, 10,
+20, 40, … by default), across all the node's sessions, at most `maxWhysExpPerNode` per
+node. Unanswered whys earn nothing. `levelThresholds` lists the total
 EXP for level 2, 3, ... The sidebar shows each field's level under the node list.
 
 The table is set by whoever runs the server, not from the app: copy

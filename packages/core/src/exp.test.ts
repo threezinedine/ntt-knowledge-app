@@ -7,6 +7,7 @@ import {
   levelConfigSchema,
   levelFor,
   nodeExp,
+  whysExp,
 } from './exp.js';
 
 const config = levelConfigSchema.parse({
@@ -29,6 +30,27 @@ describe('nodeExp', () => {
     expect(nodeExp(0, config)).toBe(10);
     expect(nodeExp(25, config)).toBe(12);
     expect(nodeExp(1000, config)).toBe(15); // capped
+  });
+});
+
+describe('whysExp', () => {
+  const whys = levelConfigSchema.parse({ expPerWhy: 5, maxWhysExpPerNode: 100 });
+
+  it('doubles per level of depth', () => {
+    expect(whysExp([], whys)).toBe(0);
+    expect(whysExp([1], whys)).toBe(5);
+    expect(whysExp([2], whys)).toBe(10);
+    expect(whysExp([1, 2, 3, 4], whys)).toBe(5 + 10 + 20 + 40);
+  });
+
+  it('is capped per node, even for a very deep why', () => {
+    expect(whysExp([1, 2, 3, 4, 5], whys)).toBe(100); // 155 uncapped
+    expect(whysExp([30], whys)).toBe(100);
+  });
+
+  it('defaults to 5 per top-level why, at most 200 per node', () => {
+    expect(whysExp([1, 3], DEFAULT_LEVEL_CONFIG)).toBe(25);
+    expect(whysExp([6, 6], DEFAULT_LEVEL_CONFIG)).toBe(200);
   });
 });
 
@@ -55,15 +77,29 @@ describe('computeTagExp', () => {
   ];
 
   it('adds a node to its tags and every ancestor', () => {
-    const totals = computeTagExp(tags, [{ words: 0, tagIds: ['cpu'] }], config);
+    const totals = computeTagExp(tags, [{ words: 0, tagIds: ['cpu'], whyDepths: [] }], config);
     expect(totals.get('cpu')).toEqual({ exp: 10, nodeCount: 1 });
     expect(totals.get('computer')).toEqual({ exp: 10, nodeCount: 1 });
     expect(totals.get('gpu')).toEqual({ exp: 0, nodeCount: 0 });
   });
 
   it('counts a node once per field, however many of its tags lie below it', () => {
-    const totals = computeTagExp(tags, [{ words: 0, tagIds: ['cpu', 'gpu', 'computer'] }], config);
+    const totals = computeTagExp(
+      tags,
+      [{ words: 0, tagIds: ['cpu', 'gpu', 'computer'], whyDepths: [] }],
+      config,
+    );
     expect(totals.get('computer')).toEqual({ exp: 10, nodeCount: 1 });
+  });
+
+  it('adds 5 Whys EXP to the node, so to all its fields', () => {
+    const totals = computeTagExp(tags, [{ words: 0, tagIds: ['cpu'], whyDepths: [1, 2] }], {
+      ...config,
+      expPerWhy: 3,
+      maxWhysExpPerNode: 100,
+    });
+    expect(totals.get('cpu')).toEqual({ exp: 10 + 3 + 6, nodeCount: 1 });
+    expect(totals.get('computer')).toEqual({ exp: 19, nodeCount: 1 });
   });
 
   it('ignores unknown tags and survives a corrupt cycle', () => {
@@ -71,7 +107,11 @@ describe('computeTagExp', () => {
       { id: 'a', parentId: 'b' },
       { id: 'b', parentId: 'a' },
     ];
-    const totals = computeTagExp(cyclic, [{ words: 0, tagIds: ['a', 'gone'] }], config);
+    const totals = computeTagExp(
+      cyclic,
+      [{ words: 0, tagIds: ['a', 'gone'], whyDepths: [] }],
+      config,
+    );
     expect(totals.get('a')?.exp).toBe(10);
     expect(totals.get('b')?.exp).toBe(10);
   });
@@ -93,8 +133,8 @@ describe('expSnapshot', () => {
     const snapshot = expSnapshot(
       [{ id: 'cpu', parentId: null }],
       [
-        { words: 0, tagIds: ['cpu'] },
-        { words: 0, tagIds: ['cpu'] },
+        { words: 0, tagIds: ['cpu'], whyDepths: [] },
+        { words: 0, tagIds: ['cpu'], whyDepths: [] },
       ],
       config,
     );

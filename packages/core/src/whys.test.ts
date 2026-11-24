@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  answeredWhyDepths,
   createWhySessionInputSchema,
   extractJson,
   flattenWhys,
@@ -26,6 +27,24 @@ const doc = {
     { question: 'Why not make RAM faster?', answer: 'Cost', takeaway: '', children: [] },
   ],
 };
+
+describe('answeredWhyDepths', () => {
+  interface T {
+    answer: string;
+    children: T[];
+  }
+  const why = (answer: string, children: T[] = []): T => ({ answer, children });
+
+  it('lists the depth of answered whys only', () => {
+    expect(answeredWhyDepths(doc.whys).sort((a, b) => a - b)).toEqual([1, 1]); // the deeper one is unanswered
+    expect(answeredWhyDepths([])).toEqual([]);
+  });
+
+  it('keeps the depth of an answered why under an unanswered one', () => {
+    const tree = [why('  ', [why('yes', [why('deeper')])])];
+    expect(answeredWhyDepths(tree).sort((a, b) => a - b)).toEqual([2, 3]);
+  });
+});
 
 describe('extractJson', () => {
   it('takes a ```json block out of a chat reply', () => {

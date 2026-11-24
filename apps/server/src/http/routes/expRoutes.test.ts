@@ -9,6 +9,8 @@ beforeEach(async () => {
       expPerNode: 10,
       wordsPerExp: 2,
       maxContentExpPerNode: 3,
+      expPerWhy: 1,
+      maxWhysExpPerNode: 10,
       levelThresholds: [20, 40],
     }),
   });
@@ -58,6 +60,56 @@ describe('GET /api/exp', () => {
     await t.request('PUT', `/api/nodes/${n.id}/tags/${cpu.id}`);
     await t.request('DELETE', `/api/nodes/${n.id}`);
     expect(of(await exp(), cpu.id)).toMatchObject({ exp: 0, nodeCount: 0 });
+  });
+
+  it('adds answered 5 Whys, doubling per level and capped per node', async () => {
+    const cpu = await tag('CPU');
+    const n = await node('N', [cpu.id]);
+    const q = (question: string, answer: string, children: unknown[] = []) => ({
+      question,
+      answer,
+      children,
+    });
+    // expPerWhy 1: depth 1 → 1, 2 → 2, 3 → 4; the unanswered one earns 0.
+    const created = await t.request<{ id: string }>('POST', `/api/nodes/${n.id}/whys`, {
+      whys: [q('a', 'yes', [q('b', 'yes', [q('c', 'yes')]), q('d', '')])],
+    });
+    expect(created.status).toBe(201);
+    expect(of(await exp(), cpu.id)?.exp).toBe(10 + 1 + 2 + 4);
+
+    // A second session adds up, to the cap of 10.
+    await t.request('POST', `/api/nodes/${n.id}/whys`, { whys: [q('e', 'yes', [q('f', 'yes')])] });
+    expect(of(await exp(), cpu.id)?.exp).toBe(10 + 10);
+
+    await t.request('DELETE', `/api/whys/${created.body.id}`);
+    expect(of(await exp(), cpu.id)?.exp).toBe(10 + 1 + 2);
+
+    await t.request('DELETE', `/api/nodes/${n.id}`);
+    expect(of(await exp(), cpu.id)?.exp).toBe(0);
+  });
+
+  it('follows answers filled in and cleared by PATCH', async () => {
+    const cpu = await tag('CPU');
+    const n = await node('N', [cpu.id]);
+    const q = (question: string, answer: string, children: unknown[] = []) => ({
+      question,
+      answer,
+      children,
+    });
+    const session = await t.request<{ id: string }>('POST', `/api/nodes/${n.id}/whys`, {
+      whys: [q('a', 'yes', [q('b', '')])],
+    });
+    expect(of(await exp(), cpu.id)?.exp).toBe(10 + 1);
+
+    await t.request('PATCH', `/api/whys/${session.body.id}`, {
+      whys: [q('a', 'yes', [q('b', 'now answered')])],
+    });
+    expect(of(await exp(), cpu.id)?.exp).toBe(10 + 1 + 2);
+
+    await t.request('PATCH', `/api/whys/${session.body.id}`, {
+      whys: [q('a', '   ', [q('b', 'now answered')])],
+    });
+    expect(of(await exp(), cpu.id)?.exp).toBe(10 + 2);
   });
 
   it('has no way to change the level table', async () => {

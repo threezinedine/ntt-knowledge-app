@@ -12,7 +12,7 @@ import type {
   UpdateTagInput,
   UpdateWhySessionInput,
 } from '@km/core';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { flushAllAutosaves } from '../hooks/useAutosave';
 import { api } from './client';
 
@@ -304,11 +304,18 @@ export function useTagLink(kind: TaggableKind) {
 export const useWhySessions = (nodeId: string) =>
   useQuery({ queryKey: keys.whys(nodeId), queryFn: () => api.whys.list(nodeId) });
 
+/** Answered whys earn EXP, so a session change moves the fields too. */
+const invalidateWhys = (qc: QueryClient, nodeId: string) =>
+  Promise.all([
+    qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
+    qc.invalidateQueries({ queryKey: keys.exp }),
+  ]);
+
 export function useCreateWhySession(nodeId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateWhySessionInput) => api.whys.create(nodeId, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
+    onSuccess: () => invalidateWhys(qc, nodeId),
   });
 }
 
@@ -317,7 +324,7 @@ export function useUpdateWhySession(nodeId: string) {
   return useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: UpdateWhySessionInput }) =>
       api.whys.update(id, patch),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
+    onSuccess: () => invalidateWhys(qc, nodeId),
   });
 }
 
@@ -325,7 +332,7 @@ export function useDeleteWhySession(nodeId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.whys.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
+    onSuccess: () => invalidateWhys(qc, nodeId),
   });
 }
 

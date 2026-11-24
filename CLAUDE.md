@@ -5,7 +5,8 @@ title, markdown content, JSON props, canvas position) connected by **named, dire
 edges** (also with JSON props). One shared **tag tree** attaches many-to-many to nodes
 (`node_tags`, tombstoned like everything else). Each tag is a **field** of knowledge
 with EXP and a level, derived on read from the nodes tagged with it or a descendant
-(`packages/core/src/exp.ts`, `GET /api/exp`). The level table is a server-side JSON
+(`packages/core/src/exp.ts`, `GET /api/exp`). A node's EXP = base + capped word bonus +
+capped 5 Whys bonus (answered whys only, doubling per depth level: the user's choice). The level table is a server-side JSON
 file (`KM_LEVEL_CONFIG`, default `level-config.json` next to the DB): the operator
 edits it and restarts; there is deliberately no API or UI to change it. Tasks were
 removed (migration 4 tombstones them; the `tasks` / `task_tags` tables stay, as

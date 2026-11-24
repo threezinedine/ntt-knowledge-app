@@ -5,7 +5,8 @@ import { idSchema } from './schemas/common.js';
  * EXP and levels per field of knowledge. A field is a tag; its EXP comes
  * from the nodes tagged with it or with any tag below it (each node counted
  * once per field). A node is worth a base amount plus a capped bonus for how
- * much it says, so writing more pays, but padding a note doesn't run away.
+ * much it says, so writing more pays, but padding a note doesn't run away,
+ * plus a capped bonus for its answered 5 Whys, more the deeper they dig.
  *
  * The numbers live in a server-side config file (see `levelConfigSchema`):
  * whoever runs the server tunes them; the app has no API to change them.
@@ -24,6 +25,13 @@ export const levelConfigSchema = z.strictObject({
   wordsPerExp: z.number().int().positive().default(20),
   /** ...up to this much bonus per node. */
   maxContentExpPerNode: z.number().int().nonnegative().default(50),
+  /**
+   * EXP for an answered top-level 5 Whys question; each level deeper earns
+   * twice its parent's (depth d: expPerWhy · 2^(d-1)). Unanswered whys earn 0.
+   */
+  expPerWhy: z.number().int().nonnegative().default(5),
+  /** ...up to this much per node, all its sessions together. */
+  maxWhysExpPerNode: z.number().int().nonnegative().default(200),
   /**
    * Total EXP needed to reach level 2, 3, ... (strictly increasing). Level 1
    * starts at 0; the last entry reaches the top level.
@@ -50,6 +58,19 @@ export function countWords(content: string): number {
 export function nodeExp(words: number, config: LevelConfig): number {
   const bonus = Math.floor(words / config.wordsPerExp);
   return config.expPerNode + Math.min(config.maxContentExpPerNode, bonus);
+}
+
+/**
+ * A node's 5 Whys EXP, from the depth of each answered why in all its
+ * sessions (see `answeredWhyDepths`): doubles per level, capped per node.
+ */
+export function whysExp(depths: readonly number[], config: LevelConfig): number {
+  let total = 0;
+  for (const depth of depths) {
+    total += config.expPerWhy * 2 ** (depth - 1);
+    if (total >= config.maxWhysExpPerNode) return config.maxWhysExpPerNode;
+  }
+  return total;
 }
 
 export interface LevelProgress {
@@ -79,6 +100,8 @@ export interface ExpNode {
   /** `countWords(content)`, cached by the server. */
   words: number;
   tagIds: readonly string[];
+  /** Depth of every answered why in the node's sessions (`answeredWhyDepths`). */
+  whyDepths: readonly number[];
 }
 
 /**
@@ -103,7 +126,7 @@ export function computeTagExp(
       }
     }
     if (fields.size === 0) continue;
-    const exp = nodeExp(node.words, config);
+    const exp = nodeExp(node.words, config) + whysExp(node.whyDepths, config);
     for (const id of fields) {
       const entry = out.get(id);
       if (entry) {

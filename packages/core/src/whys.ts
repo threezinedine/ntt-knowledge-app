@@ -10,7 +10,7 @@ import { entityMetaShape, idSchema } from './schemas/common.js';
  * answer, a sibling challenges another point.
  *
  * Stored as one row per session with the tree as JSON; every why has its
- * own id, so EXP can later be derived per why (count, depth, answers).
+ * own id. Answered whys earn EXP by depth (see `whysExp` in exp.ts).
  */
 
 export const WHYS_FORMAT = 'km-whys/1';
@@ -98,6 +98,25 @@ export function whysDepth(items: readonly Tree[]): number {
     for (const child of top.item.children) stack.push({ item: child, depth: top.depth + 1 });
   }
   return max;
+}
+
+/**
+ * The depth (1 = top level) of every why the user answered, for EXP. An
+ * unanswered why earns nothing, but its answered children keep their depth.
+ * Iterative.
+ */
+export function answeredWhyDepths(items: readonly AnswerTree[]): number[] {
+  const out: number[] = [];
+  const stack = items.map((item) => ({ item, depth: 1 }));
+  for (let top = stack.pop(); top !== undefined; top = stack.pop()) {
+    if (top.item.answer.trim() !== '') out.push(top.depth);
+    for (const child of top.item.children) stack.push({ item: child, depth: top.depth + 1 });
+  }
+  return out;
+}
+interface AnswerTree {
+  answer: string;
+  children: readonly AnswerTree[];
 }
 
 /**
