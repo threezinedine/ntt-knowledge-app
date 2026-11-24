@@ -776,6 +776,21 @@ button.small {
   color: var(--text);
   text-decoration: underline;
 }
+.settings-transfer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.settings-transfer p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 11px;
+}
+.settings-transfer button {
+  font-size: 12px;
+}
 /* The phone app's own tab. */
 .graph-settings-page {
   max-width: 480px;

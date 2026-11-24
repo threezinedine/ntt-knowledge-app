@@ -26,6 +26,7 @@ import { NodePage } from './features/node/NodePage';
 import { TagsPage } from './features/tags/TagsPage';
 import { useReadOnly } from './features/readOnly';
 import { useI18n } from './i18n/context';
+import { SettingsCommands } from './settings/SettingsTransfer';
 import { LanguagePicker } from './i18n/LanguagePicker';
 
 const SIDEBAR_KEY = 'km.sidebarVisible';
@@ -133,6 +134,7 @@ export function App() {
       <TooltipLayer />
       <Toast />
       <BackupCommands />
+      <SettingsCommands />
       <LevelUpCelebration />
     </div>
   );

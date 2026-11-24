@@ -207,6 +207,18 @@ export const COMMANDS = [
     when: 'cmdWhen.graph',
   },
   {
+    id: 'km.settings.export',
+    title: 'cmd.exportSettings',
+    category: 'cmdCategory.preferences',
+    keys: [],
+  },
+  {
+    id: 'km.settings.import',
+    title: 'cmd.importSettings',
+    category: 'cmdCategory.preferences',
+    keys: [],
+  },
+  {
     id: 'km.graph.toggleSettings',
     title: 'cmd.graphSettings',
     category: 'cmdCategory.graph',

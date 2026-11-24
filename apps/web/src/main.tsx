@@ -1,3 +1,5 @@
+// First: applies a staged settings import before any store reads localStorage.
+import './settings/bootImport';
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

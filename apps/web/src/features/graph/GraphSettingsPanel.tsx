@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { CloseIcon } from '../../components/icons';
 import { useI18n } from '../../i18n/context';
+import { SettingsTransferButtons } from '../../settings/SettingsTransfer';
 import {
   resetGraphSettings,
   setGraphSettings,
@@ -116,6 +117,7 @@ export function GraphSettingsPanel({
         </button>
       </header>
       <GraphSettingsForm groups={SETTING_GROUPS} />
+      <SettingsTransferButtons />
     </section>
   );
 }
@@ -127,6 +129,7 @@ export function GraphSettingsPage() {
     <div className="graph-settings-page">
       <h1>{t('graphSettings.title')}</h1>
       <GraphSettingsForm groups={SETTING_GROUPS.filter((g) => g.display)} />
+      <SettingsTransferButtons />
     </div>
   );
 }
