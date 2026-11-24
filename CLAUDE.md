@@ -11,6 +11,39 @@ edits it and restarts; there is deliberately no API or UI to change it. Tasks we
 removed (migration 4 tombstones them; the `tasks` / `task_tags` tables stay, as
 migrations are append-only).
 
+## Starting on another machine / a fresh session
+
+This file is the **only** context that travels between machines: Claude's auto-memory
+lives in `~/.claude/` on each PC and is not in git. Anything a later session must know
+(user preferences, scope decisions, "don't do X") goes **here**, not only in memory.
+
+Repo: `git@github.com:threezinedine/ntt-knowlege-app.git`, single branch `master`.
+Before working: `git pull --rebase`. When done (and `npm run check` is green): commit
+on `master` and push; the user asks for this. Commit style: `[feature] …` / `[fix] …`,
+lower-case summary, e.g. `[fix] backup review fixes: …`.
+
+Setup on a new PC:
+
+1. Node ≥ 24, then `npm install` (and `npx playwright install chromium` for e2e).
+2. `.env` is gitignored. Either copy it from the main PC over a private channel (same
+   TOTP secret, same authenticator entry), or run `npm run auth:setup` for a **new**
+   secret (a separate authenticator entry for this machine's server). Never commit it.
+   For throwaway dev, `KM_AUTH=off` in `.env` is fine.
+3. Optional: `level-config.json` (gitignored) from `level-config.example.json`, placed
+   next to the DB; without it the built-in defaults apply.
+4. Data is **per machine** (`~/.knowledge-manager/km.sqlite`); there is no sync yet.
+   To carry the user's real graph over: **Backup Now** on the old PC, copy the
+   `km-*.sqlite` into the new PC's backup dir, then `npm run backup:restore`.
+5. Not in git and not needed: `.vscode/` (the user's own), `node_modules`,
+   `playwright-report/`, `test-results/`.
+
+Windows-only notes below (Git Bash vitest quirk, Android `JAVA_HOME` paths) don't apply
+on Linux/macOS; there `npm run check` works from any shell.
+
+Product decisions already made (don't re-ask): the phone app only views graph and nodes
+(see Sign-in → Read-only); the 3D graph is parked; tasks are gone; sync, spaced
+repetition (maybe on the phone) are later ideas, not started.
+
 ## Layout
 
 - `packages/core`: zod schemas, shared types, pure domain logic (tag tree, cycle
