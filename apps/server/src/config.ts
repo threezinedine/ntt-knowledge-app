@@ -52,6 +52,13 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+  /**
+   * "on": this server is also a sync hub, keeping versions of the graph for
+   * the devices that push to it and pull from it.
+   */
+  KM_HUB: z.enum(['on', 'off']).default('off'),
+  /** How many versions a hub keeps; older ones are dropped. */
+  KM_HUB_KEEP_VERSIONS: z.coerce.number().int().min(1).max(10_000).default(100),
   KM_LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
     .default('info'),

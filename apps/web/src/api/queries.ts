@@ -6,6 +6,7 @@ import type {
   GraphNode,
   GraphSnapshot,
   NodePositionsInput,
+  SyncConnectInput,
   TaggableKind,
   UpdateEdgeInput,
   UpdateNodeInput,
@@ -40,6 +41,7 @@ export const keys = {
   /** Derived from nodes + tags: invalidated by any write to either. */
   exp: ['exp'] as const,
   auth: ['auth'] as const,
+  sync: ['sync'] as const,
   whys: (nodeId: string) => ['whys', nodeId] as const,
 };
 
@@ -58,6 +60,101 @@ export const useLocalGraph = (id: string, depth: number) =>
     queryFn: () => api.nodes.localGraph(id, depth),
   });
 
+/** Not an edit: the sync warning ("a newer version is on the hub") ignores it. */
+export const NOT_AN_EDIT = { notAnEdit: true } as const;
+
+/**
+ * This device vs the hub. Asked again every minute, on focus and when the
+ * network comes back, so the title bar notices a newer version.
+ */
+export const useSyncStatus = (enabled = true) =>
+  useQuery({
+    queryKey: keys.sync,
+    queryFn: api.sync.status,
+    enabled,
+    staleTime: 10_000,
+    refetchInterval: 60_000,
+    retry: false,
+  });
+
+/** Shown after the reload that follows a pull (the page is rebuilt from the new data). */
+export const PULLED_NOTE_KEY = 'km.sync.pulledNote';
+
+/** Waits for saves already running (a flush that finds one returns before it ends). */
+async function settleSaves(qc: QueryClient): Promise<void> {
+  await flushAllAutosaves();
+  // This mutation counts itself.
+  for (let waited = 0; qc.isMutating() > 1 && waited < 5_000; waited += 50) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+}
+
+export function useSyncConnect() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: keys.sync,
+    meta: NOT_AN_EDIT,
+    mutationFn: (input: SyncConnectInput) => api.sync.connect(input),
+    onSuccess: (status) => {
+      qc.setQueryData(keys.sync, status);
+    },
+  });
+}
+
+export function useSyncDisconnect() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: keys.sync,
+    meta: NOT_AN_EDIT,
+    mutationFn: api.sync.disconnect,
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.sync }),
+  });
+}
+
+/** Saves pending edits first, so what is pushed is what is on screen. */
+export function useSyncPush() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: keys.sync,
+    meta: NOT_AN_EDIT,
+    mutationFn: async (force: boolean) => {
+      await settleSaves(qc);
+      return api.sync.push(force);
+    },
+    onSuccess: (status) => {
+      qc.setQueryData(keys.sync, status);
+    },
+  });
+}
+
+/**
+ * Saves pending edits first (a refused pull then still sees them as changes).
+ * After a pull the page reloads, so every screen and open editor is rebuilt
+ * from the new data; in the hook, not the caller, so it happens even if the
+ * dialog was closed meanwhile.
+ */
+export function useSyncPull() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: keys.sync,
+    meta: NOT_AN_EDIT,
+    mutationFn: async (force: boolean) => {
+      await settleSaves(qc);
+      return api.sync.pull(force);
+    },
+    onSuccess: (status) => {
+      try {
+        if (status.connected && status.synced) {
+          sessionStorage.setItem(PULLED_NOTE_KEY, String(status.synced.version));
+        }
+      } catch {
+        // No note after the reload; the data is there either way.
+      }
+      window.location.reload();
+    },
+  });
+}
+
 export const useAuthStatus = () =>
   useQuery({ queryKey: keys.auth, queryFn: api.auth.status, staleTime: 60_000 });
 
@@ -68,6 +165,7 @@ export const useAuthStatus = () =>
 export function useLogin() {
   const qc = useQueryClient();
   return useMutation({
+    meta: NOT_AN_EDIT,
     mutationFn: ({ code, readOnly }: { code: string; readOnly: boolean }) =>
       api.auth.login(code, readOnly),
     onSuccess: (status) => {
@@ -85,6 +183,7 @@ export function useLogin() {
 export function useSignOut() {
   const qc = useQueryClient();
   return useMutation({
+    meta: NOT_AN_EDIT,
     mutationFn: async () => {
       await flushAllAutosaves();
       // A flush that found a save already running returns before it ends.
@@ -341,6 +440,8 @@ export function useDeleteWhySession(nodeId: string) {
 }
 
 /** Writes a file on the server; nothing cached changes. */
-export const useBackupNow = () => useMutation({ mutationFn: () => api.backup() });
+export const useBackupNow = () =>
+  useMutation({ meta: NOT_AN_EDIT, mutationFn: () => api.backup() });
 
-export const useExportMarkdown = () => useMutation({ mutationFn: () => api.exportMarkdown() });
+export const useExportMarkdown = () =>
+  useMutation({ meta: NOT_AN_EDIT, mutationFn: () => api.exportMarkdown() });

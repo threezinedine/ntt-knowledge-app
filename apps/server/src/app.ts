@@ -12,7 +12,11 @@ import { registerNodeRoutes } from './http/routes/nodeRoutes.js';
 import { registerTagRoutes } from './http/routes/tagRoutes.js';
 import { registerWhyRoutes } from './http/routes/whyRoutes.js';
 import { registerBackupRoutes } from './http/routes/backupRoutes.js';
+import { registerHubRoutes, type HubOptions } from './http/routes/hubRoutes.js';
+import { registerSyncRoutes } from './http/routes/syncRoutes.js';
 import { createRepositories } from './repositories/index.js';
+import type { FetchLike } from './sync/hubClient.js';
+import { createSyncService } from './sync/syncService.js';
 
 export interface AppOptions {
   db: Database;
@@ -29,6 +33,10 @@ export interface AppOptions {
   backupDir?: string | undefined;
   /** Authenticator-code sign-in. Omitted = no sign-in (KM_AUTH=off, and the API tests). */
   auth?: AuthOptions | undefined;
+  /** Make this server a sync hub (KM_HUB=on). Omitted = not a hub. */
+  hub?: HubOptions | undefined;
+  /** How this server reaches a hub; tests swap in another app's `inject`. */
+  fetch?: FetchLike;
 }
 
 export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
@@ -41,16 +49,29 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   registerErrorHandler(app);
   registerHostGuard(app, options.allowedHosts ?? []);
-  await registerAuth(app, repos.sessions, options.auth, options.now ?? Date.now);
+  const now = options.now ?? Date.now;
+  const guard = await registerAuth(app, repos.sessions, options.auth, now);
   app.get('/api/health', () => ({ ok: true })); // public: see PUBLIC_API in http/auth.ts
   registerNodeRoutes(app, repos);
   registerEdgeRoutes(app, repos);
   registerTagRoutes(app, repos);
   registerWhyRoutes(app, repos);
   if (options.backupDir !== undefined) {
-    registerBackupRoutes(app, options.db, repos, options.backupDir, options.now ?? Date.now);
+    registerBackupRoutes(app, options.db, repos, options.backupDir, now);
   }
-  registerExpRoutes(app, repos, options.levelConfig ?? DEFAULT_LEVEL_CONFIG);
+  const levelConfig = options.levelConfig ?? DEFAULT_LEVEL_CONFIG;
+  registerExpRoutes(app, repos, levelConfig);
+  registerSyncRoutes(
+    app,
+    createSyncService({
+      db: options.db,
+      repos,
+      backupDir: options.backupDir,
+      now,
+      fetch: options.fetch ?? ((url, init) => fetch(url, init)),
+    }),
+  );
+  if (options.hub) registerHubRoutes(app, repos, { ...options.hub, guard, levelConfig });
 
   if (options.staticDir !== undefined && existsSync(options.staticDir)) {
     await registerSpa(app, options.staticDir);

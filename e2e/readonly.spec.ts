@@ -1,12 +1,4 @@
-import type { AuthStatus } from '@km/core';
-import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
-
-/** What the Android app's WebView looks like to the page (Capacitor's bridge). */
-const asPhoneApp = (page: Page) =>
-  page.addInitScript({
-    content: 'window.Capacitor = { isNativePlatform: () => true, getPlatform: () => "android" };',
-  });
+import { asPhoneApp, expect, hubUrl, openSync, phoneWithCopy, test } from './fixtures';
 
 test.describe('read-only mode (the phone app)', () => {
   test('a node is shown to read: no editor, no delete, links still navigate', async ({
@@ -22,7 +14,7 @@ test.describe('read-only mode (the phone app)', () => {
     const tag = await api.createTag('Lang');
     await page.request.put(`/api/nodes/${a.id}/tags/${tag.id}`);
 
-    await asPhoneApp(page);
+    await phoneWithCopy(page, api);
     await page.goto(`/nodes/${a.id}`);
     await expect(page.getByRole('heading', { level: 1, name: 'Rust' })).toBeVisible();
     await expect(
@@ -43,8 +35,7 @@ test.describe('read-only mode (the phone app)', () => {
 
   test('no way to create, and no tags editor', async ({ page, api }) => {
     await api.createNode({ title: 'Solo' });
-    await asPhoneApp(page);
-    await page.goto('/');
+    await phoneWithCopy(page, api);
     await expect(page.getByRole('navigation', { name: 'Nodes' })).toBeVisible();
     await expect(page.getByRole('button', { name: '+ New' })).toHaveCount(0);
     await expect(page.getByRole('form', { name: 'New node' })).toHaveCount(0);
@@ -56,8 +47,7 @@ test.describe('read-only mode (the phone app)', () => {
   test('the node menu only offers what changes nothing', async ({ page, api, isMobile }) => {
     test.skip(isMobile, 'Right-click; the same menu opens by long-press.');
     await api.createNode({ title: 'Menu' });
-    await asPhoneApp(page);
-    await page.goto('/');
+    await phoneWithCopy(page, api);
     await page
       .getByRole('navigation', { name: 'Nodes' })
       .getByRole('link', { name: /Menu/ })
@@ -75,26 +65,49 @@ test.describe('read-only mode (the phone app)', () => {
     const a = await api.createNode({ title: 'Here', position: { x: 0, y: 0 } });
     const b = await api.createNode({ title: 'There', position: { x: 400, y: 0 } });
     const edge = await api.createEdge(a.id, b.id, 'TO');
-    await asPhoneApp(page);
-    await page.goto('/');
+    await phoneWithCopy(page, api);
     // The link is drawn once its nodes are measured; clicking earlier hits nothing.
     await expect(page.locator('.react-flow__edge-text').first()).toBeVisible();
     await page.getByTestId(`rf__edge-${edge.id}`).click({ button: 'right', force: true });
     await expect(page.getByRole('menuitem')).toHaveText(['Open “Here”', 'Open “There”']);
   });
 
-  test('signing in from the phone asks for a read-only session', async ({ page }) => {
+  test('the phone pairs with the hub as a read-only device and only pulls', async ({
+    page,
+    api,
+  }) => {
+    await api.createNode({ title: 'Anything' });
+    await api.publishToHub();
     let body: unknown;
-    const out: AuthStatus = { enabled: true, signedIn: false, expiresAt: null, readOnly: false };
-    await page.route('/api/auth/status', (r) => r.fulfill({ json: out }));
-    await page.route('/api/auth/login', (r) => {
-      body = r.request().postDataJSON();
-      return r.fulfill({ json: { ...out, signedIn: true, readOnly: true } });
+    page.on('request', (r) => {
+      if (r.url().endsWith('/api/hub/pair')) body = r.postDataJSON();
     });
     await asPhoneApp(page);
     await page.goto('/');
-    await page.getByRole('textbox', { name: '6-digit code' }).fill('135790');
-    await expect.poll(() => body).toEqual({ code: '135790', readOnly: true });
+    await openSync(page);
+    const dialog = page.getByRole('dialog', { name: 'Sync' });
+    await dialog.getByLabel('Hub address').fill(hubUrl());
+    await dialog.getByRole('button', { name: 'Connect' }).click();
+    await expect(dialog.getByRole('button', { name: 'Pull', exact: true })).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Push' })).toHaveCount(0);
+    expect(body).toEqual({ code: '', name: 'Phone', readOnly: true });
+  });
+
+  test('the phone keeps its copy offline, and says it is offline', async ({ page, api }) => {
+    await api.createNode({ title: 'Pocket note' });
+    await phoneWithCopy(page, api);
+    // No network: every request to the hub fails. The phone asks no server for data.
+    const asked: string[] = [];
+    await page.route('**/api/**', (route) => {
+      asked.push(route.request().url());
+      return route.abort('internetdisconnected');
+    });
+    await page.reload();
+    await expect(
+      page.getByRole('navigation', { name: 'Nodes' }).getByRole('link', { name: /Pocket note/ }),
+    ).toBeVisible();
+    await expect(page.getByRole('banner').getByText('Offline')).toBeVisible();
+    expect(asked.every((url) => url.includes('/api/hub/'))).toBe(true);
   });
 
   test('a read-only session in a normal browser is read-only too', async ({ page, api }) => {
@@ -113,13 +126,12 @@ test.describe('read-only mode (the phone app)', () => {
     test.skip(isMobile, 'Mouse drag; touch drag goes through the same React Flow switch.');
     await api.createNode({ title: 'Still', position: { x: 0, y: 0 } });
     await api.createNode({ title: 'Other', position: { x: 300, y: 0 } });
+    await phoneWithCopy(page, api);
     const writes: string[] = [];
     page.on('request', (r) => {
       if (r.url().includes('/api/') && r.method() !== 'GET')
         writes.push(`${r.method()} ${r.url()}`);
     });
-    await asPhoneApp(page);
-    await page.goto('/');
     const box = async (title: string) => {
       const b = await page.locator('.react-flow__node', { hasText: title }).boundingBox();
       if (!b) throw new Error(`${title} not rendered`);

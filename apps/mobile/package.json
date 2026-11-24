@@ -2,10 +2,10 @@
   "name": "@km/mobile",
   "version": "0.1.0",
   "private": true,
-  "description": "Android app (Capacitor): a read-only window onto your Knowledge Manager server.",
+  "description": "Android app (Capacitor): a read-only copy of your Knowledge Manager graph, pulled from a sync hub.",
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
-    "sync": "cap sync android",
+    "sync": "npm run build -w @km/web && cap sync android",
     "open": "cap open android",
     "run": "cap run android"
   },

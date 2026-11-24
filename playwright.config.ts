@@ -45,6 +45,8 @@ export default defineConfig({
       // No Google in tests. Set explicitly so a developer's .env (which the
       // server reads, but never over an existing variable) can't turn it on.
       KM_AUTH: 'off',
+      // The server is its own sync hub in the specs (sync.spec.ts, the phone app).
+      KM_HUB: 'on',
       // Windows doesn't kill this server when Playwright dies (e.g. the UI-mode
       // window is closed); it would then hold the port and break the next run.
       KM_PARENT_PID: String(process.pid),

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, phoneWithCopy, test } from './fixtures';
 
 // What an AI chat answers to "end": prose around a ```json block.
 const reply = `Great session! Here is the summary:
@@ -200,9 +200,7 @@ test.describe('5 Whys', () => {
     await page.request.post(`/api/nodes/${node.id}/whys`, {
       data: { summary: 'Read me', whys: [{ question: 'Why?', answer: 'Because' }] },
     });
-    await page.addInitScript({
-      content: 'window.Capacitor = { isNativePlatform: () => true, getPlatform: () => "android" };',
-    });
+    await phoneWithCopy(page, api);
     await page.goto(`/nodes/${node.id}`);
     await expect(page.getByRole('heading', { level: 1, name: 'Cache' })).toBeVisible();
     await expect(page.getByRole('region', { name: '5 Whys' })).toHaveCount(0);

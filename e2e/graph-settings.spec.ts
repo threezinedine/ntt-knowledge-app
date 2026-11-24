@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, phoneWithCopy, test } from './fixtures';
 
 const radiusOf = async (page: Page, title: string) =>
   (await page.locator('.react-flow__node', { hasText: title }).locator('.km-node').boundingBox())
@@ -71,10 +71,7 @@ test.describe('graph settings', () => {
 
   test('the phone app tunes the look on its own tab, not over the graph', async ({ page, api }) => {
     await api.createNode({ title: 'Solo', position: { x: 0, y: 0 } });
-    await page.addInitScript({
-      content: 'window.Capacitor = { isNativePlatform: () => true, getPlatform: () => "android" };',
-    });
-    await page.goto('/');
+    await phoneWithCopy(page, api);
     await expect(page.locator('.react-flow__node', { hasText: 'Solo' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Graph Settings' })).toHaveCount(0);
 

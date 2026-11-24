@@ -84,9 +84,9 @@ function CodeForm() {
 
   const submit = (value: string) => {
     if (!/^\d{6}$/.test(value) || login.isPending) return;
-    // The phone app asks for a read-only session: the server then refuses writes.
+    // (The phone app never signs in here: it reads its own copy, api/phoneData.ts.)
     login.mutate(
-      { code: value, readOnly: isNativeApp() },
+      { code: value, readOnly: false },
       {
         onError: () => {
           setCode(''); // a wrong code is no use; ready for the next one

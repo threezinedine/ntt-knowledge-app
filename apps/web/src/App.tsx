@@ -27,6 +27,7 @@ import { TagsPage } from './features/tags/TagsPage';
 import { useReadOnly } from './features/readOnly';
 import { useI18n } from './i18n/context';
 import { SettingsCommands } from './settings/SettingsTransfer';
+import { SyncHost, SyncIndicator, useCanSync } from './features/sync/SyncHost';
 import { LanguagePicker } from './i18n/LanguagePicker';
 
 const SIDEBAR_KEY = 'km.sidebarVisible';
@@ -34,6 +35,7 @@ const SIDEBAR_KEY = 'km.sidebarVisible';
 export function App() {
   const { t } = useI18n();
   const readOnly = useReadOnly();
+  const canSync = useCanSync();
   const graphTip = useCommandTooltip('km.go.graph', { always: true });
   const tagsTip = useCommandTooltip('km.go.tags', { always: true });
   const paletteTip = useCommandTooltip('workbench.action.showCommands', { always: true });
@@ -78,7 +80,10 @@ export function App() {
           <SearchIcon size={14} />
           <span className="command-center-text">{t('cmd.showCommands')}</span>
         </button>
-        <LanguagePicker />
+        <div className="header-end">
+          {canSync && <SyncIndicator />}
+          <LanguagePicker />
+        </div>
       </header>
       <nav className="activity-bar" aria-label={t('app.nav.label')}>
         <NavLink to="/" end aria-label={t('app.nav.graph')} {...graphTip}>
@@ -135,6 +140,7 @@ export function App() {
       <Toast />
       <BackupCommands />
       <SettingsCommands />
+      <SyncHost />
       <LevelUpCelebration />
     </div>
   );

@@ -94,6 +94,24 @@ export const COMMANDS = [
     keys: [],
   },
   {
+    id: 'km.sync.open',
+    title: 'cmd.sync',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
+    id: 'km.sync.push',
+    title: 'cmd.syncPush',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
+    id: 'km.sync.pull',
+    title: 'cmd.syncPull',
+    category: 'cmdCategory.data',
+    keys: [],
+  },
+  {
     id: 'km.language.change',
     title: 'cmd.changeLanguage',
     category: 'cmdCategory.preferences',

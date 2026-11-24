@@ -184,8 +184,14 @@ h4 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.app-header .language-picker {
+.header-end {
   justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.app-header .language-picker {
   height: 24px;
   padding: 0 6px;
   font-size: 12px;
@@ -2187,4 +2193,93 @@ kbd {
 .link-check-preview {
   font-family: var(--mono);
   font-size: 12px;
+}
+
+/* Sync: the title bar's status button, the dialog and the edit warning. */
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.sync-indicator:hover {
+  background: var(--bg-input);
+  color: var(--text);
+}
+.sync-indicator.sync-upToDate {
+  color: var(--ok);
+}
+.sync-indicator.sync-changes,
+.sync-indicator.sync-behind {
+  color: var(--accent);
+}
+.sync-indicator.sync-diverged,
+.sync-indicator.sync-offline {
+  color: var(--warn);
+}
+.sync-indicator.sync-error {
+  color: var(--danger);
+}
+.sync-dialog {
+  width: min(520px, 92vw);
+}
+.sync-dialog h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.sync-dialog h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.sync-dialog dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 12px;
+}
+.sync-dialog dt {
+  color: var(--muted);
+}
+.sync-dialog dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sync-dialog .dialog-actions .spacer {
+  flex: 1;
+}
+.sync-dialog .small {
+  margin: -6px 0 0;
+  font-size: 12px;
+}
+.sync-warning {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 40%);
+}
+.sync-warning p {
+  margin: 0 0 10px;
+}
+@media (max-width: 800px) {
+  /* Icon only on a phone, except the one state worth spelling out. */
+  .sync-indicator:not(.sync-offline) .sync-indicator-text {
+    display: none;
+  }
+  .sync-warning {
+    bottom: 64px;
+  }
 }

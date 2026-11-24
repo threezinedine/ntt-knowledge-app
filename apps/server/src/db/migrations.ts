@@ -210,4 +210,44 @@ export const migrations: readonly string[] = [
   ) STRICT;
   CREATE INDEX why_sessions_live_node ON why_sessions (node_id) WHERE deleted_at IS NULL;
   `,
+
+  /* 10: sync through a hub (see @km/core sync.ts).
+        sync_state: this device's link to a hub (one row at most). The token is
+        a secret the device sends to the hub: device-local, never synced, and
+        left out of backups.
+        hub_devices / hub_versions: only used on a hub (KM_HUB=on). Devices
+        store a SHA-256 of their token, like sessions. A version is a whole
+        snapshot (gzipped canonical JSON); numbers only grow. */ `
+  CREATE TABLE sync_state (
+    id                  INTEGER PRIMARY KEY CHECK (id = 1),
+    hub_url             TEXT NOT NULL,
+    device_name         TEXT NOT NULL,
+    token               TEXT NOT NULL,
+    version             INTEGER,
+    hash                TEXT,
+    version_created_at  INTEGER,
+    version_device      TEXT,
+    updated_at          INTEGER NOT NULL
+  ) STRICT;
+  CREATE TABLE hub_devices (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    token_hash  TEXT NOT NULL UNIQUE,
+    read_only   INTEGER NOT NULL CHECK (read_only IN (0, 1)),
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    deleted_at  INTEGER
+  ) STRICT;
+  CREATE TABLE hub_versions (
+    version       INTEGER PRIMARY KEY,
+    hash          TEXT NOT NULL,
+    base_version  INTEGER,
+    device_id     TEXT NOT NULL,
+    device_name   TEXT NOT NULL,
+    format        TEXT NOT NULL,
+    size_bytes    INTEGER NOT NULL,
+    snapshot      BLOB NOT NULL,
+    created_at    INTEGER NOT NULL
+  ) STRICT;
+  `,
 ];

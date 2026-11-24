@@ -36,9 +36,17 @@ function freePath(dir: string, base: string, ext: string): string {
 }
 
 /**
+ * Device-local secrets, emptied in every backup (tables a database may not
+ * have yet). A hub's paired devices go too: after restoring a hub, devices
+ * connect again. Its versions stay (they are the graph's history).
+ */
+const SECRET_TABLES = ['sessions', 'sync_state', 'hub_devices'] as const;
+
+/**
  * A consistent copy of the database (VACUUM INTO works while the server is
- * running, WAL included), minus sign-in sessions: they are device-local
- * secrets, and after a restore you just sign in again.
+ * running, WAL included), minus sign-in sessions and the hub token: they are
+ * device-local secrets. After a restore you sign in (and connect to the hub)
+ * again.
  */
 export function createBackup(
   db: Database,
@@ -51,11 +59,10 @@ export function createBackup(
   backup(db, path);
   const copy = new DatabaseSync(path);
   try {
-    // Databases from before sign-in existed (schema < 6) have no sessions table.
-    const hasSessions = copy
-      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sessions'")
-      .get();
-    if (hasSessions) copy.exec('DELETE FROM sessions; VACUUM;');
+    const has = copy.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?");
+    const present = SECRET_TABLES.filter((t) => has.get(t) !== undefined);
+    if (present.length > 0)
+      copy.exec(`${present.map((t) => `DELETE FROM ${t};`).join(' ')} VACUUM;`);
   } finally {
     copy.close();
   }

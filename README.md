@@ -7,8 +7,9 @@ markdown editor and arrange them on a graph canvas. Tags form a tree of fields o
 knowledge, and each field gains EXP and levels as you write about it.
 
 It runs as a small server on your own machine and stores everything in one SQLite
-file. You use it in the browser (installable as an app), and a read-only Android app
-lets you browse it from your phone.
+file. You use it in the browser (installable as an app). Several machines can share
+the same graph through a sync hub, and a read-only Android app keeps a copy on your
+phone to browse offline.
 
 Setup, configuration and backups: **[INSTALL.md](INSTALL.md)**.
 
@@ -23,6 +24,7 @@ Setup, configuration and backups: **[INSTALL.md](INSTALL.md)**.
 - [Finding things](#finding-things)
 - [Keyboard and commands](#keyboard-and-commands)
 - [Settings](#settings)
+- [Sync between devices](#sync-between-devices)
 - [Phone](#phone)
 - [Sign-in](#sign-in)
 - [Backups and export](#backups-and-export)
@@ -174,18 +176,46 @@ of the graph settings). Importing replaces only the settings in the file and lea
 rest. Shortcuts carry over between Windows and macOS (`Ctrl` becomes `Cmd` and back).
 Invalid entries are skipped and listed.
 
+## Sync between devices
+
+Each machine keeps its own copy of the graph. To use the same graph on several
+machines, one server acts as the **hub** (on your network or on the internet), and
+every device syncs with it by hand.
+
+- The hub keeps **numbered versions** of the whole graph. Each version records which
+  device pushed it and when, and has a hash that identifies its content exactly.
+- **Push** sends this device's copy to the hub as the newest version. **Pull** replaces
+  this device's copy with the newest version.
+- Nothing is merged. Whoever pushes last makes the newest version; older versions stay
+  in the hub's history.
+- Nothing is overwritten without asking:
+  - Pushing when the hub has a version this device hasn't pulled asks first.
+  - Pulling over changes that were never pushed asks first, and saves a backup of this
+    device before replacing them.
+- The **title bar** shows where this device stands: up to date, changes not pushed, a
+  newer version on the hub, or offline. It checks the hub every minute and when the
+  network comes back.
+- If the hub has a newer version and you start editing anyway, you are warned once for
+  that version, then left to work.
+- Offline, everything works as usual; the title bar just says _Offline_.
+
+A device connects once with the hub's address and the code from the hub's
+authenticator app (command palette: _Sync…_). Setting up a hub:
+[INSTALL.md](INSTALL.md#sync-hub).
+
 ## Phone
 
 - **Browser**: open the server's address and add it to the home screen. It's the full
   app with a touch-friendly layout.
-- **Android app**: opens the same server **read-only**. You can browse the graph, read
-  notes and follow links; nothing can be created, changed or deleted, and the server
-  enforces that too. Editing tools such as 5 Whys and Link check are left out to keep
-  it simple. Display settings for the graph have their own tab, and you can import a
+- **Android app**: keeps a **read-only copy** of the graph on the phone, pulled from
+  the hub, so you can read notes and follow links without a network or the PC. Pull
+  again (title bar, _Sync_) for a newer version; the title bar says when the hub has
+  one, and when the phone is offline. Nothing can be created, changed or deleted on
+  the phone. Editing tools such as 5 Whys and Link check are left out to keep it
+  simple. Display settings for the graph have their own tab, and you can import a
   settings file there.
 
-Both need the phone to reach your PC (same Wi-Fi). See
-[INSTALL.md](INSTALL.md#using-it-from-your-phone).
+See [INSTALL.md](INSTALL.md#android-app).
 
 ## Sign-in
 
@@ -217,6 +247,7 @@ check prompts can be in either language, independently of the interface.
 - One SQLite file on the machine running the server (default
   `~/.knowledge-manager/km.sqlite`).
 - Nothing is sent to outside services. The AI features only copy text to your clipboard
-  for you to paste.
+  for you to paste, and sync talks only to the hub you set up.
 - Records are never physically deleted: deletes are marked, and every change is
-  timestamped. This is groundwork for syncing between devices, which doesn't exist yet.
+  timestamped.
+- A sync hub stores its versions in its own database, next to its own graph.

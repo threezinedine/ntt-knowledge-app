@@ -24,6 +24,7 @@ const app = await buildApp({
   levelConfig: level.config,
   backupDir: backupDir(config),
   auth: auth ?? undefined,
+  hub: config.KM_HUB === 'on' ? { keepVersions: config.KM_HUB_KEEP_VERSIONS } : undefined,
 });
 if (envFile) app.log.info({ path: envFile }, 'Loaded .env');
 if (auth) {
@@ -32,6 +33,10 @@ if (auth) {
   app.log.warn('Sign-in is OFF (KM_AUTH=off): anyone who can reach this server can use it');
 }
 app.log.info({ path: levelPath, source: level.source }, 'Level config loaded');
+if (config.KM_HUB === 'on') {
+  app.log.info({ keepVersions: config.KM_HUB_KEEP_VERSIONS }, 'Sync hub on');
+  if (!auth) app.log.warn('Sync hub with sign-in OFF: anyone who can reach it can pair and push');
+}
 app.log.info({ dir: backupDir(config) }, 'Backups and exports go to');
 
 let shuttingDown = false;

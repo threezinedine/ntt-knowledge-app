@@ -23,6 +23,8 @@ export async function createTestApp(
     levelConfig?: LevelConfig;
     auth?: AppOptions['auth'];
     backupDir?: string;
+    hub?: AppOptions['hub'];
+    fetch?: AppOptions['fetch'];
   } = {},
 ): Promise<TestApp> {
   const db = openDatabase(IN_MEMORY);
@@ -49,5 +51,27 @@ export async function createTestApp(
       await app.close();
       db.close();
     },
+  };
+}
+
+/**
+ * A `fetch` that sends requests to `target` in-process (`app.inject`), so one
+ * test app can sync with another as its hub. A URL starting with
+ * `http://unreachable` fails like a network error.
+ */
+export function injectFetch(target: () => FastifyInstance): NonNullable<AppOptions['fetch']> {
+  return async (url, init) => {
+    if (url.startsWith('http://unreachable')) throw new TypeError('fetch failed');
+    const { pathname, search } = new URL(url);
+    const res = await target().inject({
+      method: (init.method ?? 'GET') as 'GET' | 'POST',
+      url: pathname + search,
+      headers: init.headers as Record<string, string>,
+      ...(typeof init.body === 'string' ? { payload: init.body } : {}),
+    });
+    return new Response(res.statusCode === 204 ? null : res.rawPayload, {
+      status: res.statusCode,
+      headers: { 'content-type': res.headers['content-type'] ?? 'application/json' },
+    });
   };
 }

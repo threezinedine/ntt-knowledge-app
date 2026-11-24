@@ -17,6 +17,7 @@ export const API_ERROR_CODES = [
   'TOO_MANY_REQUESTS',
   'PAYLOAD_TOO_LARGE',
   'BAD_REQUEST',
+  'BAD_GATEWAY',
   'INTERNAL_ERROR',
 ] as const;
 export type ApiErrorCode = (typeof API_ERROR_CODES)[number];
@@ -37,6 +38,23 @@ export const API_ERROR_REASONS = [
   'LOCKED_OUT',
   'READ_ONLY',
   'BACKUP_FAILED',
+  /** Sync: the hub has a version this device hasn't pulled (push with force to overwrite). */
+  'SYNC_BEHIND',
+  /** Sync: this device has changes the hub doesn't (pull with force to overwrite). */
+  'SYNC_LOCAL_CHANGES',
+  'SYNC_NOT_CONNECTED',
+  'HUB_UNREACHABLE',
+  /** The hub refused this device's token (removed, or the hub's data was reset). */
+  'HUB_DENIED',
+  /** That server isn't a hub (KM_HUB is off), or not a Knowledge Manager at all. */
+  'HUB_NOT_ENABLED',
+  /** The hub's snapshot is in a format this version can't read: update the app. */
+  'HUB_INCOMPATIBLE',
+  'HUB_EMPTY',
+  /** The hub refused this address in the Host header (its KM_ALLOWED_HOSTS). */
+  'HUB_HOST_REFUSED',
+  /** The hub answered with an error of its own (see its log). */
+  'HUB_ERROR',
 ] as const;
 export type ApiErrorReason = (typeof API_ERROR_REASONS)[number];
 

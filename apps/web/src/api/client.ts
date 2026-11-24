@@ -14,6 +14,8 @@ import type {
   MarkdownExportResult,
   NodePositionsInput,
   NodeEdges,
+  SyncConnectInput,
+  SyncStatus,
   Tag,
   TaggableKind,
   UpdateEdgeInput,
@@ -22,6 +24,7 @@ import type {
   UpdateWhySessionInput,
   WhySession,
 } from '@km/core';
+import { isNativeApp } from '../features/readOnly';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -49,6 +52,11 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 const KEEPALIVE_MAX_BYTES = 60 * 1024;
 
 async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  // The phone app answers from its own copy of the hub's data (phoneData.ts).
+  if (isNativeApp()) {
+    const { phoneRequest } = await import('./phoneData');
+    return (await phoneRequest(method, path, body)) as T;
+  }
   const headers: Record<string, string> = { Accept: 'application/json' };
   const payload = body === undefined ? null : JSON.stringify(body);
   if (payload !== null) headers['Content-Type'] = 'application/json';
@@ -69,6 +77,53 @@ async function request<T>(method: Method, path: string, body?: unknown): Promise
   const text = await res.text();
   if (!res.ok) throw new ApiError(res.status, parseErrorBody(text));
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+/**
+ * A request to a sync hub from the page itself (the phone app, which has no
+ * server of its own), with a device token instead of the session cookie.
+ * The time limit is enforced here: the native HTTP layer may ignore signals.
+ */
+export async function hubRequest<T>(
+  hubUrl: string,
+  method: 'GET' | 'POST' | 'DELETE',
+  path: string,
+  options: { token?: string; body?: unknown; timeoutMs: number },
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (options.token) headers.Authorization = `Bearer ${options.token}`;
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  let res: Response;
+  let text: string;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error('Timed out'));
+      }, options.timeoutMs);
+    });
+    res = await Promise.race([
+      fetch(`${hubUrl}${path}`, {
+        method,
+        headers,
+        body: options.body === undefined ? null : JSON.stringify(options.body),
+        credentials: 'omit',
+      }),
+      timeout,
+    ]);
+    text = await Promise.race([res.text(), timeout]);
+  } catch (error) {
+    throw new NetworkError(error);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new ApiError(res.status, parseErrorBody(text));
+  if (res.status === 204) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new ApiError(res.status, undefined);
+  }
 }
 
 /** Our server always sends ApiErrorBody JSON; a proxy's HTML 502 does not. */
@@ -135,6 +190,14 @@ export const api = {
   exportMarkdown: () => request<MarkdownExportResult>('POST', '/exports/markdown'),
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),
+  /** This device's sync with a hub (the hub itself is another server). */
+  sync: {
+    status: () => request<SyncStatus>('GET', '/sync/status'),
+    connect: (input: SyncConnectInput) => request<SyncStatus>('POST', '/sync/connect', input),
+    push: (force: boolean) => request<SyncStatus>('POST', '/sync/push', { force }),
+    pull: (force: boolean) => request<SyncStatus>('POST', '/sync/pull', { force }),
+    disconnect: () => request<undefined>('DELETE', '/sync'),
+  },
   auth: {
     status: () => request<AuthStatus>('GET', '/auth/status'),
     /** The 6-digit authenticator code; sets the session cookie. */

@@ -4,6 +4,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { LoginGuard } from '../auth/loginGuard.js';
 import { ForbiddenError, TooManyRequestsError, UnauthorizedError } from '../errors.js';
 import type { LiveSession, SessionRepository } from '../repositories/sessionRepository.js';
+import { HUB_ROUTE_PREFIX } from './routes/hubRoutes.js';
 import { parse } from './validation.js';
 
 export interface AuthOptions {
@@ -41,13 +42,16 @@ const PUBLIC_API = new Set([
  * Sign-in with the 6-digit code from an authenticator app (TOTP), then a
  * server-side session in an httpOnly cookie. With `auth` undefined
  * (KM_AUTH=off) every route stays open and /api/auth/status says so.
+ *
+ * Returns the wrong-code rationing, which the hub's pairing shares (one
+ * budget of guesses per server, whichever door they knock on).
  */
 export async function registerAuth(
   app: FastifyInstance,
   sessions: SessionRepository,
   auth: AuthOptions | undefined,
   now: () => number,
-): Promise<void> {
+): Promise<LoginGuard | undefined> {
   await app.register(fastifyCookie);
 
   const liveSession = (request: FastifyRequest): LiveSession | undefined => {
@@ -66,7 +70,7 @@ export async function registerAuth(
     };
   });
 
-  if (!auth) return;
+  if (!auth) return undefined;
 
   const guard = new LoginGuard(auth.totpSecret, now);
   const setSessionCookie = (reply: FastifyReply, token: string) =>
@@ -85,6 +89,11 @@ export async function registerAuth(
   app.addHook('onRequest', (request, _reply, done) => {
     const route = request.routeOptions.url;
     if (route === undefined || !route.startsWith('/api') || PUBLIC_API.has(route)) {
+      done();
+      return;
+    }
+    // Hub routes check a device token instead (and only exist with KM_HUB=on).
+    if (route.startsWith(HUB_ROUTE_PREFIX)) {
       done();
       return;
     }
@@ -139,4 +148,5 @@ export async function registerAuth(
     reply.clearCookie(SESSION_COOKIE, { path: '/' });
     return reply.status(204).send();
   });
+  return guard;
 }

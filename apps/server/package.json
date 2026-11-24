@@ -8,7 +8,8 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit -p .",
     "auth:setup": "tsx src/cli/authSetup.ts",
-    "backup:restore": "tsx src/cli/restore.ts"
+    "backup:restore": "tsx src/cli/restore.ts",
+    "hub:devices": "tsx src/cli/hubDevices.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

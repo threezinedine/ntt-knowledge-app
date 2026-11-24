@@ -88,3 +88,11 @@ export const SettingsIcon = (p: P) => (
     <path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" />
   </Icon>
 );
+
+/** Two arrows chasing each other round: sync. */
+export const SyncIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M13 6.5A5 5 0 0 0 3.6 5M3 9.5A5 5 0 0 0 12.4 11" />
+    <path d="M3.5 2.5V5H6M12.5 13.5V11H10" />
+  </Icon>
+);

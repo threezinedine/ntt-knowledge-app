@@ -10,6 +10,7 @@ configuring it, backing it up, and building the Android app.
 - [Configuration](#configuration)
 - [Fields and levels table](#fields-and-levels-table)
 - [Backups, restore and markdown export](#backups-restore-and-markdown-export)
+- [Sync hub](#sync-hub)
 - [Using it from your phone](#using-it-from-your-phone)
 - [Android app](#android-app)
 - [Security notes](#security-notes)
@@ -130,8 +131,9 @@ Variables already set in the environment win over the file.
 | `KM_COOKIE_SECURE`     | `false`                            | `true` when the app is served over HTTPS                                                                                                 |
 | `KM_BACKUP_DIR`        | `backups/` next to the database    | Where Backup Now and Export Markdown write. Use an absolute path                                                                         |
 | `KM_LEVEL_CONFIG`      | `level-config.json` next to the DB | The fields and levels table                                                                                                              |
+| `KM_HUB`               | `off`                              | `on`: this server is also a sync hub (see [Sync hub](#sync-hub))                                                                         |
+| `KM_HUB_KEEP_VERSIONS` | `100`                              | How many versions a hub keeps; older ones are dropped                                                                                    |
 | `KM_LOG_LEVEL`         | `info`                             | Server log level                                                                                                                         |
-| `KM_MOBILE_SERVER_URL` | _(example in `.env.example`)_      | The server the Android app opens; read at build time                                                                                     |
 
 ## Fields and levels table
 
@@ -188,6 +190,47 @@ docker compose run --rm km node --import tsx apps/server/src/cli/restore.ts 1 --
 docker compose start
 ```
 
+## Sync hub
+
+Any Knowledge Manager server can be the hub: your main PC, or a small always-on
+machine (a home server, a VPS) that other devices reach over the LAN or the internet.
+
+1. On the hub, set `KM_HUB=on` (and, for Docker, publish it as described above) and
+   restart. Keep sign-in on (`KM_AUTH=totp`): pairing a device takes a code from the
+   hub's authenticator app, and wrong codes are rationed like sign-in.
+2. Other devices reach the hub by its address, so add it to the hub's
+   `KM_ALLOWED_HOSTS` (the LAN IP, or the domain name behind HTTPS), and bind it to
+   the network (`KM_HOST=0.0.0.0`, or `KM_PUBLISH_ADDR=0.0.0.0` in Docker).
+3. On each device, open **Sync…** in the command palette (or click _Sync_ in the title
+   bar), enter the hub's address (e.g. `http://192.168.1.20:4317`) and a current code,
+   and connect. The hub then gives that device a token of its own; the code is not
+   needed again.
+4. The first device pushes; the others pull.
+
+The hub's own graph is separate from its versions: to use the hub machine's app too,
+connect it to itself (`http://127.0.0.1:4317`) like any other device.
+
+Notes:
+
+- A version is the whole graph (notes, links, tags, layout, 5 Whys), compressed. Sign-in
+  sessions, settings and the hub token are never part of it.
+- **Paired devices**: each device has its own token; disconnecting (or connecting
+  again) tells the hub to forget the old one. For a lost phone or an old PC, list
+  and remove devices on the hub machine:
+
+  ```sh
+  npm run hub:devices                 # list them
+  npm run hub:devices -- --revoke 2   # remove number 2; its token stops working at once
+  ```
+
+- A hub's backups keep its versions but not its paired devices: after restoring a hub,
+  connect the devices again.
+- A pull that replaces unpushed changes first saves a backup named
+  `km-before-pull-<time>.sqlite` in the device's `KM_BACKUP_DIR`.
+- Devices on different app versions can only sync if the data format matches; the app
+  says so when it doesn't.
+- Over the internet, put the hub behind HTTPS (see [Security notes](#security-notes)).
+
 ## Using it from your phone
 
 The server has to be reachable on your network:
@@ -201,29 +244,28 @@ KM_HOST=0.0.0.0 KM_ALLOWED_HOSTS=192.168.1.20 npm start     # your PC's LAN IP
 With Docker, set `KM_PUBLISH_ADDR=0.0.0.0` and `KM_ALLOWED_HOSTS=<pc-ip>` in `.env`.
 Windows may ask whether Node can use the network: allow **Private** networks.
 
-Then either open `http://<pc-ip>:4317` in the phone's browser (and "Add to home screen"),
-or install the read-only Android app below. Browsers only allow a full install (offline
-shell) over HTTPS or on `localhost`; over plain LAN HTTP the web app works as a bookmark.
+Then open `http://<pc-ip>:4317` in the phone's browser (and "Add to home screen").
+Browsers only allow a full install (offline shell) over HTTPS or on `localhost`; over
+plain LAN HTTP the web app works as a bookmark. For a copy that works offline, use the
+Android app below.
 
 ## Android app
 
-`apps/mobile` is a Capacitor app that opens the web app from your server in read-only
-mode. It is meant for sideloading onto your own phone.
+`apps/mobile` is a Capacitor app that carries the web app and a read-only copy of
+your graph, pulled from a [sync hub](#sync-hub). It is meant for sideloading onto your
+own phone.
 
 One-time setup:
 
 1. Install [Android Studio](https://developer.android.com/studio); it brings the Android
    SDK and a JDK. On the phone, enable developer options (tap _Build number_ seven times)
    and turn on _USB debugging_.
-2. In `.env`, set `KM_MOBILE_SERVER_URL=http://<pc-wifi-ip>:4317`. A DHCP reservation in
-   your router keeps that IP fixed.
-3. Run the server so the phone can reach it (see above; use `npm start`, not the Vite dev
-   server).
+2. Set up a hub the phone can reach, and push your graph to it from a PC.
 
 Build and install:
 
 ```sh
-npm run mobile:sync     # after changing KM_MOBILE_SERVER_URL or capacitor.config.ts
+npm run mobile:sync     # builds the web app and copies it into the Android project
 npm run mobile:open     # opens Android Studio: press Run with the phone plugged in
 npm run mobile:run      # or deploy directly, with the Android SDK on PATH
 ```
@@ -237,17 +279,23 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 cd apps/mobile/android; .\gradlew.bat assembleDebug
 ```
 
-The Gradle wrapper is pinned to 9.1.0 so it runs on Android Studio's bundled JDK. The
-app needs the PC on and on the same Wi-Fi; otherwise it shows a retry page.
+The Gradle wrapper is pinned to 9.1.0 so it runs on Android Studio's bundled JDK.
+
+In the app, tap _Sync_ in the title bar, enter the hub's address and a code from its
+authenticator app, then **Pull**. The phone pairs as a read-only device: the hub never
+accepts a push from it. Rebuild the app (`mobile:sync`, then install) after updating
+the code; the copy on the phone stays.
 
 ## Security notes
 
 - Keep the server off the public internet unless you put HTTPS in front of it and accept
   a single 6-digit code as the only factor.
-- On plain LAN HTTP, the sign-in code and the session cookie cross the Wi-Fi unencrypted.
-  That is acceptable on your own home network. Elsewhere, put HTTPS in front (for
-  example Caddy or Tailscale), set `KM_COOKIE_SECURE=true`, and use an `https://`
-  `KM_MOBILE_SERVER_URL`.
+- On plain LAN HTTP, the sign-in code, the session cookie and sync traffic (including
+  device tokens and your whole graph) cross the Wi-Fi unencrypted. That is acceptable on
+  your own home network. Elsewhere, put HTTPS in front (for example Caddy or Tailscale),
+  set `KM_COOKIE_SECURE=true`, and give devices the hub's `https://` address.
+- A device's hub token is kept in its database (or, on the phone, in the app's storage)
+  and is left out of backups. The hub keeps only a hash of each token.
 - `.env` holds the sign-in secret. It is gitignored and not part of backups.
 
 ## Development
