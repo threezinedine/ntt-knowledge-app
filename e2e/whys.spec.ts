@@ -212,6 +212,8 @@ test.describe('5 Whys', () => {
     await expect(d.getByRole('textbox')).toHaveCount(0);
     await expect(d.getByRole('button', { name: 'Delete session' })).toHaveCount(0);
     await d.getByRole('button', { name: 'Close' }).click();
-    await expect(page.getByRole('button', { name: 'Copy prompt' })).toHaveCount(0);
+    await expect(
+      page.getByRole('region', { name: '5 Whys' }).getByRole('button', { name: 'Copy prompt' }),
+    ).toHaveCount(0);
   });
 });

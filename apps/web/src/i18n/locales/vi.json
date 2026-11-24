@@ -129,6 +129,7 @@
   "cmd.addTag": "Gắn thẻ cho nút",
   "cmd.openWhys": "Mở 5 Whys",
   "cmd.copyWhysPrompt": "Copy prompt 5 Whys",
+  "cmd.copyLinkCheckPrompt": "Copy prompt Link check",
   "cmd.deleteNode": "Xoá nút…",
   "cmd.togglePreview": "Bật/tắt xem trước",
   "cmd.previewToSide": "Mở xem trước bên cạnh",
@@ -323,5 +324,15 @@
   "whys.deleted": "Đã xoá phiên",
   "whys.missing": "Phiên này không còn nữa. Hãy quay lại danh sách.",
   "whys.promptCopiedFull": "Đã copy prompt ({chars} ký tự, {count} phiên trước). Dán vào AI chat nhé.",
-  "whys.copyPromptFailed": "Không copy được prompt. Mở 5 Whys → Thêm rồi copy ở đó."
+  "whys.copyPromptFailed": "Không copy được prompt. Mở 5 Whys → Thêm rồi copy ở đó.",
+  "linkCheck.heading": "Link check",
+  "linkCheck.help": "Copy prompt cho AI chat bất kỳ: AI kiểm chứng mọi liên kết quanh ghi chú này (tiêu đề, tag, mô tả, liên kết vào và ra) rồi trả về một báo cáo.",
+  "linkCheck.level": "Level của local graph",
+  "linkCheck.levelN": "Level {level}",
+  "linkCheck.promptLang": "Ngôn ngữ prompt",
+  "linkCheck.copy": "Copy prompt",
+  "linkCheck.preview": "{notes} ghi chú · {links} liên kết cần check · {chars} ký tự",
+  "linkCheck.noLinks": "Level này chưa có liên kết nào: AI sẽ không có gì để check.",
+  "linkCheck.copied": "Đã copy prompt Link check ({notes} ghi chú, {links} liên kết, {chars} ký tự). Dán vào AI chat nhé.",
+  "linkCheck.copyFailed": "Không copy được prompt. Thử lại, hoặc dùng trình duyệt khác."
 }

@@ -7,6 +7,7 @@ import { useI18n } from '../../i18n/context';
 import { TagChip } from '../tags/TagChip';
 import { sortTagIds, useTagIndex } from '../tags/useTagIndex';
 import { WhysPanel } from '../whys/WhysPanel';
+import { LinkCheckPanel } from '../linkCheck/LinkCheckPanel';
 
 /** A node to read, not edit (read-only mode, e.g. the phone app). */
 export function NodeView({ node }: { node: GraphNode }) {
@@ -45,6 +46,7 @@ export function NodeView({ node }: { node: GraphNode }) {
           )}
         </section>
         <WhysPanel node={node} />
+        <LinkCheckPanel nodeId={node.id} />
         {props.length > 0 && (
           <section className="panel" aria-label={t('props.heading')}>
             <h3>{t('props.heading')}</h3>

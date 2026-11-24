@@ -8,3 +8,4 @@ export * from './api.js';
 export * from './ids.js';
 export * from './auth.js';
 export * from './whys.js';
+export * from './localGraph.js';

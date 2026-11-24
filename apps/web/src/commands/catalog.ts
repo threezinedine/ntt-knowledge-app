@@ -150,6 +150,14 @@ export const COMMANDS = [
     when: 'cmdWhen.node',
   },
   {
+    id: 'km.node.copyLinkCheckPrompt',
+    title: 'cmd.copyLinkCheckPrompt',
+    category: 'cmdCategory.node',
+    keys: ['Alt+Shift+L'],
+    macKeys: ['Ctrl+Alt+Shift+L'],
+    when: 'cmdWhen.node',
+  },
+  {
     id: 'km.node.delete',
     title: 'cmd.deleteNode',
     category: 'cmdCategory.node',

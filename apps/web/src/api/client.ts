@@ -9,6 +9,7 @@ import type {
   ExpSnapshot,
   GraphNode,
   GraphSnapshot,
+  LocalGraph,
   NodePositionsInput,
   NodeEdges,
   Tag,
@@ -93,6 +94,9 @@ export const api = {
       request<GraphNode>('PATCH', `/nodes/${id}`, patch),
     remove: (id: string) => request<undefined>('DELETE', `/nodes/${id}`),
     edges: (id: string) => request<NodeEdges>('GET', `/nodes/${id}/edges`),
+    /** The node's neighbourhood within `depth` links, both ways (link check). */
+    localGraph: (id: string, depth: number) =>
+      request<LocalGraph>('GET', `/nodes/${id}/local-graph${qs({ depth: String(depth) })}`),
     /** Several canvas moves in one transaction (a drag and what it pushed). */
     movePositions: (input: NodePositionsInput) =>
       request<undefined>('PATCH', '/nodes/positions', input),

@@ -1,3 +1,4 @@
+import type { PromptLanguage } from '../ai/copyPrompt';
 import { WHYS_FORMAT, type NodeEdges, type WhyItem, type WhySession } from '@km/core';
 
 /**
@@ -8,8 +9,7 @@ import { WHYS_FORMAT, type NodeEdges, type WhyItem, type WhySession } from '@km/
  * The prompt's language is chosen in the dialog, independently of the UI
  * language, so both versions live here as data rather than in the i18n files.
  */
-export type PromptLanguage = 'en' | 'vi';
-export const PROMPT_LANGUAGES: readonly PromptLanguage[] = ['en', 'vi'];
+export { PROMPT_LANGUAGES, type PromptLanguage } from '../ai/copyPrompt';
 
 export interface PromptInput {
   title: string;

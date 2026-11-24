@@ -1,5 +1,6 @@
 import {
   createNodeInputSchema,
+  localGraphQuerySchema,
   nodeListQuerySchema,
   nodePositionsInputSchema,
   updateNodeInputSchema,
@@ -41,5 +42,12 @@ export function registerNodeRoutes(app: FastifyInstance, repos: Repositories): v
     const { id } = parse(idParamsSchema, request.params);
     repos.nodes.getOrThrow(id);
     return repos.edges.forNode(id);
+  });
+
+  /** Neighbourhood within ?depth=1..3 links, both ways (the link-check prompt). */
+  app.get('/api/nodes/:id/local-graph', (request) => {
+    const { id } = parse(idParamsSchema, request.params);
+    const { depth } = parse(localGraphQuerySchema, request.query);
+    return repos.localGraph.of(id, depth);
   });
 }

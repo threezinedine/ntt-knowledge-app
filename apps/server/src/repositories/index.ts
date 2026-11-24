@@ -6,6 +6,7 @@ import { createTagRepository } from './tagRepository.js';
 import { createExpRepository } from './expRepository.js';
 import { createSessionRepository } from './sessionRepository.js';
 import { createWhyRepository } from './whyRepository.js';
+import { createLocalGraphRepository } from './localGraphRepository.js';
 
 export type Repositories = ReturnType<typeof createRepositories>;
 
@@ -22,7 +23,8 @@ export function createRepositories(ctx: RepoContext) {
   const exp = createExpRepository(ctx);
   const sessions = createSessionRepository(ctx);
   const whys = createWhyRepository(ctx, nodes);
-  return { nodes, edges, tags, exp, sessions, whys };
+  const localGraph = createLocalGraphRepository(nodes, edges);
+  return { nodes, edges, tags, exp, sessions, whys, localGraph };
 }
 
 export type { RepoContext } from './context.js';

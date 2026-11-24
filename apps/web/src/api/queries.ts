@@ -27,6 +27,8 @@ export const keys = {
   node: (id: string) => ['nodes', 'detail', id] as const,
   allNodeEdges: ['nodes', 'edges'] as const,
   nodeEdges: (id: string) => ['nodes', 'edges', id] as const,
+  /** Under 'nodes': any node or edge change makes it stale. */
+  localGraph: (id: string, depth: number) => ['nodes', 'local', id, depth] as const,
   graph: ['graph'] as const,
   relations: ['relations'] as const,
   tags: ['tags'] as const,
@@ -44,6 +46,12 @@ export const useNode = (id: string) =>
 
 export const useNodeEdges = (id: string) =>
   useQuery({ queryKey: keys.nodeEdges(id), queryFn: () => api.nodes.edges(id) });
+
+export const useLocalGraph = (id: string, depth: number) =>
+  useQuery({
+    queryKey: keys.localGraph(id, depth),
+    queryFn: () => api.nodes.localGraph(id, depth),
+  });
 
 export const useAuthStatus = () =>
   useQuery({ queryKey: keys.auth, queryFn: api.auth.status, staleTime: 60_000 });

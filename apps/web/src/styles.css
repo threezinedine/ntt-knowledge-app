@@ -2020,3 +2020,29 @@ kbd {
   padding: 4px 6px;
   font-size: 12px;
 }
+
+/* ---------- link check ---------- */
+
+.link-check-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.link-check-panel p {
+  margin: 0;
+  font-size: 13px;
+}
+.link-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.link-check-row select {
+  padding: 4px 6px;
+  font-size: 12px;
+}
+.link-check-preview {
+  font-family: var(--mono);
+  font-size: 12px;
+}
