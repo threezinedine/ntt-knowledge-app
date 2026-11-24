@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import {
   buildTagTree,
@@ -51,12 +51,16 @@ export function createBackup(
   backup(db, path);
   const copy = new DatabaseSync(path);
   try {
-    copy.exec('DELETE FROM sessions; VACUUM;');
+    // Databases from before sign-in existed (schema < 6) have no sessions table.
+    const hasSessions = copy
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'sessions'")
+      .get();
+    if (hasSessions) copy.exec('DELETE FROM sessions; VACUUM;');
   } finally {
     copy.close();
   }
   return {
-    file: path.slice(dir.length + 1),
+    file: basename(path),
     dir,
     sizeBytes: statSync(path).size,
     createdAt: now,

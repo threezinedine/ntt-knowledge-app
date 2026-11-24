@@ -4,10 +4,14 @@ import { showToast } from '../../components/toast';
 import { useI18n } from '../../i18n/context';
 import { useReadOnly } from '../readOnly';
 
-/** "1.2 MB" / "640 KB". */
-export function formatSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${String(Math.max(1, Math.round(bytes / 1024)))} KB`;
+/** "1.2 MB" / "640 kB", in the UI language's number format. */
+export function formatSize(bytes: number, locale: string): string {
+  const mega = bytes >= 1024 * 1024;
+  return new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit: mega ? 'megabyte' : 'kilobyte',
+    maximumFractionDigits: 1,
+  }).format(mega ? bytes / 1024 / 1024 : Math.max(1, Math.round(bytes / 1024)));
 }
 
 /**
@@ -17,7 +21,7 @@ export function formatSize(bytes: number): string {
  * phone: it only views.
  */
 export function BackupCommands() {
-  const { t, errorText } = useI18n();
+  const { t, locale, errorText } = useI18n();
   const readOnly = useReadOnly();
   const backup = useBackupNow();
   const exportMd = useExportMarkdown();
@@ -29,7 +33,9 @@ export function BackupCommands() {
       showToast(t('backup.working'));
       backup.mutate(undefined, {
         onSuccess: (r) => {
-          showToast(t('backup.done', { file: r.file, size: formatSize(r.sizeBytes), dir: r.dir }));
+          showToast(
+            t('backup.done', { file: r.file, size: formatSize(r.sizeBytes, locale), dir: r.dir }),
+          );
         },
         onError: (err) => {
           showToast(errorText(err));

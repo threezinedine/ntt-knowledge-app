@@ -56,7 +56,9 @@ It refuses while the server answers on `KM_PORT`, checks the file is a healthy d
 this build can open, asks for `yes` (`--yes` skips that), and first saves the current
 database as `km-before-restore-<time>.sqlite`, so a restore can be undone the same way.
 
-In Docker: `docker compose stop`, then
+In Docker: `docker compose stop` first. **This matters**: `compose run` starts a new
+container, which can't see the running one over the network; the command still refuses
+while the database file is open, but stop the service anyway. Then
 `docker compose run --rm km node --import tsx apps/server/src/cli/restore.ts` (add the
 number and `--yes`), then `docker compose start`.
 

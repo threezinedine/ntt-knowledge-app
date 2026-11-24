@@ -4,6 +4,7 @@ import { createBackup, exportMarkdown } from '../../backup/backup.js';
 import type { Database } from '../../db/database.js';
 import { AppError } from '../../errors.js';
 import type { Repositories } from '../../repositories/index.js';
+import { emptyBodySchema, parse } from '../validation.js';
 
 /** On-demand backup and markdown export (writes; read-only sessions get 403). */
 export function registerBackupRoutes(
@@ -24,12 +25,14 @@ export function registerBackupRoutes(
     }
   };
 
-  app.post('/api/backups', async (_request, reply) => {
+  app.post('/api/backups', async (request, reply) => {
+    parse(emptyBodySchema, request.body);
     const result: BackupResult = writing('Backup', () => createBackup(db, dir, now()));
     return reply.status(201).send(result);
   });
 
-  app.post('/api/exports/markdown', async (_request, reply) => {
+  app.post('/api/exports/markdown', async (request, reply) => {
+    parse(emptyBodySchema, request.body);
     const result: MarkdownExportResult = writing('Markdown export', () =>
       exportMarkdown(repos, dir, now()),
     );

@@ -19,7 +19,7 @@ test.describe('backup and markdown export (command palette)', () => {
     await page.goto('/');
     await runCommand(page, 'Backup Now');
     const toast = page.getByRole('status').filter({ hasText: 'Backup saved' });
-    await expect(toast).toContainText(/Backup saved: (km-[\w-]+\.sqlite) \(\d+ KB\) in /);
+    await expect(toast).toContainText(/Backup saved: (km-[\w-]+\.sqlite) \(\d+ kB\) in /);
     const text = (await toast.textContent()) ?? '';
     const [, file = '', dir = ''] = /Backup saved: (\S+) \(.+?\) in (.+)$/.exec(text) ?? [];
     expect(existsSync(join(dir, file))).toBe(true);

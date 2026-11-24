@@ -29,7 +29,9 @@ describe('file names', () => {
     expect(fileStem('CPU / GPU: "fast"?')).toBe('CPU _ GPU_ _fast__');
     expect(fileStem('  a   b. ')).toBe('a b');
     expect(fileStem('[[x]] #tag ^ref')).toBe('__x__ _tag _ref');
-    expect(fileStem('con')).toBe('con_');
+    expect(fileStem('con')).toBe('_con');
+    expect(fileStem('NUL.txt')).toBe('_NUL.txt');
+    expect(fileStem('console')).toBe('console');
     expect(fileStem('...')).toBe('untitled');
     expect(fileStem('x'.repeat(150))).toHaveLength(100);
   });

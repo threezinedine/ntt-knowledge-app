@@ -23,7 +23,8 @@ export interface ExportFile {
   content: string;
 }
 
-const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+/** Device names Windows reserves, also with an extension ("nul.txt"). */
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
 const NAME_MAX = 100;
 
 /** A title as a file name that works on Windows, macOS and Linux (no extension). */
@@ -36,7 +37,7 @@ export function fileStem(title: string): string {
     .replace(/[. ]+$/, '');
   if (stem.length > NAME_MAX) stem = stem.slice(0, NAME_MAX).trimEnd();
   if (stem === '') stem = 'untitled';
-  if (WINDOWS_RESERVED.test(stem)) stem = `${stem}_`;
+  if (WINDOWS_RESERVED.test(stem)) stem = `_${stem}`;
   return stem;
 }
 

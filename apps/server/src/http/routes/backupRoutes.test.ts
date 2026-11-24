@@ -70,6 +70,12 @@ describe('backup API', () => {
     }
   });
 
+  it('takes no input', async () => {
+    const res = await t.request<ApiErrorBody>('POST', '/api/backups', { dir: '/elsewhere' });
+    expect(res.status).toBe(400);
+    expect(readdirSync(dir)).toEqual([]);
+  });
+
   it('has no backup routes when no folder is configured', async () => {
     const t2 = await createTestApp();
     try {
