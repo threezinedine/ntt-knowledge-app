@@ -77,6 +77,8 @@ test.describe('read-only mode (the phone app)', () => {
     const edge = await api.createEdge(a.id, b.id, 'TO');
     await asPhoneApp(page);
     await page.goto('/');
+    // The link is drawn once its nodes are measured; clicking earlier hits nothing.
+    await expect(page.locator('.react-flow__edge-text').first()).toBeVisible();
     await page.getByTestId(`rf__edge-${edge.id}`).click({ button: 'right', force: true });
     await expect(page.getByRole('menuitem')).toHaveText(['Open “Here”', 'Open “There”']);
   });

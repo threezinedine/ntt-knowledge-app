@@ -142,6 +142,8 @@ test.describe('node context menu', () => {
     const b = await api.createNode({ title: 'Effect', position: { x: 400, y: 0 } });
     const edge = await api.createEdge(a.id, b.id, 'LEADS_TO');
     await page.goto('/');
+    // The link is drawn once its nodes are measured; clicking earlier hits nothing.
+    await expect(page.locator('.react-flow__edge-text').first()).toBeVisible();
     const line = page.getByTestId(`rf__edge-${edge.id}`);
     const linkMenu = page.getByRole('menu', { name: 'Actions for link LEADS_TO (Cause → Effect)' });
 
@@ -177,6 +179,8 @@ test.describe('node context menu', () => {
     const b = await api.createNode({ title: 'End', position: { x: 400, y: 0 } });
     const edge = await api.createEdge(a.id, b.id, 'GOES');
     await page.goto('/');
+    // The link is drawn once its nodes are measured; clicking earlier hits nothing.
+    await expect(page.locator('.react-flow__edge-text').first()).toBeVisible();
     await page.getByTestId(`rf__edge-${edge.id}`).click({ button: 'right', force: true });
     await page.getByRole('menuitem', { name: 'Open “End”' }).click();
     await expect(page).toHaveURL(new RegExp(`/nodes/${b.id}$`));
@@ -192,6 +196,8 @@ test.describe('node context menu', () => {
     const b = await api.createNode({ title: 'To', position: { x: 400, y: 0 } });
     const edge = await api.createEdge(a.id, b.id, 'KEEP');
     await page.goto('/');
+    // The link is drawn once its nodes are measured; clicking earlier hits nothing.
+    await expect(page.locator('.react-flow__edge-text').first()).toBeVisible();
     const line = page.getByTestId(`rf__edge-${edge.id}`);
     await line.click({ force: true });
     await expect(line).toHaveClass(/selected/);

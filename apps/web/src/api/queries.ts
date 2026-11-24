@@ -304,12 +304,16 @@ export function useTagLink(kind: TaggableKind) {
 export const useWhySessions = (nodeId: string) =>
   useQuery({ queryKey: keys.whys(nodeId), queryFn: () => api.whys.list(nodeId) });
 
-/** Answered whys earn EXP, so a session change moves the fields too. */
-const invalidateWhys = (qc: QueryClient, nodeId: string) =>
-  Promise.all([
-    qc.invalidateQueries({ queryKey: keys.whys(nodeId) }),
-    qc.invalidateQueries({ queryKey: keys.exp }),
-  ]);
+/**
+ * Answered whys earn EXP, so a session change moves the fields too. Only the
+ * session list is awaited: waiting for EXP as well let the list refetch land
+ * first, unmounting the deleted session's view before its onSuccess ran (the
+ * dialog then stuck on "no longer exists").
+ */
+const invalidateWhys = (qc: QueryClient, nodeId: string) => {
+  void qc.invalidateQueries({ queryKey: keys.exp });
+  return qc.invalidateQueries({ queryKey: keys.whys(nodeId) });
+};
 
 export function useCreateWhySession(nodeId: string) {
   const qc = useQueryClient();
