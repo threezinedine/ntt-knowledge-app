@@ -2,6 +2,7 @@ import type { Edge, NodeSummary, Position } from '@km/core';
 import { MarkerType, type Edge as FlowEdge, type Node as FlowNode } from '@xyflow/react';
 import {
   DEFAULT_NODE_COLOR,
+  degreeRange,
   PARALLEL_EDGE_SPACING,
   radiusForDegree,
   typeColors,
@@ -53,6 +54,7 @@ export function toFlowNodes(
 ): KmFlowNode[] {
   const prevById = new Map(previous.map((n) => [n.id, n]));
   const degree = degrees(edges);
+  const range = degreeRange(degree);
   const colors = typeColors(nodes.map((n) => n.type));
   let unplaced = 0;
   return nodes.map((node) => {
@@ -67,7 +69,7 @@ export function toFlowNodes(
       data: {
         label: node.title,
         nodeType: node.type,
-        radius: radiusForDegree(degree.get(node.id) ?? 0),
+        radius: radiusForDegree(degree.get(node.id) ?? 0, range),
         color: colors.get(node.type) ?? DEFAULT_NODE_COLOR,
       },
       selected: prev?.selected ?? false,

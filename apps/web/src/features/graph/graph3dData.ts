@@ -1,6 +1,6 @@
 import type { Edge, NodeSummary } from '@km/core';
 import { degrees } from './flowMapping';
-import { DEFAULT_NODE_COLOR, radiusForDegree, typeColors } from './graphGeometry';
+import { DEFAULT_NODE_COLOR, degreeRange, radiusForDegree, typeColors } from './graphGeometry';
 
 /** A sphere in the 3D view. x/y/z (and the v*, f* fields) are owned by the force engine. */
 export interface Node3D {
@@ -50,6 +50,7 @@ export function toGraph3D(
 ): Graph3DData {
   const prevById = new Map(previous.map((n) => [n.id, n]));
   const degree = degrees(edges);
+  const range = degreeRange(degree);
   const colors = typeColors(nodes.map((n) => n.type));
   const ids = new Set(nodes.map((n) => n.id));
 
@@ -59,7 +60,7 @@ export function toGraph3D(
       id: node.id,
       title: node.title,
       color: colors.get(node.type) ?? DEFAULT_NODE_COLOR,
-      radius: radiusForDegree(degree.get(node.id) ?? 0) / 2,
+      radius: radiusForDegree(degree.get(node.id) ?? 0, range) / 2,
     };
     if (prev) {
       const { x, y, z, vx, vy, vz, fx, fy, fz } = prev;

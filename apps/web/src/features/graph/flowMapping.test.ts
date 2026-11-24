@@ -1,5 +1,6 @@
 import type { Edge, NodeSummary } from '@km/core';
 import { describe, expect, it } from 'vitest';
+import { MIN_RADIUS } from './graphGeometry';
 import {
   edgeLanes,
   fallbackPosition,
@@ -23,7 +24,7 @@ describe('toFlowNodes', () => {
       fallbackPosition(0),
       fallbackPosition(1),
     ]);
-    expect(nodes[0]?.data).toMatchObject({ label: 'A', nodeType: 'note', radius: 7 });
+    expect(nodes[0]?.data).toMatchObject({ label: 'A', nodeType: 'note', radius: MIN_RADIUS });
   });
 
   it('keeps selection across refetches', () => {

@@ -2,16 +2,44 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_NODE_COLOR,
   edgeGeometry,
+  degreeRange,
+  EVEN_RADIUS,
+  LINKED_MIN_RADIUS,
+  MAX_RADIUS,
+  MIN_RADIUS,
   radiusForDegree,
   typeColors,
   uprightAngle,
 } from './graphGeometry';
 
 describe('radiusForDegree', () => {
-  it('grows with links but is bounded', () => {
-    expect(radiusForDegree(0)).toBe(7);
-    expect(radiusForDegree(4)).toBeGreaterThan(radiusForDegree(1));
-    expect(radiusForDegree(10_000)).toBe(26);
+  it('spreads linked nodes from the fewest links to the most, so 2 vs 3 shows', () => {
+    const range = { min: 2, max: 3 };
+    expect(radiusForDegree(0, range)).toBe(MIN_RADIUS);
+    expect(radiusForDegree(2, range)).toBe(LINKED_MIN_RADIUS);
+    expect(radiusForDegree(3, range)).toBe(MAX_RADIUS);
+    expect(radiusForDegree(26, { min: 2, max: 50 })).toBe((LINKED_MIN_RADIUS + MAX_RADIUS) / 2);
+  });
+
+  it('gives one size when all linked nodes are even, and stays in bounds', () => {
+    expect(radiusForDegree(4, { min: 4, max: 4 })).toBe(EVEN_RADIUS);
+    expect(radiusForDegree(0, { min: 0, max: 0 })).toBe(MIN_RADIUS);
+    expect(radiusForDegree(9, { min: 2, max: 3 })).toBe(MAX_RADIUS);
+  });
+});
+
+describe('degreeRange', () => {
+  it('ignores unlinked nodes', () => {
+    expect(degreeRange(new Map())).toEqual({ min: 0, max: 0 });
+    expect(
+      degreeRange(
+        new Map([
+          ['a', 0],
+          ['b', 2],
+          ['c', 7],
+        ]),
+      ),
+    ).toEqual({ min: 2, max: 7 });
   });
 });
 

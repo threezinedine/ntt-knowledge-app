@@ -23,12 +23,44 @@ export function uprightAngle(dx: number, dy: number): number {
   return deg;
 }
 
-const MIN_RADIUS = 7;
-const MAX_RADIUS = 26;
+/** An unlinked node. */
+export const MIN_RADIUS = 6;
+/** The least-linked of the linked nodes... */
+export const LINKED_MIN_RADIUS = 12;
+/** ...and the best-linked one. */
+export const MAX_RADIUS = 32;
+/** When every linked node has the same number of links. */
+export const EVEN_RADIUS = 18;
 
-/** Like Obsidian: well-connected nodes grow, sub-linearly so hubs don't explode. */
-export function radiusForDegree(degree: number): number {
-  return Math.min(MAX_RADIUS, MIN_RADIUS + Math.sqrt(Math.max(0, degree)) * 3);
+export interface DegreeRange {
+  /** Fewest links of any linked node (0 when nothing is linked). */
+  min: number;
+  max: number;
+}
+
+/**
+ * Size spread over the graph's own range of links (the user's choice, so
+ * nodes never look alike): the least-linked node gets `LINKED_MIN_RADIUS`,
+ * the best-linked `MAX_RADIUS`, the rest evenly in between. Even 2 vs 3
+ * links shows. A link elsewhere can therefore resize the others.
+ */
+export function radiusForDegree(degree: number, range: DegreeRange): number {
+  if (degree <= 0) return MIN_RADIUS;
+  if (range.max <= range.min) return EVEN_RADIUS;
+  const share = Math.min(1, Math.max(0, (degree - range.min) / (range.max - range.min)));
+  return LINKED_MIN_RADIUS + (MAX_RADIUS - LINKED_MIN_RADIUS) * share;
+}
+
+/** Fewest and most links among the nodes that have any. */
+export function degreeRange(degree: ReadonlyMap<string, number>): DegreeRange {
+  let min = Infinity;
+  let max = 0;
+  for (const d of degree.values()) {
+    if (d <= 0) continue;
+    min = Math.min(min, d);
+    max = Math.max(max, d);
+  }
+  return { min: Number.isFinite(min) ? min : 0, max };
 }
 
 /**
