@@ -132,6 +132,56 @@ test.describe('node context menu', () => {
     await expect(farNode).toBeInViewport();
   });
 
+  test('right-clicking a link offers rename, both ends and delete', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Right-click on the canvas.');
+    const a = await api.createNode({ title: 'Cause', position: { x: 0, y: 0 } });
+    const b = await api.createNode({ title: 'Effect', position: { x: 400, y: 0 } });
+    const edge = await api.createEdge(a.id, b.id, 'LEADS_TO');
+    await page.goto('/');
+    const line = page.getByTestId(`rf__edge-${edge.id}`);
+    const linkMenu = page.getByRole('menu', { name: 'Actions for link LEADS_TO (Cause → Effect)' });
+
+    await line.click({ button: 'right', force: true });
+    await expect(linkMenu.getByRole('menuitem')).toHaveText([
+      /^Rename/,
+      'Open “Cause”',
+      'Open “Effect”',
+      'Delete Link',
+    ]);
+    await linkMenu.getByRole('menuitem', { name: /^Rename/ }).click();
+    const editor = page.getByRole('textbox', { name: 'Link name' });
+    await editor.fill('CAUSES');
+    await editor.press('Enter');
+    await expect(page.locator('.react-flow__edge-text', { hasText: 'CAUSES' })).toBeVisible();
+
+    await line.click({ button: 'right', force: true });
+    await page
+      .getByRole('menu', { name: /^Actions for link CAUSES/ })
+      .getByRole('menuitem', { name: 'Delete Link' })
+      .click();
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Deleted link “CAUSES”' }),
+    ).toBeVisible();
+    await expect(line).toHaveCount(0);
+    const graph = (await (await page.request.get('/api/graph')).json()) as { edges: unknown[] };
+    expect(graph.edges).toHaveLength(0);
+  });
+
+  test('a link’s menu opens either end', async ({ page, api, isMobile }) => {
+    test.skip(isMobile, 'Right-click on the canvas.');
+    const a = await api.createNode({ title: 'Start', position: { x: 0, y: 0 } });
+    const b = await api.createNode({ title: 'End', position: { x: 400, y: 0 } });
+    const edge = await api.createEdge(a.id, b.id, 'GOES');
+    await page.goto('/');
+    await page.getByTestId(`rf__edge-${edge.id}`).click({ button: 'right', force: true });
+    await page.getByRole('menuitem', { name: 'Open “End”' }).click();
+    await expect(page).toHaveURL(new RegExp(`/nodes/${b.id}$`));
+  });
+
   test('keys typed in the menu never reach the graph (Backspace keeps a selected link)', async ({
     page,
     api,

@@ -41,7 +41,9 @@ import { readJson, writeJson } from '../../commands/storage';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
 import { revealNodeId, useNodeContextMenu } from '../node/NodeContextMenu';
+import { showToast } from '../../components/toast';
 import { CircleNode } from './CircleNode';
+import { useEdgeContextMenu } from './EdgeContextMenu';
 import { pushAway, type Circle } from './collide';
 import { EdgeRenameContext, FloatingEdge, GraphMarkers, type EdgeRename } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
@@ -163,6 +165,20 @@ function GraphCanvas() {
   const zoomOutTip = useCommandTooltip('km.graph.zoomOut', { always: true });
   const fitTip = useCommandTooltip('km.graph.fitView', { always: true });
   const nodeMenu = useNodeContextMenu();
+  const edgeMenu = useEdgeContextMenu({
+    onRename: (edge) => {
+      setRenamingId(edge.id);
+    },
+    // Not removed from the canvas up front: the refetch after the delete does
+    // it, and a failed delete then simply leaves the link where it was.
+    onDelete: (edge) => {
+      deleteEdge.mutate(edge.id, {
+        onSuccess: () => {
+          showToast(t('edgeMenu.deleted', { name: edge.name }));
+        },
+      });
+    },
+  });
   // Read-only (phone app): look and navigate; no drag, connect, rename, delete.
   const readOnly = useReadOnly();
 
@@ -279,6 +295,7 @@ function GraphCanvas() {
   return (
     <div className={`graph-page${dragging ? ' is-dragging' : ''}`} data-testid="graph-canvas">
       {nodeMenu.element}
+      {edgeMenu.element}
       <GraphMarkers />
       <GraphHighlightContext value={highlight}>
         <EdgeRenameContext value={edgeRename}>
@@ -340,6 +357,19 @@ function GraphCanvas() {
             onNodeContextMenu={(event, node) => {
               event.preventDefault();
               nodeMenu.open({ id: node.id, title: node.data.label }, event.clientX, event.clientY);
+            }}
+            onEdgeContextMenu={(event, edge) => {
+              event.preventDefault();
+              edgeMenu.open(
+                {
+                  id: edge.id,
+                  name: edge.data?.name ?? '',
+                  from: { id: edge.source, title: titleOf(edge.source) },
+                  to: { id: edge.target, title: titleOf(edge.target) },
+                },
+                event.clientX,
+                event.clientY,
+              );
             }}
             fitView
             fitViewOptions={fitViewOptions}

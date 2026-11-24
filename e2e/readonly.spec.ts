@@ -70,6 +70,17 @@ test.describe('read-only mode (the phone app)', () => {
     ]);
   });
 
+  test('a link’s menu only opens its ends', async ({ page, api, isMobile }) => {
+    test.skip(isMobile, 'Right-click on the canvas.');
+    const a = await api.createNode({ title: 'Here', position: { x: 0, y: 0 } });
+    const b = await api.createNode({ title: 'There', position: { x: 400, y: 0 } });
+    const edge = await api.createEdge(a.id, b.id, 'TO');
+    await asPhoneApp(page);
+    await page.goto('/');
+    await page.getByTestId(`rf__edge-${edge.id}`).click({ button: 'right', force: true });
+    await expect(page.getByRole('menuitem')).toHaveText(['Open “Here”', 'Open “There”']);
+  });
+
   test('signing in from the phone asks for a read-only session', async ({ page }) => {
     let body: unknown;
     const out: AuthStatus = { enabled: true, signedIn: false, expiresAt: null, readOnly: false };
