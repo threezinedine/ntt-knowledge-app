@@ -135,6 +135,9 @@ npm run build && npm start   # production: the hub serves apps/web/dist on :4317
 npm run docker:up   # same production setup in one container (compose.yaml), data in a named volume
 ```
 
+CI: `.github/workflows/test.yml` (GitHub Actions) runs `npm run check` and `npm run test:e2e`
+on push to `master` and on PRs. A deploy workflow is not set up yet (the user parked it).
+
 Shell quirk on this Windows machine: vitest fails under Git Bash ("failed to find the
 runner"); run `npm run check` / tests from PowerShell. Prettier flags the user's own
 untracked `.vscode/settings.json`: leave it alone (don't format or commit it).

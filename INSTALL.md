@@ -256,5 +256,9 @@ End-to-end tests run twice: desktop Chrome and a Pixel 7 touch profile. Tests th
 mouse, a hardware keyboard or the clipboard are skipped on the touch profile, with the
 reason in the test.
 
+GitHub Actions (`.github/workflows/test.yml`) runs both on every push to `master` and on
+pull requests: `npm run check` in one job, the Playwright suite in another (its report is
+uploaded when it fails).
+
 On Windows, run the unit tests from PowerShell (Vitest fails to start under Git Bash).
 Architecture and conventions are in [`CLAUDE.md`](CLAUDE.md).
