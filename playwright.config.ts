@@ -16,6 +16,9 @@ export default defineConfig({
     : [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL,
+    // A stuck click or fill fails on its own, with its call log, instead of
+    // as a bare "test timeout" (all CI shows of it).
+    actionTimeout: 10_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     // The PWA service worker would otherwise cache assets across runs.
