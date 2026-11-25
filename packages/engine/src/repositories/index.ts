@@ -9,6 +9,7 @@ import { createLocalGraphRepository } from './localGraphRepository.js';
 import { createSyncRepository } from './syncRepository.js';
 import { createSettingsRepository } from './settingsRepository.js';
 import { createReviewRepository } from './reviewRepository.js';
+import { createWikilinkRepository } from './wikilinkRepository.js';
 
 export type Repositories = ReturnType<typeof createRepositories>;
 
@@ -28,7 +29,8 @@ export function createRepositories(ctx: RepoContext) {
   const sync = createSyncRepository(ctx);
   const settings = createSettingsRepository(ctx);
   const review = createReviewRepository(ctx, { exp, nodes, settings });
-  return { nodes, edges, tags, exp, whys, localGraph, sync, settings, review };
+  const wikilinks = createWikilinkRepository(ctx, { nodes, settings });
+  return { nodes, edges, tags, exp, whys, localGraph, sync, settings, review, wikilinks };
 }
 
 export type { RepoContext } from './context.js';

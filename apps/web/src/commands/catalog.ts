@@ -222,6 +222,13 @@ export const COMMANDS = [
     when: 'cmdWhen.node',
   },
   {
+    id: 'km.markdown.showEditor',
+    title: 'cmd.showEditor',
+    category: 'cmdCategory.markdown',
+    keys: ['Mod+K E'],
+    when: 'cmdWhen.node',
+  },
+  {
     id: 'km.markdown.openPreviewToSide',
     title: 'cmd.previewToSide',
     category: 'cmdCategory.markdown',

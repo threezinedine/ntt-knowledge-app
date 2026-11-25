@@ -40,7 +40,10 @@ export function useAutosave<T>(
 ) {
   const [status, setStatus] = useState<SaveStatus>('saved');
   const pending = useRef<{ value: T } | null>(null);
-  const inFlight = useRef(false);
+  /** The running save loop: a flush meanwhile waits for it (it drains new edits too). */
+  const inFlight = useRef<Promise<void> | null>(null);
+  /** For the retry timer: `flush` can't name itself in its own body. */
+  const retry = useRef<() => Promise<void>>(() => Promise.resolve());
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const nextRetryMs = useRef(retryMs);
   const saveRef = useRef(save);
@@ -48,16 +51,16 @@ export function useAutosave<T>(
     saveRef.current = save;
   }, [save]);
 
-  const flush = useCallback(async (): Promise<void> => {
+  /** Resolves once every edit so far is saved, or a save failed (a retry is then scheduled). */
+  const flush = useCallback((): Promise<void> => {
     clearTimeout(timer.current);
-    if (inFlight.current) return; // the running loop will pick up new edits
-    inFlight.current = true;
+    if (inFlight.current) return inFlight.current; // it picks up new edits too
     const take = () => {
       const next = pending.current;
       pending.current = null;
       return next;
     };
-    try {
+    const run = async () => {
       for (let next = take(); next !== null; next = take()) {
         setStatus('saving');
         try {
@@ -66,17 +69,22 @@ export function useAutosave<T>(
           console.error('Autosave failed', error);
           pending.current ??= next; // unless a newer edit superseded it
           setStatus('error');
-          timer.current = setTimeout(() => void flush(), nextRetryMs.current);
+          timer.current = setTimeout(() => void retry.current(), nextRetryMs.current);
           nextRetryMs.current = Math.min(nextRetryMs.current * 2, maxRetryMs);
           return;
         }
       }
       nextRetryMs.current = retryMs;
       setStatus('saved');
-    } finally {
-      inFlight.current = false;
-    }
+    };
+    inFlight.current = run().finally(() => {
+      inFlight.current = null;
+    });
+    return inFlight.current;
   }, [retryMs, maxRetryMs]);
+  useEffect(() => {
+    retry.current = flush;
+  }, [flush]);
 
   const update = useCallback(
     (value: T) => {

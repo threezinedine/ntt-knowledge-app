@@ -1,9 +1,8 @@
 import type { EdgeWithNeighbor, GraphNode } from '@km/core';
-import Markdown from 'react-markdown';
 import { Link } from 'react-router';
-import remarkGfm from 'remark-gfm';
 import { useNodeEdges } from '../../api/queries';
 import { useI18n } from '../../i18n/context';
+import { WikiMarkdown } from './WikiMarkdown';
 import { TagChip } from '../tags/TagChip';
 import { sortTagIds, useTagIndex } from '../tags/useTagIndex';
 
@@ -28,8 +27,7 @@ export function NodeView({ node }: { node: GraphNode }) {
           </div>
         )}
         <article className="markdown-preview" data-testid="markdown-preview">
-          {/* react-markdown does not render raw HTML by default, so this is XSS-safe. */}
-          <Markdown remarkPlugins={[remarkGfm]}>{node.content}</Markdown>
+          <WikiMarkdown>{node.content}</WikiMarkdown>
         </article>
       </section>
       <aside className="node-side">

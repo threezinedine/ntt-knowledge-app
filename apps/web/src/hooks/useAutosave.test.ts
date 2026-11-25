@@ -27,6 +27,37 @@ afterEach(() => {
 });
 
 describe('useAutosave', () => {
+  it('a flush during a save resolves only once the edits made meanwhile are saved too', async () => {
+    const { save, calls } = controllableSave();
+    const { result } = renderHook(() => useAutosave(save, { delayMs: 10 }));
+    act(() => {
+      result.current.update('v1');
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10);
+    });
+    expect(calls).toHaveLength(1); // v1 in flight
+    act(() => {
+      result.current.update('v2');
+    });
+    let done = false;
+    void result.current.flush().then(() => {
+      done = true;
+    });
+    await act(async () => {
+      calls[0]?.resolve();
+      await Promise.resolve();
+    });
+    expect(calls[1]?.value).toBe('v2');
+    expect(done).toBe(false);
+    await act(async () => {
+      calls[1]?.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(done).toBe(true);
+  });
+
   it('debounces edits into a single save of the latest value', async () => {
     const { save, calls } = controllableSave();
     const { result } = renderHook(() => useAutosave(save, { delayMs: 100 }));

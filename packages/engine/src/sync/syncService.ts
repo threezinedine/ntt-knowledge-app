@@ -211,6 +211,7 @@ export function createSyncService({
     }
     if (fresh.hash !== latest.head.hash) {
       replaceWithSnapshot(db, snapshot);
+      repos.wikilinks.forgetPending();
       hashCache = null;
     }
     repos.sync.markSynced(latest.head);

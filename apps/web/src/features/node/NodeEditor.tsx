@@ -1,7 +1,7 @@
 import { nodeTitleSchema, nodeTypeSchema, type GraphNode } from '@km/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
-import { useUpdateNode } from '../../api/queries';
+import { useSyncWikilinks, useUpdateNode } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useAutosave } from '../../hooks/useAutosave';
@@ -32,6 +32,46 @@ export function NodeEditor({ node }: { node: GraphNode }) {
   );
   const autosave = useAutosave(save);
   const { t } = useI18n();
+
+  // [[Wikilinks]]: once the user leaves a node they edited (not while typing,
+  // so half-typed words and titles never get linked), link its mentions and,
+  // if it was renamed, rewrite links to its old title (the engine remembers
+  // it, also across a closed tab). After the last save.
+  const syncWikilinks = useSyncWikilinks();
+  const syncRef = useRef(syncWikilinks);
+  useEffect(() => {
+    syncRef.current = syncWikilinks;
+  });
+  const edited = useRef(false);
+  const { flush } = autosave;
+  useEffect(
+    () => () => {
+      if (!edited.current) return;
+      const sync = syncRef.current;
+      void flush()
+        .then(() => sync(node.id, false))
+        .catch((error: unknown) => {
+          console.error('Wikilink update failed', error);
+        });
+    },
+    [flush, node.id],
+  );
+
+  // Text rewritten elsewhere (another node's rename linked a mention here):
+  // take it, unless the user has edits of their own since the last save.
+  const serverContent = useRef(node.content);
+  const statusRef = useRef(autosave.status);
+  useEffect(() => {
+    statusRef.current = autosave.status;
+  });
+  useEffect(() => {
+    const before = serverContent.current;
+    if (node.content === before) return;
+    serverContent.current = node.content;
+    if (statusRef.current === 'saved') {
+      setDraft((d) => (d.content === before ? { ...d, content: node.content } : d));
+    }
+  }, [node.content]);
   const vim = useVimMode();
   // Toggling vim swaps the title's element (input <-> CodeMirror), dropping
   // focus; if the title was the last field in use, put the caret back.
@@ -82,6 +122,7 @@ export function NodeEditor({ node }: { node: GraphNode }) {
 
   const change = (patch: Partial<Draft>) => {
     const next = { ...draft, ...patch };
+    if (next.title !== draft.title || next.content !== draft.content) edited.current = true;
     setDraft(next);
     autosave.update(next); // invalid fields are dropped per-field in draftToPatch
   };

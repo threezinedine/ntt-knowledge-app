@@ -36,6 +36,7 @@ import {
   useDeleteEdge,
   useGraph,
   useMovePositions,
+  useSyncWikilinks,
   useUpdateEdge,
 } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
@@ -601,6 +602,7 @@ function GraphCanvas() {
 function NewNodeForm() {
   const [title, setTitle] = useState('');
   const createNode = useCreateNode();
+  const syncWikilinks = useSyncWikilinks();
   const { screenToFlowPosition } = useReactFlow();
   const formRef = useRef<HTMLFormElement>(null);
   const { t, errorText } = useI18n();
@@ -617,14 +619,17 @@ function NewNodeForm() {
           y: canvas.top + canvas.height / 2,
         })
       : null;
-    createNode.mutate(
-      { title, position },
-      {
-        onSuccess: () => {
-          setTitle('');
-        },
-      },
-    );
+    // A promise, not mutate's onSuccess: linking must happen even if the form unmounts first.
+    createNode
+      .mutateAsync({ title, position })
+      .then(async (node) => {
+        setTitle('');
+        // Its title is final already: link its mentions in other nodes.
+        await syncWikilinks(node.id, true);
+      })
+      .catch((error: unknown) => {
+        console.error('Adding the node failed', error); // the form shows createNode.error
+      });
   };
 
   return (

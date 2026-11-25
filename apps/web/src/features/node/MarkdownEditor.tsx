@@ -2,12 +2,15 @@ import { markdown } from '@codemirror/lang-markdown';
 import { Prec } from '@codemirror/state';
 import { vim as vimKeys } from '@replit/codemirror-vim';
 import CodeMirror, { EditorView } from '@uiw/react-codemirror';
-import { useImperativeHandle, useMemo, useState, type Ref } from 'react';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Fragment, useEffect, useImperativeHandle, useMemo, useState, type Ref } from 'react';
+import { useGraph } from '../../api/queries';
+import { Keys } from '../../commands/Keys';
+import { useBindings } from '../../commands/keybindingStore';
 import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip, type TooltipProps } from '../../commands/useCommandTooltip';
 import { useI18n } from '../../i18n/context';
+import { WikiMarkdown } from './WikiMarkdown';
+import { wikilinkCompletion } from './wikilinkCompletion';
 import type { FieldHandle } from './TitleField';
 import { useCodeMirrorFocus } from './cmFocus';
 import { onFirstLine, relativeLineNumbers, vimCtrlBracket, vimExitKey } from './vim';
@@ -28,16 +31,31 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
   const { t } = useI18n();
   const { cmRef, focus, onCreateEditor } = useCodeMirrorFocus();
   const label = t('editor.content');
+  // Titles for `[[` suggestions: read when suggesting, so no reconfigure per graph change.
+  const graphNodes = useGraph().data?.nodes;
+  const [titles] = useState(() => {
+    let list: string[] = [];
+    return {
+      get: () => list,
+      set: (next: string[]) => {
+        list = next;
+      },
+    };
+  });
+  useEffect(() => {
+    titles.set((graphNodes ?? []).map((n) => n.title));
+  }, [graphNodes, titles]);
   // Stable per (vim, label): cheaper reconfigures.
   const extensions = useMemo(
     () => [
       // Vim first, so it sees keys before the other keymaps.
       ...(vim ? [Prec.highest(vimKeys({ status: true })), relativeLineNumbers] : []),
       markdown(),
+      wikilinkCompletion(titles.get),
       EditorView.lineWrapping,
       EditorView.contentAttributes.of({ 'aria-label': label }),
     ],
-    [vim, label],
+    [vim, label, titles],
   );
 
   // From Preview: switch to the editor; it focuses once its view exists.
@@ -57,29 +75,37 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
   useCommandHandler('km.markdown.openPreviewToSide', () => {
     setMode('split');
   });
+  useCommandHandler('km.markdown.showEditor', () => {
+    setMode('edit');
+    focus(); // once its view exists
+  });
 
-  const tips: Partial<Record<Mode, TooltipProps>> = {
+  const tips: Record<Mode, TooltipProps> = {
+    edit: useCommandTooltip('km.markdown.showEditor'),
     preview: useCommandTooltip('km.markdown.togglePreview'),
     split: useCommandTooltip('km.markdown.openPreviewToSide'),
   };
 
   return (
     <div className={`markdown-editor mode-${mode}`}>
-      <div className="segmented" role="tablist" aria-label={t('markdown.modes')}>
-        {(['edit', 'split', 'preview'] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={mode === m}
-            {...tips[m]}
-            onClick={() => {
-              setMode(m);
-            }}
-          >
-            {t(`markdown.mode.${m}`)}
-          </button>
-        ))}
+      <div className="markdown-toolbar">
+        <div className="segmented" role="tablist" aria-label={t('markdown.modes')}>
+          {(['edit', 'split', 'preview'] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="tab"
+              aria-selected={mode === m}
+              {...tips[m]}
+              onClick={() => {
+                setMode(m);
+              }}
+            >
+              {t(`markdown.mode.${m}`)}
+            </button>
+          ))}
+        </div>
+        <ModeHint />
       </div>
       <div
         className="markdown-panes"
@@ -114,11 +140,40 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
         )}
         {mode !== 'edit' && (
           <article className="markdown-preview" data-testid="markdown-preview">
-            {/* react-markdown does not render raw HTML by default, so this is XSS-safe. */}
-            <Markdown remarkPlugins={[remarkGfm]}>{value}</Markdown>
+            <WikiMarkdown>{value}</WikiMarkdown>
           </article>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * The keys for the three modes, with the user's current bindings, like the
+ * title/content hint above: "[Ctrl+K E] edit · [Ctrl+K V] split · ...".
+ */
+function ModeHint() {
+  const { tx } = useI18n();
+  const bindings = useBindings();
+  const parts = (
+    [
+      ['km.markdown.showEditor', 'markdown.hintEdit'],
+      ['km.markdown.openPreviewToSide', 'markdown.hintSplit'],
+      ['km.markdown.togglePreview', 'markdown.hintPreview'],
+    ] as const
+  ).flatMap(([id, key]) => {
+    const binding = bindings.get(id)?.[0];
+    return binding ? [{ id, text: tx(key, { keys: <Keys binding={binding} /> }) }] : [];
+  });
+  if (parts.length === 0) return null;
+  return (
+    <p className="editor-hint mode-hint" data-testid="mode-hint">
+      {parts.map((part, i) => (
+        <Fragment key={part.id}>
+          {i > 0 && ' · '}
+          {part.text}
+        </Fragment>
+      ))}
+    </p>
   );
 }

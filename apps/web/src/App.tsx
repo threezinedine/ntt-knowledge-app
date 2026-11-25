@@ -30,12 +30,14 @@ import { useI18n } from './i18n/context';
 import { SettingsCommands } from './settings/SettingsTransfer';
 import { SyncHost, SyncIndicator, useCanSync } from './features/sync/SyncHost';
 import { LanguagePicker } from './i18n/LanguagePicker';
+import { useSyncPendingWikilinks } from './api/queries';
 
 const SIDEBAR_KEY = 'km.sidebarVisible';
 
 export function App() {
   const { t } = useI18n();
   const readOnly = useReadOnly();
+  useSyncPendingWikilinks(!readOnly);
   const canSync = useCanSync();
   const graphTip = useCommandTooltip('km.go.graph', { always: true });
   const tagsTip = useCommandTooltip('km.go.tags', { always: true });

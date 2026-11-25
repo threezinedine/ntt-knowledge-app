@@ -24,6 +24,8 @@ import type {
   UpdateTagInput,
   UpdateWhySessionInput,
   WhySession,
+  WikilinkSyncInput,
+  WikilinkSyncResult,
 } from '@km/core';
 import { engineRequest } from '../local/engine';
 
@@ -91,7 +93,12 @@ export const api = {
     /** Several canvas moves in one transaction (a drag and what it pushed). */
     movePositions: (input: NodePositionsInput) =>
       request<undefined>('PATCH', '/nodes/positions', input),
+    /** Brings [[wikilinks]] in step after a node was created, renamed or edited. */
+    syncWikilinks: (id: string, input: WikilinkSyncInput) =>
+      request<WikilinkSyncResult>('POST', `/nodes/${id}/wikilinks`, input),
   },
+  /** Renames whose links didn't follow yet (the tab was closed first): at start-up. */
+  syncPendingWikilinks: () => request<WikilinkSyncResult>('POST', '/wikilinks/pending'),
   edges: {
     create: (input: CreateEdgeInput) => request<Edge>('POST', '/edges', input),
     update: (id: string, patch: UpdateEdgeInput) => request<Edge>('PATCH', `/edges/${id}`, patch),

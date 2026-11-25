@@ -19,6 +19,7 @@ import {
   updateNodeInputSchema,
   updateTagInputSchema,
   updateWhySessionInputSchema,
+  wikilinkSyncInputSchema,
   type ApiErrorBody,
   type AuthStatus,
   type GraphSnapshot,
@@ -108,12 +109,16 @@ export function createLocalApi({ repos, sync, readOnly }: LocalApiOptions) {
   });
   add('GET', '/nodes/:id', ({ params }) => repos.nodes.getOrThrow(idParams.parse(params).id));
   add('PATCH', '/nodes/:id', ({ params, body }) =>
-    repos.nodes.update(idParams.parse(params).id, updateNodeInputSchema.parse(body)),
+    repos.wikilinks.updateNode(idParams.parse(params).id, updateNodeInputSchema.parse(body)),
   );
   add('DELETE', '/nodes/:id', ({ params }) => {
     repos.nodes.remove(idParams.parse(params).id);
     return undefined;
   });
+  add('POST', '/wikilinks/pending', () => repos.wikilinks.syncPending());
+  add('POST', '/nodes/:id/wikilinks', ({ params, body }) =>
+    repos.wikilinks.sync(idParams.parse(params).id, wikilinkSyncInputSchema.parse(body)),
+  );
   add('GET', '/nodes/:id/edges', ({ params }) => {
     const { id } = idParams.parse(params);
     repos.nodes.getOrThrow(id);

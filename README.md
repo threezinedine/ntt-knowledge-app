@@ -18,6 +18,7 @@ Setup and configuration: **[INSTALL.md](INSTALL.md)**.
 
 - [Notes](#notes)
 - [Links](#links)
+- [Wikilinks](#wikilinks)
 - [Graph view](#graph-view)
 - [Tags and fields](#tags-and-fields)
 - [5 Whys](#5-whys)
@@ -63,6 +64,28 @@ Links are directed and named: _from_ → **relation** → _to_. The relation is 
 - Rename a link in place (double-click it on the graph, or use its menu), or delete it.
 - Two notes can have several links between them, in either direction, and a note can
   link to itself. Each one is drawn separately.
+
+## Wikilinks
+
+Write `[[Title]]` in a note's content to point to another note, or `[[Title|other text]]`
+to show different words. In the preview (and on the phone) it is a link to that note. A
+wikilink is only a link in the text: it doesn't add a link to the graph.
+
+- **Typing `[[`** suggests note titles; pick one to complete it.
+- **Mentions are linked for you.** When you leave a note you edited, words in it that
+  are another note's title become wikilinks (any case: `redis` becomes
+  `[[Redis|redis]]`, so the text reads the same). Adding a note on the graph, or
+  renaming one and leaving it, does the same in every other note that mentions it.
+  Titles shorter than 3 letters, and titles with `[`, `]` or `|`, are never linked
+  this way.
+- **Renaming a note** rewrites `[[Old title]]` to `[[New title]]` in every other note,
+  once you leave it (or the next time the app starts, if you closed it first). Not when
+  another note has the old or the new title: those links may mean that one.
+- Code, existing links, web and e-mail addresses and HTML are left alone, and so are
+  words joined to others by `-` or `.` (`redis-cli`). Inside a table only an exact match
+  is linked (`|` would split the cell). A `[[Title]]` that matches no
+  note stays plain text.
+- With two notes of the same title, a wikilink goes to the older one.
 
 ## Graph view
 
@@ -176,19 +199,19 @@ Most actions are commands, with shortcuts in the style of VS Code. The **Keyboar
 Shortcuts** page (`Ctrl+K Ctrl+S`) lists them all; you can search, add, change, remove
 or reset any binding, including two-step chords such as `Ctrl+K V`. Conflicts are shown.
 
-| Action                       | Shortcut                     |
-| ---------------------------- | ---------------------------- |
-| Command palette              | `F1`, `Ctrl+Shift+P`         |
-| Go to note                   | `Ctrl+P`                     |
-| New note                     | `Alt+N`                      |
-| Rename note                  | `F2`                         |
-| Add link / add tag           | `Alt+L` / `Alt+G`            |
-| 5 Whys / copy its prompt     | `Alt+W` / `Alt+Shift+W`      |
-| Copy link check prompt       | `Alt+Shift+L`                |
-| Toggle preview / to the side | `Ctrl+K Ctrl+V` / `Ctrl+K V` |
-| Graph / Tags / Review        | `Alt+1` / `Alt+2` / `Alt+3`  |
-| Fit graph, zoom in, zoom out | `Shift+1`, `=`, `-`          |
-| Toggle sidebar               | `Ctrl+B`                     |
+| Action                       | Shortcut                                  |
+| ---------------------------- | ----------------------------------------- |
+| Command palette              | `F1`, `Ctrl+Shift+P`                      |
+| Go to note                   | `Ctrl+P`                                  |
+| New note                     | `Alt+N`                                   |
+| Rename note                  | `F2`                                      |
+| Add link / add tag           | `Alt+L` / `Alt+G`                         |
+| 5 Whys / copy its prompt     | `Alt+W` / `Alt+Shift+W`                   |
+| Copy link check prompt       | `Alt+Shift+L`                             |
+| Edit / split / preview       | `Ctrl+K E` / `Ctrl+K V` / `Ctrl+K Ctrl+V` |
+| Graph / Tags / Review        | `Alt+1` / `Alt+2` / `Alt+3`               |
+| Fit graph, zoom in, zoom out | `Shift+1`, `=`, `-`                       |
+| Toggle sidebar               | `Ctrl+B`                                  |
 
 On macOS, `Ctrl` is `Cmd`, and the `Alt+` shortcuts are `Ctrl+Alt+` (or `Ctrl+` for the
 page switches), because `Option+letter` types characters there.

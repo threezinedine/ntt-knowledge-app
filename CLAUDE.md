@@ -47,6 +47,16 @@ two random well-dug, unlinked nodes get a "link these?" card; at most 6 dig + 2 
 no refill until tomorrow; unanswered ones carry over first, kept in device_settings
 `reviewDeck`, not synced); Done / Again buttons, fixed
 steps 1, 3, 7, 14, 30, 60, 120 days; progress synced; desktop only (not on the phone).
+Wikilinks (`@km/core` wikilinks.ts, engine `wikilinkRepository`, `POST
+/nodes/:id/wikilinks`), the user's design: `[[Title]]` / `[[Title|text]]` are text links
+only, **no edges**; unknown titles stay plain text; mentions of other titles (any case,
+whole words, ≥ 3 chars) are rewritten to `[[...]]` **only once a node is settled**
+(leaving a node page you edited, or creating one on the graph), never while typing;
+renaming rewrites `[[Old]]` → `[[New]]` in other nodes (the PATCH records the first old
+title in device_settings `wikilinkRenames`, replayed at start-up, cleared by a pull). An
+open editor takes text rewritten elsewhere only if it has no unsaved edits.
+`linkMentions` must stay idempotent and linear (a 1 MB node settles in well under 1 s):
+unit-tested.
 The graph's tag colours (graph settings) are experimental: only top-level tags pick a
 colour, nested tags get paler shades, big dots stand out.
 

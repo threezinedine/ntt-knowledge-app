@@ -444,6 +444,11 @@ h4 {
   padding: 8px;
   overflow-x: auto;
 }
+/* [[Wikilinks]]: to another node, in the app; set apart from web links by a dotted line. */
+.markdown-preview a.wikilink {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
 
 .edge-group + .edge-group {
   margin-top: 8px;
@@ -1408,6 +1413,16 @@ kbd {
 }
 .editor-hint .keys {
   margin-right: 4px;
+}
+/* Edit | Split | Preview, with their keys beside it. */
+.markdown-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.markdown-toolbar .mode-hint {
+  margin: 0;
 }
 .title-vim:has([aria-invalid='true']) {
   border-color: var(--danger);

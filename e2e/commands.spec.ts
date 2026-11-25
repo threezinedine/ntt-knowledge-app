@@ -130,6 +130,33 @@ test.describe('keyboard shortcuts', () => {
     await expect(page.getByRole('combobox', { name: 'Relation' })).toHaveValue('FROM_KEYBOARD');
   });
 
+  test('keys switch edit / split / preview; a hint and the tabs show them', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Hardware keyboard shortcuts; the hint is hidden on touch screens.');
+    const node = await api.createNode({ title: 'Modes', content: 'Hello' });
+    await page.goto(`/nodes/${node.id}`);
+    // (A chord's two steps are separate key caps: no space between them in the text.)
+    await expect(page.getByTestId('mode-hint')).toHaveText(
+      /^Ctrl\+K\s*E edit · Ctrl\+K\s*V split · Ctrl\+K\s*Ctrl\+V preview \(again: back to edit\)$/,
+    );
+    const tab = (name: string) => page.getByRole('tab', { name, exact: true });
+    await tab('Edit').hover();
+    await expect(page.getByRole('tooltip')).toHaveText(/Show Editor Only\s*Ctrl\+K\s*E/);
+
+    await page.locator('.cm-content').click();
+    await page.keyboard.press('ControlOrMeta+K');
+    await page.keyboard.press('V'); // split
+    await expect(tab('Split')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ControlOrMeta+K');
+    await page.keyboard.press('E'); // edit only, editor focused again
+    await expect(tab('Edit')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('markdown-preview')).toHaveCount(0);
+    await expect(page.locator('.cm-content')).toBeFocused();
+  });
+
   test('Ctrl+B hides and shows the sidebar; Alt+N creates a node', async ({ page }) => {
     await page.goto('/');
     const sidebar = page.getByRole('navigation', { name: 'Nodes' });

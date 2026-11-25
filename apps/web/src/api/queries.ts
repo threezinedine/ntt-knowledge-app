@@ -14,6 +14,7 @@ import type {
   UpdateTagInput,
   UpdateWhySessionInput,
 } from '@km/core';
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { flushAllAutosaves } from '../hooks/useAutosave';
 import { reloadAfterClosing } from '../local/engine';
@@ -293,6 +294,39 @@ export function useDeleteNode() {
       await invalidate();
     },
   });
+}
+
+/**
+ * Brings [[wikilinks]] in step with a settled node (created with its title,
+ * or left after editing). Plain callback, not a mutation: it runs as a node
+ * page unmounts, so it must not depend on the caller staying mounted.
+ * Rewritten nodes refetch; an open editor adopts the new text if it has no
+ * edits of its own (NodeEditor).
+ */
+export function useSyncWikilinks() {
+  const invalidate = useInvalidateGraph({ exp: true }); // keys.nodes covers each node's own query
+  return async (id: string, created: boolean): Promise<void> => {
+    const { changedIds } = await api.nodes.syncWikilinks(id, { created });
+    if (changedIds.length > 0) await invalidate();
+  };
+}
+
+/** Once per start: renames left half done (tab closed on the node page) get their links. */
+export function useSyncPendingWikilinks(enabled: boolean) {
+  const invalidate = useInvalidateGraph({ exp: true });
+  const invalidateRef = useRef(invalidate);
+  useEffect(() => {
+    invalidateRef.current = invalidate;
+  });
+  useEffect(() => {
+    if (!enabled) return;
+    api
+      .syncPendingWikilinks()
+      .then(({ changedIds }) => (changedIds.length > 0 ? invalidateRef.current() : undefined))
+      .catch((error: unknown) => {
+        console.error('Wikilink update failed', error);
+      });
+  }, [enabled]);
 }
 
 export function useCreateEdge() {
