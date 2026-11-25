@@ -47,7 +47,7 @@ test.describe('review today (spaced repetition)', () => {
 
     await panel.getByRole('button', { name: 'Done: Shallow note' }).click();
     await expect(card).toHaveCount(0);
-    await expect(page.getByRole('main')).toContainText('Nothing to review today.');
+    await expect(page.getByRole('main')).toContainText('Done for today. New cards come tomorrow.');
     await expect(tab).not.toContainText(/\d/);
   });
 

@@ -43,7 +43,9 @@ Product decisions already made (don't re-ask): the phone app only views graph an
 (see Pairing, secrets and read-only); the 3D graph is parked; tasks are gone. Spaced repetition
 exists (`@km/core` review.ts, its own activity-bar tab `/review`, `features/review/`), the user's design: shallow
 nodes (answered whys < 3 or depth < 3) get a "dig deeper" card, lowest node EXP first;
-two random well-dug, unlinked nodes get a "link these?" card; Done / Again buttons, fixed
+two random well-dug, unlinked nodes get a "link these?" card; at most 6 dig + 2 link cards a day (answers use the quota up,
+no refill until tomorrow; unanswered ones carry over first, kept in device_settings
+`reviewDeck`, not synced); Done / Again buttons, fixed
 steps 1, 3, 7, 14, 30, 60, 120 days; progress synced; desktop only (not on the phone).
 The graph's tag colours (graph settings) are experimental: only top-level tags pick a
 colour, nested tags get paler shades, big dots stand out.

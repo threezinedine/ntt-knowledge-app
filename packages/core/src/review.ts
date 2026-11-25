@@ -61,13 +61,19 @@ export type ReviewCard =
 /** GET /api/review */
 export interface ReviewToday {
   cards: ReviewCard[];
-  /** How many more are due beyond the ones shown. */
+  /** Cards answered today (Done or Again): they use up the day's quota. */
+  answeredToday: { dig: number; link: number };
+  /** How many more are waiting for the coming days (beyond today's quota). */
   more: { dig: number; link: number };
 }
 
+/** Cards per day: answering one uses up the day's quota (no refill until tomorrow). */
+export const DAILY_DIG_CARDS = 6;
+export const DAILY_LINK_CARDS = 2;
+
 export const reviewQuerySchema = z.strictObject({
-  dig: z.coerce.number().int().min(0).max(50).default(5),
-  link: z.coerce.number().int().min(0).max(20).default(2),
+  dig: z.coerce.number().int().min(0).max(50).default(DAILY_DIG_CARDS),
+  link: z.coerce.number().int().min(0).max(20).default(DAILY_LINK_CARDS),
 });
 export type ReviewQuery = z.output<typeof reviewQuerySchema>;
 

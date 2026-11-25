@@ -475,9 +475,10 @@
   "review.again": "Lại",
   "review.doneFor": "Xong: {name}",
   "review.againFor": "Lại: {name}",
-  "review.more": "Còn {count} thẻ đang chờ.",
+  "review.more": "Còn {count} thẻ chờ những ngày tới.",
   "app.nav.review": "Ôn tập",
   "cmd.goReview": "Đi tới Ôn tập",
-  "review.help": "Ôn ngắt quãng: nút chưa đào sâu sẽ đòi thêm một vòng 5 Whys, còn hai nút đã đào sâu mà chưa nối sẽ được gợi ý nối. Xong thì thẻ quay lại sau (1, 3, 7, 14, 30, 60, 120 ngày); Lại thì làm lại từ đầu.",
-  "review.linkDetail": "Cả hai đã đào sâu mà chưa nối: có liên quan gì không?"
+  "review.help": "Ôn ngắt quãng, mỗi ngày tối đa 6 thẻ “đào sâu thêm” và 2 thẻ “nối hai nút này?”. Nút chưa đào sâu đòi thêm một vòng 5 Whys; hai nút đã đào sâu mà chưa nối được gợi ý nối. Thẻ chưa làm sẽ để sang hôm sau. Xong thì thẻ quay lại sau (1, 3, 7, 14, 30, 60, 120 ngày); Lại thì làm lại từ đầu.",
+  "review.linkDetail": "Cả hai đã đào sâu mà chưa nối: có liên quan gì không?",
+  "review.doneToday": "Xong phần hôm nay. Mai có thẻ mới."
 }

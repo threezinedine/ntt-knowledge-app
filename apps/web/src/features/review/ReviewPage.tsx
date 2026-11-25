@@ -28,6 +28,7 @@ export function ReviewPage() {
   const { t, errorText } = useI18n();
   const cards = review.data?.cards ?? [];
   const more = review.data ? review.data.more.dig + review.data.more.link : 0;
+  const answered = review.data ? review.data.answeredToday.dig + review.data.answeredToday.link : 0;
   const send = (card: ReviewCard, result: ReviewResult) => {
     answer.mutate({
       kind: card.kind,
@@ -43,7 +44,9 @@ export function ReviewPage() {
       <p className="muted">{t('review.help')}</p>
       {review.isError && <p className="error">{errorText(review.error)}</p>}
       {answer.isError && <p className="error">{errorText(answer.error)}</p>}
-      {review.data && cards.length === 0 && <p className="muted">{t('review.empty')}</p>}
+      {review.data && cards.length === 0 && (
+        <p className="muted">{t(answered > 0 ? 'review.doneToday' : 'review.empty')}</p>
+      )}
       <ul className="review-list" aria-label={t('review.heading')}>
         {cards.map((card) => {
           const name = cardName(card);

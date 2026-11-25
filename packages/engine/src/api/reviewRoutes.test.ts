@@ -79,6 +79,39 @@ describe('GET /api/review: dig deeper', () => {
   });
 });
 
+describe('GET /api/review: the day', () => {
+  it('shows at most 6 dig cards a day; answered ones use the quota up until tomorrow', async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 8; i++) ids.push((await node(`N${String(i)}`)).id);
+    const first = await today();
+    expect(digTitles(first)).toHaveLength(6);
+    expect(first.more.dig).toBe(2);
+
+    const shown = first.cards.map((c) => c.node.id);
+    for (const [i, id] of shown.entries()) {
+      await answer({ kind: 'dig', nodeId: id, result: i % 2 === 0 ? 'done' : 'again' });
+    }
+    const after = await today();
+    expect(after.cards).toEqual([]); // no refill today
+    expect(after.answeredToday.dig).toBe(6);
+
+    t.tick(DAY);
+    const next = await today();
+    expect(next.answeredToday.dig).toBe(0);
+    expect(digTitles(next)).toHaveLength(6); // the 2 left + those due again
+  });
+
+  it("keeps yesterday's unanswered cards first, before newer candidates", async () => {
+    for (let i = 1; i <= 6; i++) await node(`N${String(i)}`);
+    expect(digTitles(await today())).toEqual(['N1', 'N2', 'N3', 'N4', 'N5', 'N6']);
+
+    t.tick(DAY); // none answered
+    await node('A0'); // same EXP and sorts first, but yesterday's leftovers keep their place
+    expect(digTitles(await today())).toEqual(['N1', 'N2', 'N3', 'N4', 'N5', 'N6']);
+    expect((await today()).more.dig).toBe(1);
+  });
+});
+
 describe('GET /api/review: link suggestions', () => {
   it('pairs well-dug nodes that are not linked, the same pairs all day', async () => {
     const ids: string[] = [];

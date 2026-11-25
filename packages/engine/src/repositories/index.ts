@@ -27,7 +27,7 @@ export function createRepositories(ctx: RepoContext) {
   const localGraph = createLocalGraphRepository(nodes, edges);
   const sync = createSyncRepository(ctx);
   const settings = createSettingsRepository(ctx);
-  const review = createReviewRepository(ctx, { exp, nodes });
+  const review = createReviewRepository(ctx, { exp, nodes, settings });
   return { nodes, edges, tags, exp, whys, localGraph, sync, settings, review };
 }
 

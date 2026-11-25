@@ -143,6 +143,9 @@ deeply you have dug into each note. The icon shows how many cards are due.
   asks for another 5 Whys round. Notes with the least EXP come first.
 - **Link these?**: two well-dug notes that aren't linked yet are suggested as a pair, to
   see whether they relate. The pairs change each day.
+- Each day has at most 6 dig-deeper and 2 link cards. Cards you didn't get to stay
+  first the next day; new ones only fill the free places. Once you have answered the
+  day's cards, the tab says you're done for today.
 - Answer a card with **Done** or **Again**. Done brings it back after 1, 3, 7, 14, 30, 60
   and then 120 days; Again starts it over (tomorrow). Linking a suggested pair, or
   digging a note deep enough, ends its card.
