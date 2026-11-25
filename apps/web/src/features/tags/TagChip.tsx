@@ -1,8 +1,8 @@
 import type { TagTreeNode } from '@km/core';
 import type { CSSProperties } from 'react';
 import { useI18n } from '../../i18n/context';
-import { DEFAULT_TAG_COLOR } from './colors';
 import { tagDragSource } from './dnd';
+import { useTagColor } from './useTagIndex';
 
 interface Props {
   node: TagTreeNode;
@@ -27,7 +27,7 @@ export function TagChip({
 }: Props) {
   const { t } = useI18n();
   const label = showPath ? node.path.join(' / ') : node.tag.name;
-  const style = { '--tag-color': node.tag.color ?? DEFAULT_TAG_COLOR } as CSSProperties;
+  const style = { '--tag-color': useTagColor(node.tag.id) } as CSSProperties;
   const body = (
     <>
       <span className="color-dot" />

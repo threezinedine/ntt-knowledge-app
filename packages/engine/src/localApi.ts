@@ -10,6 +10,7 @@ import {
   localGraphQuerySchema,
   nodeListQuerySchema,
   nodePositionsInputSchema,
+  nodeTotalExp,
   syncActionInputSchema,
   syncConnectInputSchema,
   updateEdgeInputSchema,
@@ -20,6 +21,7 @@ import {
   type AuthStatus,
   type GraphSnapshot,
   type LevelConfig,
+  type NodeExp,
 } from '@km/core';
 import { z, ZodError } from 'zod';
 import { AppError, ForbiddenError } from './errors.js';
@@ -174,6 +176,14 @@ export function createLocalApi({ repos, sync, readOnly }: LocalApiOptions) {
   add('GET', '/exp', () => {
     const { tags, nodes } = repos.exp.inputs();
     return expSnapshot(tags, nodes, levelConfig());
+  });
+  add('GET', '/exp/nodes', (): NodeExp[] => {
+    const config = levelConfig();
+    return repos.exp.nodes().map(({ id, tagIds, ...node }) => ({
+      id,
+      tagIds: [...tagIds],
+      exp: nodeTotalExp(node, config),
+    }));
   });
 
   // Sync with the hub

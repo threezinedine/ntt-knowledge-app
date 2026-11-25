@@ -455,5 +455,15 @@
   "graphSettings.centerForce": "Hút về giữa",
   "graphSettings.repelForce": "Đẩy nhau ra",
   "graphSettings.linkForce": "Lực kéo của link",
-  "graphSettings.linkDistance": "Độ dài link"
+  "graphSettings.linkDistance": "Độ dài link",
+  "graphSettings.group.colors": "Màu theo thẻ (thử nghiệm)",
+  "graphSettings.tagColors": "Tô màu chấm theo thẻ",
+  "graphSettings.colorRank": "Chấm to nhất theo",
+  "graphSettings.colorRank.links": "Nhiều link nhất",
+  "graphSettings.colorRank.exp": "Nhiều EXP nhất",
+  "graphSettings.colorHubs": "Số chấm to được tô màu",
+  "graphSettings.colorFade": "Màu giữ lại mỗi bước",
+  "graphSettings.colorReach": "Số bước màu loang ra",
+  "tags.colorFromParent": "Màu lấy từ thẻ cha",
+  "graphSettings.noTagColours": "Chưa thẻ gốc nào có màu. Đặt màu cho thẻ gốc ở trang Thẻ (thẻ con sẽ lấy sắc độ từ đó)."
 }

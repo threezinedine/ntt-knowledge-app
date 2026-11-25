@@ -742,6 +742,7 @@ button.small {
   color: var(--muted);
 }
 .graph-settings-slider,
+.graph-settings-choice,
 .graph-settings-switch {
   display: flex;
   flex-direction: column;
@@ -868,6 +869,16 @@ button.small {
     opacity 120ms ease,
     background-color 120ms ease,
     box-shadow 120ms ease;
+}
+.km-node--hub {
+  /* A big dot of the tag colours: a ring and a glow in its own colour. */
+  box-shadow:
+    0 0 0 3px var(--graph-bg),
+    0 0 0 6px var(--node-color),
+    0 0 26px 6px var(--node-color);
+}
+.km-node--hub .km-node-label {
+  font-weight: 700;
 }
 .km-node--active {
   background: var(--graph-accent);

@@ -57,11 +57,20 @@ describe('graph settings', () => {
     });
   });
 
+  it('keep a known choice and drop an unknown one', () => {
+    expect(sanitizeGraphSettings({ colorRank: 'exp' }).colorRank).toBe('exp');
+    expect(sanitizeGraphSettings({ colorRank: 'size' }).colorRank).toBe('links');
+    expect(sanitizeGraphSettings({ tagColors: true }).tagColors).toBe(true);
+  });
+
   it('every default is inside its range, and every label is translated', () => {
     for (const group of SETTING_GROUPS) {
       expect(en).toHaveProperty([group.title]);
       for (const field of group.fields) {
         expect(en).toHaveProperty([field.label]);
+        if (field.kind === 'choice') {
+          for (const option of field.options) expect(en).toHaveProperty([option.label]);
+        }
         if (field.kind === 'number') {
           expect(field.default).toBeGreaterThanOrEqual(field.min);
           expect(field.default).toBeLessThanOrEqual(field.max);

@@ -41,6 +41,8 @@ export const keys = {
   tags: ['tags'] as const,
   /** Derived from nodes + tags: invalidated by any write to either. */
   exp: ['exp'] as const,
+  /** Under 'exp': whatever makes EXP stale makes this stale too. */
+  nodeExp: ['exp', 'nodes'] as const,
   sync: ['sync'] as const,
   whys: (nodeId: string) => ['whys', nodeId] as const,
 };
@@ -156,6 +158,10 @@ export function useSyncPull() {
 }
 
 export const useExp = () => useQuery({ queryKey: keys.exp, queryFn: api.exp });
+
+/** Only fetched while something needs it (the graph's tag colours). */
+export const useNodeExp = (enabled: boolean) =>
+  useQuery({ queryKey: keys.nodeExp, queryFn: api.nodeExp, enabled });
 
 export const useGraph = () => useQuery({ queryKey: keys.graph, queryFn: api.graph });
 

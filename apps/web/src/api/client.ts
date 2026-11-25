@@ -7,6 +7,7 @@ import type {
   CreateWhySessionInput,
   Edge,
   ExpSnapshot,
+  NodeExp,
   GraphNode,
   GraphSnapshot,
   LocalGraph,
@@ -118,6 +119,8 @@ export const api = {
   },
   /** EXP and level per tag (field); read-only. */
   exp: () => request<ExpSnapshot>('GET', '/exp'),
+  /** Each node's own EXP (and tags), for the graph's tag colours. */
+  nodeExp: () => request<NodeExp[]>('GET', '/exp/nodes'),
   /** This device's sync with a hub (the hub itself is another server). */
   sync: {
     status: () => request<SyncStatus>('GET', '/sync/status'),

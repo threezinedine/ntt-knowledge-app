@@ -30,12 +30,25 @@ export interface GraphSettings {
   repelForce: number;
   linkForce: number;
   linkDistance: number;
+  /** Experimental: colour the dots by their tags, spreading from the biggest ones. */
+  tagColors: boolean;
+  /** What makes a dot "big" for the tag colours. */
+  colorRank: ColorRank;
+  colorHubs: number;
+  colorFade: number;
+  colorReach: number;
 }
+
+export const COLOR_RANKS = ['links', 'exp'] as const;
+export type ColorRank = (typeof COLOR_RANKS)[number];
 
 type NumberKey = {
   [K in keyof GraphSettings]: GraphSettings[K] extends number ? K : never;
 }[keyof GraphSettings];
-type BooleanKey = Exclude<keyof GraphSettings, NumberKey>;
+type BooleanKey = {
+  [K in keyof GraphSettings]: GraphSettings[K] extends boolean ? K : never;
+}[keyof GraphSettings];
+type ChoiceKey = Exclude<keyof GraphSettings, NumberKey | BooleanKey>;
 
 export type SettingField =
   | {
@@ -47,7 +60,22 @@ export type SettingField =
       step: number;
       default: number;
     }
-  | { kind: 'boolean'; key: BooleanKey; label: MessageKey; default: boolean };
+  | { kind: 'boolean'; key: BooleanKey; label: MessageKey; default: boolean }
+  | {
+      kind: 'choice';
+      key: ChoiceKey;
+      label: MessageKey;
+      options: readonly { value: ColorRank; label: MessageKey }[];
+      default: ColorRank;
+    };
+
+/** Settings that only do something with tag colours on. */
+export const TAG_COLOR_KEYS: ReadonlySet<keyof GraphSettings> = new Set([
+  'colorRank',
+  'colorHubs',
+  'colorFade',
+  'colorReach',
+]);
 
 /** Sliders that only do something with auto layout on. */
 export const FORCE_KEYS: ReadonlySet<keyof GraphSettings> = new Set([
@@ -58,7 +86,7 @@ export const FORCE_KEYS: ReadonlySet<keyof GraphSettings> = new Set([
 ]);
 
 export interface SettingGroup {
-  id: 'nodes' | 'nodeLabels' | 'links' | 'linkLabels' | 'forces' | 'push';
+  id: 'nodes' | 'nodeLabels' | 'links' | 'linkLabels' | 'forces' | 'push' | 'colors';
   title: MessageKey;
   /** Shown in read-only mode (the phone app); dragging settings aren't. */
   display: boolean;
@@ -135,6 +163,27 @@ export const SETTING_GROUPS: readonly SettingGroup[] = [
     ],
   },
   {
+    id: 'colors',
+    title: 'graphSettings.group.colors',
+    display: true,
+    fields: [
+      bool('tagColors', 'graphSettings.tagColors', false),
+      {
+        kind: 'choice',
+        key: 'colorRank',
+        label: 'graphSettings.colorRank',
+        options: [
+          { value: 'links', label: 'graphSettings.colorRank.links' },
+          { value: 'exp', label: 'graphSettings.colorRank.exp' },
+        ],
+        default: 'links',
+      },
+      num('colorHubs', 'graphSettings.colorHubs', 1, 50, 1, 5),
+      num('colorFade', 'graphSettings.colorFade', 0.1, 0.95, 0.05, 0.6),
+      num('colorReach', 'graphSettings.colorReach', 1, 10, 1, 3),
+    ],
+  },
+  {
     id: 'push',
     title: 'graphSettings.group.push',
     display: false,
@@ -157,10 +206,14 @@ export const DEFAULT_GRAPH_SETTINGS = Object.fromEntries(
 export function sanitizeGraphSettings(raw: unknown): GraphSettings {
   const source: Record<string, unknown> =
     typeof raw === 'object' && raw !== null ? (raw as Record<string, unknown>) : {};
-  const out: Record<string, number | boolean> = {};
+  const out: Record<string, number | boolean | string> = {};
   for (const field of FIELDS) {
     const value = source[field.key];
-    if (field.kind === 'boolean') {
+    if (field.kind === 'choice') {
+      out[field.key] = field.options.some((o) => o.value === value)
+        ? (value as string)
+        : field.default;
+    } else if (field.kind === 'boolean') {
       out[field.key] = typeof value === 'boolean' ? value : field.default;
     } else {
       out[field.key] =
@@ -225,8 +278,8 @@ export function withOrderedRadii(
 export function resetGraphSettings(groupId?: SettingGroup['id']): void {
   const fields = groupId
     ? (SETTING_GROUPS.find((g) => g.id === groupId)?.fields ?? []).filter(
-        // Resetting the forces resets their strengths, not the choice to use them.
-        (f) => f.key !== 'autoLayout',
+        // Resetting a group resets its numbers, not the choice to use it.
+        (f) => f.key !== 'autoLayout' && f.key !== 'tagColors',
       )
     : FIELDS;
   setGraphSettings(Object.fromEntries(fields.map((f) => [f.key, f.default])));

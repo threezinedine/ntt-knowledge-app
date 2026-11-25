@@ -53,6 +53,7 @@ import { pushAway, type Circle } from './collide';
 import { useForceLayout } from './forceLayout';
 import { EdgeRenameContext, FloatingEdge, GraphMarkers, type EdgeRename } from './FloatingEdge';
 import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
+import { useTagColoring } from './useTagColoring';
 import {
   buildAdjacency,
   GraphHighlightContext,
@@ -267,6 +268,7 @@ function GraphCanvas() {
     () => ({ unlinkedRadius, linkedMinRadius, maxRadius }),
     [unlinkedRadius, linkedMinRadius, maxRadius],
   );
+  const tagColoring = useTagColoring(graph.data, settings);
 
   const renameEdge = updateEdge.mutate; // stable, unlike the mutation object
   // Renaming a link: double-click it, or "Rename Link" with one link selected.
@@ -393,9 +395,9 @@ function GraphCanvas() {
   useEffect(() => {
     if (!graph.data || dragging) return;
     const snapshot = graph.data;
-    setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev, sizes, auto));
+    setNodes((prev) => toFlowNodes(snapshot.nodes, snapshot.edges, prev, sizes, auto, tagColoring));
     setEdges((prev) => toFlowEdges(snapshot.edges, prev));
-  }, [graph.data, dragging, setNodes, setEdges, sizes, auto]);
+  }, [graph.data, dragging, setNodes, setEdges, sizes, auto, tagColoring]);
 
   const adjacency = useMemo(() => buildAdjacency(edges), [edges]);
   const highlight = useMemo<GraphHighlight>(

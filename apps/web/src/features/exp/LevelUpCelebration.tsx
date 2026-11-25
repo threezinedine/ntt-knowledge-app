@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useExp } from '../../api/queries';
 import { CloseIcon } from '../../components/icons';
 import { useI18n } from '../../i18n/context';
-import { DEFAULT_TAG_COLOR } from '../tags/colors';
-import { useTagIndex } from '../tags/useTagIndex';
+import { tagColor, useTagIndex } from '../tags/useTagIndex';
 import { detectLevelUps, type LevelUp } from './levelUps';
 
 const SHOW_MS = 5000;
@@ -119,7 +118,7 @@ export function LevelUpCelebration() {
                   <li key={u.tagId}>
                     <span
                       className="field-dot"
-                      style={{ background: node?.tag.color ?? DEFAULT_TAG_COLOR }}
+                      style={{ background: tagColor(index, u.tagId) }}
                       aria-hidden="true"
                     />
                     {t('levelUp.reached', { name: node?.tag.name ?? '', level: u.level })}

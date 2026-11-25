@@ -2,11 +2,13 @@ import { useEffect, useId, useRef } from 'react';
 import { CloseIcon } from '../../components/icons';
 import { useI18n } from '../../i18n/context';
 import { SettingsTransferButtons } from '../../settings/SettingsTransfer';
+import { useTagIndex } from '../tags/useTagIndex';
 import {
   resetGraphSettings,
   setGraphSettings,
   FORCE_KEYS,
   SETTING_GROUPS,
+  TAG_COLOR_KEYS,
   useGraphSettings,
   type SettingGroup,
 } from './graphSettings';
@@ -21,6 +23,10 @@ export function GraphSettingsForm({ groups }: { groups: readonly SettingGroup[] 
   const { t } = useI18n();
   const settings = useGraphSettings();
   const idPrefix = useId();
+  const tagIndex = useTagIndex();
+  // Tag colours on but no top-level tag has a colour: nothing can change, say why.
+  const noTagColours =
+    settings.tagColors && !tagIndex.isPending && ![...tagIndex.colors.values()].some(Boolean);
   return (
     <div className="graph-settings-form">
       {groups
@@ -29,7 +35,25 @@ export function GraphSettingsForm({ groups }: { groups: readonly SettingGroup[] 
           <section key={group.id} className="graph-settings-group" aria-label={t(group.title)}>
             <h3>{t(group.title)}</h3>
             {group.fields.map((field) =>
-              field.kind === 'boolean' ? (
+              field.kind === 'choice' ? (
+                <label key={field.key} className="graph-settings-choice">
+                  <span className="graph-settings-label">{t(field.label)}</span>
+                  <select
+                    value={settings[field.key]}
+                    disabled={TAG_COLOR_KEYS.has(field.key) && !settings.tagColors}
+                    onChange={(e) => {
+                      const picked = field.options.find((o) => o.value === e.target.value);
+                      if (picked) setGraphSettings({ [field.key]: picked.value });
+                    }}
+                  >
+                    {field.options.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {t(o.label)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : field.kind === 'boolean' ? (
                 <label key={field.key} className="graph-settings-switch">
                   <input
                     type="checkbox"
@@ -58,13 +82,21 @@ export function GraphSettingsForm({ groups }: { groups: readonly SettingGroup[] 
                     step={field.step}
                     value={settings[field.key]}
                     // The forces do nothing while the dots are placed by hand.
-                    disabled={FORCE_KEYS.has(field.key) && !settings.autoLayout}
+                    disabled={
+                      (FORCE_KEYS.has(field.key) && !settings.autoLayout) ||
+                      (TAG_COLOR_KEYS.has(field.key) && !settings.tagColors)
+                    }
                     onChange={(e) => {
                       setGraphSettings({ [field.key]: Number(e.target.value) });
                     }}
                   />
                 </div>
               ),
+            )}
+            {group.id === 'colors' && noTagColours && (
+              <p className="muted small" role="note">
+                {t('graphSettings.noTagColours')}
+              </p>
             )}
             <button
               type="button"

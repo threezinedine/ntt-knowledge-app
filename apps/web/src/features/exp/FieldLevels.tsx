@@ -5,8 +5,7 @@ import { readJson, writeJson } from '../../commands/storage';
 import { tooltip } from '../../commands/useCommandTooltip';
 import { ChevronRightIcon } from '../../components/icons';
 import { useI18n } from '../../i18n/context';
-import { DEFAULT_TAG_COLOR } from '../tags/colors';
-import { useTagIndex } from '../tags/useTagIndex';
+import { tagColor, useTagIndex } from '../tags/useTagIndex';
 import { treeKeyAction, visibleFieldRows } from './fieldTree';
 
 const COLLAPSED_KEY = 'km.fields.collapsed';
@@ -153,7 +152,7 @@ export function FieldLevels() {
                 </span>
                 <span
                   className="field-dot"
-                  style={{ background: node.tag.color ?? DEFAULT_TAG_COLOR }}
+                  style={{ background: tagColor(index, node.tag.id) }}
                   aria-hidden="true"
                 />
                 <span className="field-name">{name}</span>

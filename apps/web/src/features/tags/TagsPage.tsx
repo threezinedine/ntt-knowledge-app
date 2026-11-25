@@ -6,7 +6,7 @@ import { tooltip, useCommandTooltip, type TooltipProps } from '../../commands/us
 import { useI18n } from '../../i18n/context';
 import { DEFAULT_TAG_COLOR } from './colors';
 import { tagDragSource, useTagDropTarget } from './dnd';
-import { useTagIndex } from './useTagIndex';
+import { useTagColor, useTagIndex } from './useTagIndex';
 
 export function TagsPage() {
   const index = useTagIndex();
@@ -83,6 +83,7 @@ function TagRow({ node, all, onMove }: { node: TagTreeNode; all: Tag[]; onMove: 
   const deleteTag = useDeleteTag();
   const { t, errorText } = useI18n();
   const hasChildren = children.length > 0;
+  const color = useTagColor(tag.id);
   const backToView = () => {
     setMode('view');
   };
@@ -124,7 +125,7 @@ function TagRow({ node, all, onMove }: { node: TagTreeNode; all: Tag[]; onMove: 
           <span className="drag-grip" aria-hidden="true">
             ⠿
           </span>
-          <span className="color-dot" style={{ background: tag.color ?? DEFAULT_TAG_COLOR }} />
+          <span className="color-dot" style={{ background: color }} />
           <span className="tag-name">{tag.name}</span>
           {hasChildren && <span className="muted count">{children.length}</span>}
           <span className="row-actions">
@@ -297,6 +298,8 @@ function EditTagForm(props: { tag: Tag; all: Tag[]; onDone: () => void }) {
   const updateTag = useUpdateTag();
   const { t, errorText } = useI18n();
   const valid = tagNameSchema.safeParse(name).success;
+  // Nested = under a tag that exists (an orphan counts as top level, as in the colours).
+  const nested = parentId !== '' && index.byId.has(parentId);
 
   // Only parents that can't create a cycle (not itself, not its descendants).
   const parentOptions = useMemo(
@@ -308,7 +311,11 @@ function EditTagForm(props: { tag: Tag; all: Tag[]; onDone: () => void }) {
     e.preventDefault();
     if (!valid) return;
     updateTag.mutate(
-      { id: tag.id, patch: { name, color, parentId: parentId || null } },
+      // Only a top-level tag's own colour counts; a nested one keeps what it had.
+      {
+        id: tag.id,
+        patch: { name, color: nested ? undefined : color, parentId: parentId || null },
+      },
       { onSuccess: props.onDone },
     );
   };
@@ -330,24 +337,30 @@ function EditTagForm(props: { tag: Tag; all: Tag[]; onDone: () => void }) {
           setName(e.target.value);
         }}
       />
-      <input
-        type="color"
-        aria-label={t('tags.color')}
-        value={color ?? DEFAULT_TAG_COLOR}
-        onChange={(e) => {
-          setColor(e.target.value);
-        }}
-      />
-      {color !== null && (
-        <button
-          type="button"
-          className="subtle small"
-          onClick={() => {
-            setColor(null);
-          }}
-        >
-          {t('tags.noColor')}
-        </button>
+      {nested ? (
+        <span className="muted small">{t('tags.colorFromParent')}</span>
+      ) : (
+        <>
+          <input
+            type="color"
+            aria-label={t('tags.color')}
+            value={color ?? DEFAULT_TAG_COLOR}
+            onChange={(e) => {
+              setColor(e.target.value);
+            }}
+          />
+          {color !== null && (
+            <button
+              type="button"
+              className="subtle small"
+              onClick={() => {
+                setColor(null);
+              }}
+            >
+              {t('tags.noColor')}
+            </button>
+          )}
+        </>
       )}
       <select
         aria-label={t('tags.parent')}

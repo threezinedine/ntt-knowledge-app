@@ -98,8 +98,12 @@ export class Api {
     return this.call('POST', '/api/edges', { fromId, toId, name }, 201);
   }
 
-  createTag(name: string, parentId: string | null = null): Promise<Tag> {
-    return this.call('POST', '/api/tags', { name, parentId }, 201);
+  createTag(
+    name: string,
+    parentId: string | null = null,
+    color: string | null = null,
+  ): Promise<Tag> {
+    return this.call('POST', '/api/tags', { name, parentId, color }, 201);
   }
 
   /**

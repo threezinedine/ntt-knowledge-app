@@ -1,4 +1,10 @@
-import { levelConfigSchema, type ExpSnapshot, type GraphNode, type Tag } from '@km/core';
+import {
+  levelConfigSchema,
+  type ExpSnapshot,
+  type GraphNode,
+  type NodeExp,
+  type Tag,
+} from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../testing/testApp.js';
 
@@ -116,5 +122,22 @@ describe('GET /api/exp', () => {
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE'] as const) {
       expect((await t.request(method, '/api/exp', {})).status).toBe(404);
     }
+  });
+});
+
+describe('GET /api/exp/nodes', () => {
+  it('gives every live node its own EXP and tags, whether tagged or not', async () => {
+    const cpu = await tag('CPU');
+    const tagged = await node('Tagged', [cpu.id], 'one two three four'); // 10 + 2
+    const plain = await node('Plain', []); // 10
+    const gone = await node('Gone', []);
+    await t.request('DELETE', `/api/nodes/${gone.id}`);
+
+    const res = await t.request<NodeExp[]>('GET', '/api/exp/nodes');
+    expect(res.status).toBe(200);
+    const byId = new Map(res.body.map((n) => [n.id, n]));
+    expect(byId.get(tagged.id)).toEqual({ id: tagged.id, exp: 12, tagIds: [cpu.id] });
+    expect(byId.get(plain.id)).toEqual({ id: plain.id, exp: 10, tagIds: [] });
+    expect(byId.has(gone.id)).toBe(false);
   });
 });

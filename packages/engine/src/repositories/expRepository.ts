@@ -46,20 +46,30 @@ export function createExpRepository({ db }: RepoContext) {
     return out;
   }
 
+  /** Every live node with its id. Both readers below use it, so /exp and /exp/nodes agree. */
+  function liveNodes(): (ExpNode & { id: string })[] {
+    const whyDepths = whyDepthsByNode();
+    return (selectNodes.all() as { id: string; words: number; tag_ids: unknown }[]).map((r) => ({
+      id: r.id,
+      words: r.words,
+      tagIds: parseTagIds(r.tag_ids),
+      whyDepths: whyDepths.get(r.id) ?? [],
+    }));
+  }
+
   return {
+    /** Every live node with its id, for per-node EXP. */
+    nodes: liveNodes,
     inputs(): { tags: ExpTag[]; nodes: ExpNode[] } {
       const tags = (selectTags.all() as { id: string; parent_id: string | null }[]).map((r) => ({
         id: r.id,
         parentId: r.parent_id,
       }));
-      const whyDepths = whyDepthsByNode();
-      const nodes = (selectNodes.all() as { id: string; words: number; tag_ids: unknown }[]).map(
-        (r) => ({
-          words: r.words,
-          tagIds: parseTagIds(r.tag_ids),
-          whyDepths: whyDepths.get(r.id) ?? [],
-        }),
-      );
+      const nodes = liveNodes().map(({ words, tagIds, whyDepths }) => ({
+        words,
+        tagIds,
+        whyDepths,
+      }));
       return { tags, nodes };
     },
   };

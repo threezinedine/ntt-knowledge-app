@@ -10,12 +10,15 @@ import {
   type EdgeLane,
   type RadiusSizes,
 } from './graphGeometry';
+import type { TagColoringResult } from './tagColoring';
 
 export interface KmNodeData extends Record<string, unknown> {
   label: string;
   nodeType: string;
   radius: number;
   color: string;
+  /** A big dot of the tag colours: drawn so it stands out. */
+  hub?: boolean;
 }
 
 export type KmFlowNode = FlowNode<KmNodeData, 'circle'>;
@@ -58,6 +61,8 @@ export function toFlowNodes(
   sizes: RadiusSizes = DEFAULT_SIZES,
   /** Dots on the canvas stay where they are (the forces place them, not the server). */
   keepPositions = false,
+  /** The graph's tag colours: replace the type colour where they reach. */
+  tagColors?: TagColoringResult,
 ): KmFlowNode[] {
   const prevById = new Map(previous.map((n) => [n.id, n]));
   const degree = degrees(edges);
@@ -78,7 +83,8 @@ export function toFlowNodes(
         label: node.title,
         nodeType: node.type,
         radius: radiusForDegree(degree.get(node.id) ?? 0, range, sizes),
-        color: colors.get(node.type) ?? DEFAULT_NODE_COLOR,
+        color: tagColors?.colors.get(node.id) ?? colors.get(node.type) ?? DEFAULT_NODE_COLOR,
+        hub: tagColors?.hubs.has(node.id) ?? false,
       },
       selected: prev?.selected ?? false,
     };

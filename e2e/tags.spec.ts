@@ -26,16 +26,24 @@ test.describe('tag tree', () => {
     await page.getByRole('button', { name: 'Edit tag Gym' }).click();
     const form = page.getByRole('form', { name: 'Edit Gym' });
     await form.getByRole('textbox', { name: 'Tag name' }).fill('Training');
-    await form.getByLabel('Tag colour').fill('#ff0000');
     await form.getByRole('combobox', { name: 'Parent tag' }).selectOption({ label: 'Health' });
     await form.getByRole('button', { name: 'Save' }).click();
 
     const moved = page.getByTestId('tag-Health').getByTestId('tag-Training');
     await expect(moved).toBeVisible();
-    await expect(moved.locator('.color-dot').first()).toHaveCSS(
+
+    // Only a top-level tag picks a colour; the tags below it get a shade of it.
+    await page.getByRole('button', { name: 'Edit tag Health' }).click();
+    const health = page.getByRole('form', { name: 'Edit Health' });
+    await health.getByLabel('Tag colour').fill('#ff0000');
+    await health.getByRole('button', { name: 'Save' }).click();
+    await expect(page.getByTestId('tag-row-Health').locator('.color-dot')).toHaveCSS(
       'background-color',
       'rgb(255, 0, 0)',
     );
+    const shade = moved.locator('.color-dot').first();
+    await expect(shade).not.toHaveCSS('background-color', 'rgb(139, 146, 156)'); // not grey
+    await expect(shade).not.toHaveCSS('background-color', 'rgb(255, 0, 0)'); // not the same
   });
 
   test('cannot move a tag under its own descendant', async ({ page }) => {

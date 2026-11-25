@@ -77,6 +77,10 @@ The home screen shows all notes as dots on a 2D canvas.
 - **Size shows connections.** The best-linked note gets the biggest dot and the
   least-linked the smallest, so hubs stand out even in a small graph.
 - **Colour shows type.** Plain notes are grey; each other type gets its own colour.
+- **Or colour by tags** (an experiment, off by default, in the graph settings): the
+  biggest dots (most links, or most EXP; you choose how many) take the mix of their
+  tags' colours, and that colour spreads to the linked notes, fading with each step.
+  Where two colours meet they blend, the nearer one counting more.
 - **Hover a dot** to highlight it, its links and its neighbours, and to dim the rest.
 - **Names hide when zoomed out** to keep the picture readable.
 - Double-click a dot to open the note. Right-click a dot for _Open, Rename, Tags,
@@ -94,8 +98,8 @@ The home screen shows all notes as dots on a 2D canvas.
 
 One tag tree is shared by all notes, and a note can have any number of tags.
 
-- **Tags page**: create tags, nest them by drag and drop, rename them, give them a
-  colour, and move them to the top level.
+- **Tags page**: create tags, nest them by drag and drop, rename them, give a top-level
+  tag a colour (the tags below it get shades of it), and move them to the top level.
 - On a note, add tags by dragging them from the tag palette, from the _+ tag_ picker, or
   with `Alt+G`.
 

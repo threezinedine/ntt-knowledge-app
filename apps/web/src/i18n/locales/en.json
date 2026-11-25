@@ -455,5 +455,15 @@
   "graphSettings.centerForce": "Pull to the centre",
   "graphSettings.repelForce": "Push apart",
   "graphSettings.linkForce": "Link pull",
-  "graphSettings.linkDistance": "Link length"
+  "graphSettings.linkDistance": "Link length",
+  "graphSettings.group.colors": "Tag colours (experimental)",
+  "graphSettings.tagColors": "Colour dots by their tags",
+  "graphSettings.colorRank": "Biggest dots by",
+  "graphSettings.colorRank.links": "Most links",
+  "graphSettings.colorRank.exp": "Most EXP",
+  "graphSettings.colorHubs": "Coloured big dots",
+  "graphSettings.colorFade": "Colour kept per step",
+  "graphSettings.colorReach": "Steps the colour spreads",
+  "tags.colorFromParent": "Colour comes from the parent tag",
+  "graphSettings.noTagColours": "No top-level tag has a colour yet. Give one a colour on the Tags page (tags below it get shades of it)."
 }

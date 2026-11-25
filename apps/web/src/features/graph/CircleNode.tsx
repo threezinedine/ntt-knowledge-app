@@ -25,7 +25,7 @@ export function CircleNode({ id, data, selected }: NodeProps<KmFlowNode>) {
 
   return (
     <div
-      className={`km-node km-node--${state}${selected ? ' is-selected' : ''}`}
+      className={`km-node km-node--${state}${data.hub === true ? ' km-node--hub' : ''}${selected ? ' is-selected' : ''}`}
       style={style}
       title={`${data.label} (${data.nodeType})`}
     >

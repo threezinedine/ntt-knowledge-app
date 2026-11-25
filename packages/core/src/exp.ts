@@ -73,6 +73,14 @@ export function whysExp(depths: readonly number[], config: LevelConfig): number 
   return total;
 }
 
+/** What one node is worth to each of its fields: content EXP plus 5 Whys EXP. */
+export function nodeTotalExp(
+  node: Pick<ExpNode, 'words' | 'whyDepths'>,
+  config: LevelConfig,
+): number {
+  return nodeExp(node.words, config) + whysExp(node.whyDepths, config);
+}
+
 export interface LevelProgress {
   level: number;
   /** Total EXP at which the current level started. */
@@ -126,7 +134,7 @@ export function computeTagExp(
       }
     }
     if (fields.size === 0) continue;
-    const exp = nodeExp(node.words, config) + whysExp(node.whyDepths, config);
+    const exp = nodeTotalExp(node, config);
     for (const id of fields) {
       const entry = out.get(id);
       if (entry) {
@@ -168,4 +176,11 @@ export function expSnapshot(
       return { tagId: t.id, exp, nodeCount, ...levelFor(exp, config) };
     }),
   };
+}
+
+/** GET /api/exp/nodes: every live node's own EXP (what it adds to each of its fields). */
+export interface NodeExp {
+  id: string;
+  exp: number;
+  tagIds: string[];
 }
