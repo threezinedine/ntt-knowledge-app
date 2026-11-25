@@ -115,6 +115,7 @@ export function createLocalApi({ repos, sync, readOnly }: LocalApiOptions) {
     repos.nodes.remove(idParams.parse(params).id);
     return undefined;
   });
+  add('GET', '/wikilinks', () => repos.wikilinks.pairs());
   add('POST', '/wikilinks/pending', () => repos.wikilinks.syncPending());
   add('POST', '/nodes/:id/wikilinks', ({ params, body }) =>
     repos.wikilinks.sync(idParams.parse(params).id, wikilinkSyncInputSchema.parse(body)),

@@ -138,15 +138,23 @@ test.describe('keyboard shortcuts', () => {
     test.skip(isMobile, 'Hardware keyboard shortcuts; the hint is hidden on touch screens.');
     const node = await api.createNode({ title: 'Modes', content: 'Hello' });
     await page.goto(`/nodes/${node.id}`);
-    // (A chord's two steps are separate key caps: no space between them in the text.)
-    await expect(page.getByTestId('mode-hint')).toHaveText(
-      /^Ctrl\+K\s*E edit · Ctrl\+K\s*V split · Ctrl\+K\s*Ctrl\+V preview \(again: back to edit\)$/,
-    );
+    await expect(page.getByTestId('mode-hint')).toHaveText('Alt+V edit → split → preview');
     const tab = (name: string) => page.getByRole('tab', { name, exact: true });
     await tab('Edit').hover();
+    // (A chord's two steps are separate key caps: no space between them in the text.)
     await expect(page.getByRole('tooltip')).toHaveText(/Show Editor Only\s*Ctrl\+K\s*E/);
 
+    // Alt+V goes round: edit → split → preview → edit (typing again).
     await page.locator('.cm-content').click();
+    await page.keyboard.press('Alt+V');
+    await expect(tab('Split')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Alt+V');
+    await expect(tab('Preview')).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Alt+V');
+    await expect(tab('Edit')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.cm-content')).toBeFocused();
+
+    // The chords still go straight to a mode.
     await page.keyboard.press('ControlOrMeta+K');
     await page.keyboard.press('V'); // split
     await expect(tab('Split')).toHaveAttribute('aria-selected', 'true');
@@ -155,6 +163,27 @@ test.describe('keyboard shortcuts', () => {
     await expect(tab('Edit')).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByTestId('markdown-preview')).toHaveCount(0);
     await expect(page.locator('.cm-content')).toBeFocused();
+  });
+
+  test("Ctrl+S saves now, never the browser's Save page", async ({ page, api, isMobile }) => {
+    test.skip(isMobile, 'Hardware keyboard shortcut.');
+    const node = await api.createNode({ title: 'Saving' });
+    await page.goto(`/nodes/${node.id}`);
+    await page.locator('.cm-content').click();
+    await page.keyboard.type('typed just now');
+    // The page takes the key (the browser's dialog would need it not handled).
+    const handled = await page.evaluate(`(() => {
+      const mac = navigator.platform.startsWith('Mac');
+      const e = new KeyboardEvent('keydown', {
+        key: 's', code: 'KeyS', ctrlKey: !mac, metaKey: mac, bubbles: true, cancelable: true,
+      });
+      document.querySelector('.cm-content').dispatchEvent(e);
+      return e.defaultPrevented;
+    })()`);
+    expect(handled).toBe(true);
+    await expect(page.locator('.toast', { hasText: 'All changes saved.' })).toBeVisible();
+    await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    expect((await api.getNode(node.id)).content).toBe('typed just now');
   });
 
   test('Ctrl+B hides and shows the sidebar; Alt+N creates a node', async ({ page }) => {

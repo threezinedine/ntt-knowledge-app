@@ -261,6 +261,7 @@ h4 {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden; /* its parts scroll themselves; nothing may leak into the page */
 }
 .sidebar-actions {
   display: flex;
@@ -871,6 +872,46 @@ button.small {
 .graph-page .react-flow {
   background: var(--graph-bg);
 }
+/* The node page's local graph: a small canvas in the side panel. */
+.local-graph-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.local-graph-head h3 {
+  margin: 0;
+}
+.panel-toggle {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.panel-toggle::before {
+  content: '▾ ';
+}
+.panel-toggle[aria-expanded='false']::before {
+  content: '▸ ';
+}
+.local-graph.graph-page {
+  height: 260px;
+  margin-top: 8px;
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+/* React Flow sets touch-action: none on its pane: in this embed a finger drag
+   must scroll the page (the canvas doesn't pan on touch screens). */
+@media (pointer: coarse) {
+  .local-graph .react-flow__pane,
+  .local-graph .react-flow__node {
+    touch-action: pan-x pan-y;
+  }
+}
+.local-graph > p {
+  position: absolute;
+  z-index: 5;
+  margin: 8px;
+}
 
 .km-node {
   position: relative;
@@ -966,6 +1007,20 @@ button.small {
 }
 .react-flow__edge-path.km-edge--dim {
   opacity: 0.15;
+}
+/* [[Wikilinks]]: drawn only, apart from real links (dashed, faint, no clicks). */
+.react-flow__edge-path.km-wikilink {
+  stroke: var(--graph-line);
+  stroke-width: var(--edge-width, 1.2px);
+  stroke-dasharray: 4 4;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.react-flow__edge-path.km-wikilink--dim {
+  opacity: 0.1;
+}
+.react-flow__edge:has(.km-wikilink) {
+  pointer-events: none;
 }
 .react-flow__edge-text {
   font-family: var(--mono);
@@ -1515,11 +1570,13 @@ kbd {
 /* ---------- EXP: fields and levels (sidebar) ---------- */
 
 .node-list {
-  flex: 1 1 auto;
+  /* Basis 0, not auto: a long list would otherwise take all the height, squeeze
+     Fields to nothing and push its rows past the window (the whole page scrolled). */
+  flex: 1 1 0;
   min-height: 80px;
 }
 .field-levels {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   max-height: 45%;
   display: flex;
   flex-direction: column;
@@ -1565,6 +1622,7 @@ kbd {
   transform: rotate(90deg);
 }
 .field-levels-body {
+  min-height: 0;
   overflow-y: auto;
   padding: 2px 0 8px;
 }

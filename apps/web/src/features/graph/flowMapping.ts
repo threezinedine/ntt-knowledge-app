@@ -1,4 +1,4 @@
-import type { Edge, NodeSummary, Position } from '@km/core';
+import type { Edge, NodeSummary, Position, WikilinkPair } from '@km/core';
 import { MarkerType, type Edge as FlowEdge, type Node as FlowNode } from '@xyflow/react';
 import {
   DEFAULT_NODE_COLOR,
@@ -22,7 +22,46 @@ export interface KmNodeData extends Record<string, unknown> {
 }
 
 export type KmFlowNode = FlowNode<KmNodeData, 'circle'>;
-export type KmFlowEdge = FlowEdge<{ name: string; lane: EdgeLane }, 'floating'>;
+/**
+ * A link on the canvas: `floating` = a real link (an edge), `wikilink` = a
+ * [[wikilink]] in a note's text, drawn only (see toWikilinkEdges).
+ */
+export type KmFlowEdge = FlowEdge<{ name: string; lane: EdgeLane }, 'floating' | 'wikilink'>;
+
+/** Wikilink lines' ids, apart from real links' (UUIDs). */
+export const WIKILINK_EDGE_PREFIX = 'wikilink:';
+
+/**
+ * [[Wikilinks]] between dots on the canvas, one line per pair whatever the
+ * direction, none where a real link already joins the two. Not selectable
+ * or deletable, and kept out of the forces and the dot sizes by the caller.
+ */
+export function toWikilinkEdges(
+  pairs: readonly WikilinkPair[],
+  realEdges: readonly Edge[],
+  nodeIds: ReadonlySet<string>,
+): KmFlowEdge[] {
+  const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
+  const linked = new Set(realEdges.map((e) => pairKey(e.fromId, e.toId)));
+  const seen = new Set<string>();
+  const out: KmFlowEdge[] = [];
+  for (const { fromId, toId } of pairs) {
+    const key = pairKey(fromId, toId);
+    if (seen.has(key) || linked.has(key) || !nodeIds.has(fromId) || !nodeIds.has(toId)) continue;
+    seen.add(key);
+    out.push({
+      id: WIKILINK_EDGE_PREFIX + key,
+      type: 'wikilink',
+      source: fromId,
+      target: toId,
+      selectable: false,
+      deletable: false,
+      focusable: false,
+      data: { name: '', lane: { offset: 0, loopIndex: 0 } },
+    });
+  }
+  return out;
+}
 
 const GRID_COLUMNS = 6;
 const GRID_GAP_X = 160;

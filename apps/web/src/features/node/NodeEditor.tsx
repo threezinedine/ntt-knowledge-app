@@ -5,6 +5,7 @@ import { useSyncWikilinks, useUpdateNode } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
 import { useCommandTooltip } from '../../commands/useCommandTooltip';
 import { useAutosave } from '../../hooks/useAutosave';
+import { isCoarsePointer } from '../../hooks/pointer';
 import { useI18n } from '../../i18n/context';
 import { JumpHint } from './JumpHint';
 import { KeyboardIndicator } from './KeyboardIndicator';
@@ -49,7 +50,8 @@ export function NodeEditor({ node }: { node: GraphNode }) {
       if (!edited.current) return;
       const sync = syncRef.current;
       void flush()
-        .then(() => sync(node.id, false))
+        // Not after a failed save: the retry would then overwrite the rewrite.
+        .then((saved) => (saved ? sync(node.id, false) : undefined))
         .catch((error: unknown) => {
           console.error('Wikilink update failed', error);
         });
@@ -110,6 +112,14 @@ export function NodeEditor({ node }: { node: GraphNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isNew = wantsTitleFocus(location.state);
+  // Opening a node puts the caret in its content, ready to type (a new node,
+  // or Rename, focuses the title instead, below). Once per node: this
+  // component is keyed by node id. Not on touch screens: the on-screen
+  // keyboard would cover half the note every time it is opened to read.
+  const contentOnOpen = useRef(!isNew && !isCoarsePointer());
+  useEffect(() => {
+    if (contentOnOpen.current) contentRef.current?.focus();
+  }, []);
   useEffect(() => {
     if (!isNew) return;
     titleRef.current?.focus(true);

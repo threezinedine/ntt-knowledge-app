@@ -25,6 +25,8 @@ interface Props {
 }
 
 type Mode = 'edit' | 'preview' | 'split';
+/** Tab order, and the order Alt+V cycles through. */
+const MODES: readonly Mode[] = ['edit', 'split', 'preview'];
 
 export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props) {
   const [mode, setMode] = useState<Mode>('edit');
@@ -75,6 +77,11 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
   useCommandHandler('km.markdown.openPreviewToSide', () => {
     setMode('split');
   });
+  useCommandHandler('km.markdown.cycleMode', () => {
+    const next = MODES[(MODES.indexOf(mode) + 1) % MODES.length] ?? 'edit';
+    setMode(next);
+    if (next === 'edit') focus(); // back to typing
+  });
   useCommandHandler('km.markdown.showEditor', () => {
     setMode('edit');
     focus(); // once its view exists
@@ -90,7 +97,7 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
     <div className={`markdown-editor mode-${mode}`}>
       <div className="markdown-toolbar">
         <div className="segmented" role="tablist" aria-label={t('markdown.modes')}>
-          {(['edit', 'split', 'preview'] as const).map((m) => (
+          {MODES.map((m) => (
             <button
               key={m}
               type="button"
@@ -149,12 +156,21 @@ export function MarkdownEditor({ value, onChange, vim, onExitUp, handle }: Props
 }
 
 /**
- * The keys for the three modes, with the user's current bindings, like the
- * title/content hint above: "[Ctrl+K E] edit · [Ctrl+K V] split · ...".
+ * The keys for the modes, with the user's current bindings, like the
+ * title/content hint above: "[Alt+V] edit → split → preview" (or, with that
+ * one unbound, each mode's own key).
  */
 function ModeHint() {
   const { tx } = useI18n();
   const bindings = useBindings();
+  const cycle = bindings.get('km.markdown.cycleMode')?.[0];
+  if (cycle) {
+    return (
+      <p className="editor-hint mode-hint" data-testid="mode-hint">
+        {tx('markdown.hintCycle', { keys: <Keys binding={cycle} /> })}
+      </p>
+    );
+  }
   const parts = (
     [
       ['km.markdown.showEditor', 'markdown.hintEdit'],

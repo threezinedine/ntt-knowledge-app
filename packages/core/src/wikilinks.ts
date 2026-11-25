@@ -150,6 +150,17 @@ export function linkMentions(text: string, titles: readonly string[]): string {
 }
 
 /**
+ * The wikilinks that are links (what the preview renders): not those inside
+ * code, URLs and the like.
+ */
+export function liveWikilinks(text: string): Wikilink[] {
+  if (!text.includes('[[')) return [];
+  // Protected minus the wikilinks themselves: what is left is code, URLs and the like.
+  const masked = maskProtected(text.replace(WIKILINK, (m) => '\u0001'.repeat(m.length)));
+  return parseWikilinks(text).filter((link) => masked[link.start] !== '\0');
+}
+
+/**
  * `[[Old]]` / `[[Old|label]]` (any case) become `[[New]]` / `[[New|label]]`.
  * Links inside code are left alone, like everything else there.
  */
@@ -157,12 +168,10 @@ export function renameWikilinks(text: string, oldTitle: string, newTitle: string
   const oldKey = titleKey(oldTitle);
   const target = newTitle.trim();
   if (oldKey === '' || !linkableTarget(target)) return text;
-  // Protected minus the wikilinks themselves: what is left is code, URLs and the like.
-  const masked = maskProtected(text.replace(WIKILINK, (m) => '\u0001'.repeat(m.length)));
   let out = '';
   let last = 0;
-  for (const link of parseWikilinks(text)) {
-    if (titleKey(link.target) !== oldKey || masked[link.start] === '\0') continue;
+  for (const link of liveWikilinks(text)) {
+    if (titleKey(link.target) !== oldKey) continue;
     const label = link.label === null ? '' : `|${link.label}`;
     out += `${text.slice(last, link.start)}[[${target}${label}]]`;
     last = link.end;
@@ -185,4 +194,33 @@ export type WikilinkSyncInput = z.output<typeof wikilinkSyncInputSchema>;
 /** What changed: the nodes whose content was rewritten. */
 export interface WikilinkSyncResult {
   changedIds: string[];
+}
+
+/** GET /api/wikilinks: node `fromId`'s content has a wikilink to `toId` (once per pair). */
+export interface WikilinkPair {
+  fromId: string;
+  toId: string;
+}
+
+/**
+ * Every wikilink between two different nodes, resolved like the preview
+ * does. One per (from, to), in a stable order.
+ */
+export function wikilinkPairs(
+  nodes: readonly { id: string; title: string; content: string }[],
+): WikilinkPair[] {
+  const resolve = createWikilinkResolver(nodes);
+  const seen = new Set<string>();
+  const out: WikilinkPair[] = [];
+  for (const node of [...nodes].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    for (const link of liveWikilinks(node.content)) {
+      const toId = resolve(link.target);
+      if (toId === null || toId === node.id) continue;
+      const key = `${node.id}|${toId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ fromId: node.id, toId });
+    }
+  }
+  return out;
 }

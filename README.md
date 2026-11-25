@@ -61,6 +61,9 @@ Links are directed and named: _from_ → **relation** → _to_. The relation is 
   or on the graph by dragging from one dot to another.
 - A note page lists **outgoing** and **incoming** links; click one to go to the other
   note.
+- **Local graph**: the note page also shows a small graph of the note and the notes up
+  to 1, 2 or 3 links away (its own depth setting, remembered on the device). It arranges
+  itself; click a dot to open that note. The panel folds away.
 - Rename a link in place (double-click it on the graph, or use its menu), or delete it.
 - Two notes can have several links between them, in either direction, and a note can
   link to itself. Each one is drawn separately.
@@ -112,7 +115,9 @@ The home screen shows all notes as dots on a 2D canvas.
   Open either end, Delete_.
 - A minimap, zoom controls and _Fit to screen_ (`Shift+1`).
 - **Graph settings** (gear button): dot sizes, text size and strength of node and link
-  names, line thickness, arrows on/off, link names on/off, the forces (pull to the
+  names, line thickness, arrows on/off, wikilinks on/off (drawn as faint dashed lines:
+  they don't pull dots together or change dot sizes, and none is drawn where a real link
+  already joins the two notes), link names on/off, the forces (pull to the
   centre, push apart, link pull, link length), and, when arranging by hand, how strongly
   dragging pushes other dots. Changes apply immediately and are saved on that device.
 - A **3D view** (`Shift+3`) is available as an experiment: you can look around, but it
@@ -199,19 +204,20 @@ Most actions are commands, with shortcuts in the style of VS Code. The **Keyboar
 Shortcuts** page (`Ctrl+K Ctrl+S`) lists them all; you can search, add, change, remove
 or reset any binding, including two-step chords such as `Ctrl+K V`. Conflicts are shown.
 
-| Action                       | Shortcut                                  |
-| ---------------------------- | ----------------------------------------- |
-| Command palette              | `F1`, `Ctrl+Shift+P`                      |
-| Go to note                   | `Ctrl+P`                                  |
-| New note                     | `Alt+N`                                   |
-| Rename note                  | `F2`                                      |
-| Add link / add tag           | `Alt+L` / `Alt+G`                         |
-| 5 Whys / copy its prompt     | `Alt+W` / `Alt+Shift+W`                   |
-| Copy link check prompt       | `Alt+Shift+L`                             |
-| Edit / split / preview       | `Ctrl+K E` / `Ctrl+K V` / `Ctrl+K Ctrl+V` |
-| Graph / Tags / Review        | `Alt+1` / `Alt+2` / `Alt+3`               |
-| Fit graph, zoom in, zoom out | `Shift+1`, `=`, `-`                       |
-| Toggle sidebar               | `Ctrl+B`                                  |
+| Action                                          | Shortcut                                               |
+| ----------------------------------------------- | ------------------------------------------------------ |
+| Command palette                                 | `F1`, `Ctrl+Shift+P`                                   |
+| Go to note                                      | `Ctrl+P`                                               |
+| New note                                        | `Alt+N`                                                |
+| Rename note                                     | `F2`                                                   |
+| Add link / add tag                              | `Alt+L` / `Alt+G`                                      |
+| 5 Whys / copy its prompt                        | `Alt+W` / `Alt+Shift+W`                                |
+| Copy link check prompt                          | `Alt+Shift+L`                                          |
+| Next mode: edit, split, preview                 | `Alt+V` (or `Ctrl+K E` / `Ctrl+K V` / `Ctrl+K Ctrl+V`) |
+| Save now (also stops the browser's _Save page_) | `Ctrl+S`                                               |
+| Graph / Tags / Review                           | `Alt+1` / `Alt+2` / `Alt+3`                            |
+| Fit graph, zoom in, zoom out                    | `Shift+1`, `=`, `-`                                    |
+| Toggle sidebar                                  | `Ctrl+B`                                               |
 
 On macOS, `Ctrl` is `Cmd`, and the `Alt+` shortcuts are `Ctrl+Alt+` (or `Ctrl+` for the
 page switches), because `Option+letter` types characters there.

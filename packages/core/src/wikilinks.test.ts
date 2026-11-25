@@ -4,6 +4,7 @@ import {
   linkMentions,
   parseWikilinks,
   renameWikilinks,
+  wikilinkPairs,
   wikilinkSyncInputSchema,
 } from './wikilinks.js';
 
@@ -148,6 +149,20 @@ describe('renameWikilinks', () => {
 
   it('refuses a new title that cannot sit in a link', () => {
     expect(renameWikilinks('[[Redis]]', 'Redis', 'a|b')).toBe('[[Redis]]');
+  });
+});
+
+describe('wikilinkPairs', () => {
+  it('resolves links to node pairs, once each, not to itself, not inside code', () => {
+    const nodes = [
+      { id: '01', title: 'Redis', content: 'See [[Kafka]], [[kafka|again]], [[Redis]], [[Nope]].' },
+      { id: '02', title: 'Kafka', content: '`[[Redis]]` in code; [[Redis|the cache]] for real.' },
+      { id: '03', title: 'Plain', content: 'no links' },
+    ];
+    expect(wikilinkPairs(nodes)).toEqual([
+      { fromId: '01', toId: '02' },
+      { fromId: '02', toId: '01' },
+    ]);
   });
 });
 

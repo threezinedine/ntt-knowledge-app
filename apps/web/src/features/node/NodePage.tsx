@@ -13,6 +13,7 @@ import { NodeView } from './NodeView';
 import { useReadOnly } from '../readOnly';
 import { WhysPanel } from '../whys/WhysPanel';
 import { LinkCheckPanel } from '../linkCheck/LinkCheckPanel';
+import { LocalGraphPanel } from '../graph/LocalGraphPanel';
 
 export function NodePage() {
   const { id = '' } = useParams();
@@ -36,6 +37,7 @@ export function NodePage() {
       <aside className="node-side">
         <NodeTagsPanel node={node.data} />
         <EdgesPanel nodeId={node.data.id} />
+        <LocalGraphPanel nodeId={node.data.id} />
         <WhysPanel node={node.data} />
         <LinkCheckPanel nodeId={node.data.id} />
         <PropsEditor node={node.data} />

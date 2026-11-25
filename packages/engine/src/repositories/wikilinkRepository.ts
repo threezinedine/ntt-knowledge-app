@@ -3,7 +3,9 @@ import {
   NODE_CONTENT_MAX,
   renameWikilinks,
   titleKey,
+  wikilinkPairs,
   type GraphNode,
+  type WikilinkPair,
   type UpdateNodeInput,
   type WikilinkSyncInput,
   type WikilinkSyncResult,
@@ -110,6 +112,11 @@ export function createWikilinkRepository(
 
   return {
     sync,
+
+    /** Every wikilink between nodes (for drawing them on the graph). */
+    pairs(): WikilinkPair[] {
+      return wikilinkPairs(selectAll.all() as { id: string; title: string; content: string }[]);
+    },
 
     /**
      * PATCH /nodes/:id: the edit, and if the title changed, the one it had

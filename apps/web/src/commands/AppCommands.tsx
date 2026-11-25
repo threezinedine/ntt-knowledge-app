@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router';
+import { showToast } from '../components/toast';
+import { flushAllAutosaves } from '../hooks/useAutosave';
 import { useI18n } from '../i18n/context';
 import { useChordStatus, useKeybindingDispatcher } from './dispatch';
 import { formatBinding, formatPress } from './keybinding';
@@ -15,7 +17,7 @@ export function AppCommands({
   onFocusSearch: () => void;
 }) {
   const navigate = useNavigate();
-  const { t, locale, locales, setLocale } = useI18n();
+  const { t, errorText, locale, locales, setLocale } = useI18n();
   useKeybindingDispatcher();
 
   useCommandHandler('workbench.action.showCommands', () => {
@@ -31,6 +33,17 @@ export function AppCommands({
   useCommandHandler('km.go.tags', () => void navigate('/tags'));
   useCommandHandler('km.go.review', () => void navigate('/review'));
   useCommandHandler('km.editor.toggleVim', toggleVimMode);
+  // Everything autosaves; Ctrl+S saves the pending edits now (never the browser's "Save page").
+  useCommandHandler('workbench.action.files.save', () => {
+    flushAllAutosaves().then(
+      (saved) => {
+        showToast(t(saved ? 'save.done' : 'save.notYet'));
+      },
+      (error: unknown) => {
+        showToast(t('save.failed', { error: errorText(error) }));
+      },
+    );
+  });
   useCommandHandler('km.language.change', () => {
     openQuickPick({
       placeholder: t('quick.languagePlaceholder'),

@@ -27,6 +27,36 @@ afterEach(() => {
 });
 
 describe('useAutosave', () => {
+  it('flush tells whether everything got saved: false after a failure, true once it recovers', async () => {
+    const { save, calls } = controllableSave();
+    const { result } = renderHook(() => useAutosave(save, { delayMs: 10, retryMs: 50 }));
+    act(() => {
+      result.current.update('v1');
+    });
+    let first: boolean | undefined;
+    void result.current.flush().then((saved) => {
+      first = saved;
+    });
+    await act(async () => {
+      calls[0]?.reject(new Error('offline'));
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(first).toBe(false);
+
+    let second: boolean | undefined;
+    void result.current.flush().then((saved) => {
+      second = saved;
+    });
+    await act(async () => {
+      calls[1]?.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(calls[1]?.value).toBe('v1'); // the failed value, tried again
+    expect(second).toBe(true);
+  });
+
   it('a flush during a save resolves only once the edits made meanwhile are saved too', async () => {
     const { save, calls } = controllableSave();
     const { result } = renderHook(() => useAutosave(save, { delayMs: 10 }));

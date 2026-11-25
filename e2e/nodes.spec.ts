@@ -109,6 +109,34 @@ test.describe('node editing', () => {
     await expect(page.getByText('Properties must be a JSON object')).toBeVisible();
   });
 
+  test('opening a node puts the caret in its content, ready to type', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'Typing with a hardware keyboard.');
+    const node = await api.createNode({ title: 'Ready', content: 'end' });
+    await page.goto('/');
+    await page.getByRole('navigation', { name: 'Nodes' }).getByText('Ready').click();
+    await expect(page.locator('.cm-content')).toBeFocused();
+    await page.keyboard.type('start ');
+    await expect(page.locator('.cm-content')).toHaveText('start end');
+    await expect(page.getByTestId('save-status')).toHaveText('Saved');
+    expect((await api.getNode(node.id)).content).toBe('start end');
+  });
+
+  test('on a touch screen opening a node does not pop up the keyboard', async ({
+    page,
+    api,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'Touch screens only.');
+    const node = await api.createNode({ title: 'Read me', content: 'text' });
+    await page.goto(`/nodes/${node.id}`);
+    await expect(page.locator('.cm-content')).toBeVisible();
+    await expect(page.locator('.cm-content')).not.toBeFocused();
+  });
+
   test('deletes a node after confirmation', async ({ page, api }) => {
     const node = await api.createNode({ title: 'Doomed' });
     await page.goto(`/nodes/${node.id}`);

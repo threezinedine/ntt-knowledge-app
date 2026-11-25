@@ -1,4 +1,9 @@
-import { NODE_CONTENT_MAX, type GraphNode, type WikilinkSyncResult } from '@km/core';
+import {
+  NODE_CONTENT_MAX,
+  type GraphNode,
+  type WikilinkPair,
+  type WikilinkSyncResult,
+} from '@km/core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createTestApp, type TestApp } from '../testing/testApp.js';
 
@@ -110,6 +115,16 @@ describe('POST /api/nodes/:id/wikilinks', () => {
     const kafka = await node('Kafka');
     expect((await sync(kafka.id, true)).body.changedIds).toEqual([]);
     expect(await content(b.id)).toBe(long);
+  });
+
+  it('GET /api/wikilinks lists the links between nodes, deleted ones gone', async () => {
+    const redis = await node('Redis');
+    const kafka = await node('Kafka', 'Feeds [[Redis]] and [[Nope]].');
+    const gone = await node('Gone', 'Uses [[Redis]].');
+    await t.request('DELETE', `/api/nodes/${gone.id}`);
+    const res = await t.request<WikilinkPair[]>('GET', '/api/wikilinks');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([{ fromId: kafka.id, toId: redis.id }]);
   });
 
   it('validates its input and the node', async () => {

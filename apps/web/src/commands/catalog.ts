@@ -31,6 +31,13 @@ export const COMMANDS = [
     keys: ['Mod+Shift+P', 'F1'],
   },
   {
+    // Everything autosaves: Ctrl+S just saves now (and never opens the browser's "Save page").
+    id: 'workbench.action.files.save',
+    title: 'cmd.saveNow',
+    category: 'cmdCategory.data',
+    keys: ['Mod+S'],
+  },
+  {
     id: 'workbench.action.quickOpen',
     title: 'cmd.quickOpen',
     category: 'cmdCategory.go',
@@ -219,6 +226,15 @@ export const COMMANDS = [
     category: 'cmdCategory.markdown',
     // Not Mod+Shift+V: that's the browser's "paste as plain text".
     keys: ['Mod+K Mod+V'],
+    when: 'cmdWhen.node',
+  },
+  {
+    // The easy one: Edit → Split → Preview → Edit. Alt+E is Chrome's menu, Alt+Z Unikey's switch.
+    id: 'km.markdown.cycleMode',
+    title: 'cmd.cycleMarkdownMode',
+    category: 'cmdCategory.markdown',
+    keys: ['Alt+V'],
+    macKeys: ['Ctrl+Alt+V'],
     when: 'cmdWhen.node',
   },
   {

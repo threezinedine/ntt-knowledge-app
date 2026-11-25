@@ -1,3 +1,4 @@
+import { liveWikilinks, titleKey } from '@km/core';
 import type {
   CreateEdgeInput,
   CreateNodeInput,
@@ -39,6 +40,8 @@ export const keys = {
   allLocalGraphs: ['nodes', 'local'] as const,
   localGraph: (id: string, depth: number) => ['nodes', 'local', id, depth] as const,
   graph: ['graph'] as const,
+  /** Under 'graph' (creates, deletes, renames); content edits invalidate it too. */
+  wikilinks: ['graph', 'wikilinks'] as const,
   relations: ['relations'] as const,
   tags: ['tags'] as const,
   /** Derived from nodes + tags: invalidated by any write to either. */
@@ -82,6 +85,10 @@ export const useSyncStatus = (enabled = true) =>
     refetchInterval: 60_000,
     retry: false,
   });
+
+/** A note's link targets, as one comparable string (any order, any case). */
+const wikilinkTargets = (content: string): string =>
+  [...new Set(liveWikilinks(content).map((l) => titleKey(l.target)))].sort().join('|');
 
 /** Shown after the reload that follows a pull (the page is rebuilt from the new data). */
 export const PULLED_NOTE_KEY = 'km.sync.pulledNote';
@@ -186,6 +193,10 @@ export const useNodeExp = (enabled: boolean) =>
 
 export const useGraph = () => useQuery({ queryKey: keys.graph, queryFn: api.graph });
 
+/** Only fetched while drawn (graph settings: show wikilinks). */
+export const useWikilinks = (enabled: boolean) =>
+  useQuery({ queryKey: keys.wikilinks, queryFn: api.wikilinks, enabled });
+
 export const useRelationNames = () =>
   useQuery({ queryKey: keys.relations, queryFn: api.relations });
 
@@ -225,6 +236,7 @@ export function useUpdateNode() {
     mutationFn: ({ id, patch }: { id: string; patch: UpdateNodeInput }) =>
       api.nodes.update(id, patch),
     onSuccess: async (node, { patch }) => {
+      const before = qc.getQueryData<GraphNode>(keys.node(node.id));
       qc.setQueryData(keys.node(node.id), node);
       const stale: (readonly string[])[] = [];
       const labelChanged = patch.title !== undefined || patch.type !== undefined;
@@ -234,6 +246,13 @@ export function useUpdateNode() {
       }
       if (labelChanged) stale.push(keys.graph, keys.allNodeEdges, keys.review); // titles shown there
       if (patch.content !== undefined) stale.push(keys.exp); // longer notes earn more
+      // GET /wikilinks scans every note: only when this note's links changed, not per keystroke burst.
+      if (
+        patch.content !== undefined &&
+        (before === undefined || wikilinkTargets(before.content) !== wikilinkTargets(node.content))
+      ) {
+        stale.push(keys.wikilinks);
+      }
       if (labelChanged || patch.content !== undefined) stale.push(keys.allLocalGraphs);
       if (patch.position !== undefined) {
         qc.setQueryData<GraphSnapshot>(
@@ -262,7 +281,8 @@ export function useMovePositions() {
   return useMutation({
     mutationFn: (input: NodePositionsInput) => api.nodes.movePositions(input),
     onMutate: async ({ items }) => {
-      await qc.cancelQueries({ queryKey: keys.graph });
+      // Exact: not the wikilinks under it (a cancelled first fetch wouldn't come back by itself).
+      await qc.cancelQueries({ queryKey: keys.graph, exact: true });
       const moved = new Map(items.map((i) => [i.id, i.position]));
       qc.setQueryData<GraphSnapshot>(
         keys.graph,

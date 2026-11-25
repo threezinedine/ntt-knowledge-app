@@ -18,6 +18,8 @@ export interface GraphSettings {
   labelMinZoom: number;
   linkWidth: number;
   showArrows: boolean;
+  /** [[Wikilinks]] as faint dashed lines: drawn only, no pull, no size. */
+  showWikilinks: boolean;
   showLinkLabels: boolean;
   linkLabelSize: number;
   linkLabelOpacity: number;
@@ -138,6 +140,7 @@ export const SETTING_GROUPS: readonly SettingGroup[] = [
     fields: [
       num('linkWidth', 'graphSettings.linkWidth', 0.5, 6, 0.1, 1.2),
       bool('showArrows', 'graphSettings.showArrows', true),
+      bool('showWikilinks', 'graphSettings.showWikilinks', true),
     ],
   },
   {

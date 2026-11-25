@@ -37,6 +37,7 @@ import {
   useGraph,
   useMovePositions,
   useSyncWikilinks,
+  useWikilinks,
   useUpdateEdge,
 } from '../../api/queries';
 import { useCommandHandler } from '../../commands/registry';
@@ -53,7 +54,14 @@ import { GraphSettingsPanel } from './GraphSettingsPanel';
 import { pushAway, type Circle } from './collide';
 import { useForceLayout } from './forceLayout';
 import { EdgeRenameContext, FloatingEdge, GraphMarkers, type EdgeRename } from './FloatingEdge';
-import { toFlowEdges, toFlowNodes, type KmFlowEdge, type KmFlowNode } from './flowMapping';
+import {
+  toFlowEdges,
+  toFlowNodes,
+  toWikilinkEdges,
+  type KmFlowEdge,
+  type KmFlowNode,
+} from './flowMapping';
+import { WikilinkEdge } from './WikilinkEdge';
 import { useTagColoring } from './useTagColoring';
 import {
   buildAdjacency,
@@ -203,7 +211,7 @@ const fitViewOptions: FitViewOptions<KmFlowNode> = {
   maxZoom: 1.5,
   padding: { top: '110px', bottom: '170px', left: '60px', right: '60px' },
 };
-const edgeTypes: EdgeTypes = { floating: FloatingEdge };
+const edgeTypes: EdgeTypes = { floating: FloatingEdge, wikilink: WikilinkEdge };
 
 function GraphCanvas() {
   const graph = useGraph();
@@ -270,6 +278,24 @@ function GraphCanvas() {
     [unlinkedRadius, linkedMinRadius, maxRadius],
   );
   const tagColoring = useTagColoring(graph.data, settings);
+  // [[Wikilinks]]: drawn beside the links, but not in `edges` (the forces,
+  // dot sizes, hover and selection only know real links).
+  const wikilinks = useWikilinks(settings.showWikilinks);
+  const wikiEdges = useMemo(
+    () =>
+      settings.showWikilinks && wikilinks.data && graph.data
+        ? toWikilinkEdges(
+            wikilinks.data,
+            graph.data.edges,
+            new Set(graph.data.nodes.map((n) => n.id)),
+          )
+        : [],
+    [settings.showWikilinks, wikilinks.data, graph.data],
+  );
+  const drawnEdges = useMemo(
+    () => (wikiEdges.length === 0 ? edges : [...edges, ...wikiEdges]),
+    [edges, wikiEdges],
+  );
 
   const renameEdge = updateEdge.mutate; // stable, unlike the mutation object
   // Renaming a link: double-click it, or "Rename Link" with one link selected.
@@ -436,7 +462,7 @@ function GraphCanvas() {
         <EdgeRenameContext value={edgeRename}>
           <ReactFlow<KmFlowNode, KmFlowEdge>
             nodes={nodes}
-            edges={edges}
+            edges={drawnEdges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
             onNodeMouseEnter={(_event, node) => {
@@ -501,7 +527,7 @@ function GraphCanvas() {
             }}
             onNodeDoubleClick={(_event, node) => void navigate(`/nodes/${node.id}`)}
             onEdgeDoubleClick={(_event, edge) => {
-              if (!readOnly) setRenamingId(edge.id);
+              if (!readOnly && edge.type !== 'wikilink') setRenamingId(edge.id);
             }}
             onNodeContextMenu={(event, node) => {
               event.preventDefault();
@@ -509,6 +535,7 @@ function GraphCanvas() {
             }}
             onEdgeContextMenu={(event, edge) => {
               event.preventDefault();
+              if (edge.type === 'wikilink') return;
               edgeMenu.open(
                 {
                   id: edge.id,

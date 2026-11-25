@@ -24,6 +24,7 @@ import type {
   UpdateTagInput,
   UpdateWhySessionInput,
   WhySession,
+  WikilinkPair,
   WikilinkSyncInput,
   WikilinkSyncResult,
 } from '@km/core';
@@ -97,6 +98,8 @@ export const api = {
     syncWikilinks: (id: string, input: WikilinkSyncInput) =>
       request<WikilinkSyncResult>('POST', `/nodes/${id}/wikilinks`, input),
   },
+  /** Every wikilink between two nodes (drawn on the graph). */
+  wikilinks: () => request<WikilinkPair[]>('GET', '/wikilinks'),
   /** Renames whose links didn't follow yet (the tab was closed first): at start-up. */
   syncPendingWikilinks: () => request<WikilinkSyncResult>('POST', '/wikilinks/pending'),
   edges: {

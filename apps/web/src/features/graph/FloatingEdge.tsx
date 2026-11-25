@@ -53,7 +53,8 @@ export function GraphMarkers() {
   );
 }
 
-function toCircle(node: InternalNode<KmFlowNode>): Circle {
+/** A dot on the canvas as a circle (centre, radius), for drawing lines between dots. */
+export function toCircle(node: InternalNode<KmFlowNode>): Circle {
   const r = node.data.radius;
   const { x, y } = node.internals.positionAbsolute;
   return {

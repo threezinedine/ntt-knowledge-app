@@ -55,6 +55,11 @@ whole words, ≥ 3 chars) are rewritten to `[[...]]` **only once a node is settl
 renaming rewrites `[[Old]]` → `[[New]]` in other nodes (the PATCH records the first old
 title in device_settings `wikilinkRenames`, replayed at start-up, cleared by a pull). An
 open editor takes text rewritten elsewhere only if it has no unsaved edits.
+On the graph, wikilinks are dashed lines (graph settings `showWikilinks`, default on)
+that are **drawn only**: kept out of the `edges` state that drives forces, dot sizes,
+hover and selection; none where a real edge joins the pair. The node page's **local
+graph** (`features/graph/LocalGraphPanel.tsx`, editable page only) has its own depth
+(`km.localGraph.depth`, 1–3), separate from Link check's, and always arranges itself.
 `linkMentions` must stay idempotent and linear (a 1 MB node settles in well under 1 s):
 unit-tested.
 The graph's tag colours (graph settings) are experimental: only top-level tags pick a

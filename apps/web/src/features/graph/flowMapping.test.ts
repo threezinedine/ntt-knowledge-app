@@ -6,6 +6,7 @@ import {
   fallbackPosition,
   toFlowEdges,
   toFlowNodes,
+  toWikilinkEdges,
   type KmFlowNode,
 } from './flowMapping';
 
@@ -127,5 +128,44 @@ describe('toFlowNodes with auto layout (keepPositions)', () => {
       { x: 7, y: 8 }, // new: where it was saved
       fallbackPosition(0), // new, never placed
     ]);
+  });
+});
+
+describe('toWikilinkEdges', () => {
+  const realEdge = (fromId: string, toId: string): Edge => ({
+    id: `e-${fromId}-${toId}`,
+    fromId,
+    toId,
+    name: 'REL',
+    props: {},
+    createdAt: 0,
+    updatedAt: 0,
+  });
+  const on = new Set(['a', 'b', 'c']);
+
+  it('draws one line per pair, whatever the direction', () => {
+    const lines = toWikilinkEdges(
+      [
+        { fromId: 'a', toId: 'b' },
+        { fromId: 'b', toId: 'a' },
+      ],
+      [],
+      on,
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ type: 'wikilink', selectable: false, deletable: false });
+  });
+
+  it('draws none over a real link (either way) or to a dot not on the canvas', () => {
+    const lines = toWikilinkEdges(
+      [
+        { fromId: 'a', toId: 'b' },
+        { fromId: 'c', toId: 'x' },
+        { fromId: 'b', toId: 'c' },
+      ],
+      [realEdge('b', 'a')],
+      on,
+    );
+    expect(lines.map((l) => [l.source, l.target])).toEqual([['b', 'c']]);
   });
 });
