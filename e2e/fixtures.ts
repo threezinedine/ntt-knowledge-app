@@ -176,3 +176,24 @@ export async function phoneWithCopy(page: Page, api: Api): Promise<void> {
   await dialog.getByRole('button', { name: 'Pull', exact: true }).click();
   await expect(page.locator('.toast', { hasText: 'Pulled version' })).toBeVisible();
 }
+
+/** Phone-sized: no sidebar; the node list and the fields are tabs of their own. */
+export const isNarrow = (page: Page): boolean => (page.viewportSize()?.width ?? 1280) <= 800;
+
+/** Shows the node list (search, + New, the list): the sidebar, or on a phone its tab. */
+export async function showNodeList(page: Page): Promise<void> {
+  if (!isNarrow(page)) return;
+  await page
+    .getByRole('navigation', { name: 'Views' })
+    .getByRole('link', { name: 'Nodes', exact: true })
+    .click();
+}
+
+/** Shows the fields and their levels: the sidebar, or on a phone their tab. */
+export async function showFields(page: Page): Promise<void> {
+  if (!isNarrow(page)) return;
+  await page
+    .getByRole('navigation', { name: 'Views' })
+    .getByRole('link', { name: 'Fields', exact: true })
+    .click();
+}

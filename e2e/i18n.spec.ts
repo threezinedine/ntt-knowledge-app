@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, isNarrow, test } from './fixtures';
 
 /**
  * Language selection. Other specs run in English (playwright.config.ts pins
@@ -8,21 +8,21 @@ test.describe('localization', () => {
   test('starts in English and switches to Vietnamese, remembering the choice', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.getByRole('link', { name: 'Graph' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Graph', exact: true })).toBeVisible();
 
     await page.getByRole('combobox', { name: 'Language' }).selectOption({ label: 'Tiếng Việt' });
 
     await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
-    await expect(page.getByRole('link', { name: 'Đồ thị' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Thẻ' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Đồ thị', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Thẻ', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Thêm nút' })).toBeVisible();
 
     await page.reload();
     await expect(page.getByRole('combobox', { name: 'Ngôn ngữ' })).toHaveValue('vi');
-    await expect(page.getByRole('link', { name: 'Đồ thị' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Đồ thị', exact: true })).toBeVisible();
 
     await page.getByRole('combobox', { name: 'Ngôn ngữ' }).selectOption({ label: 'English' });
-    await expect(page.getByRole('link', { name: 'Graph' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Graph', exact: true })).toBeVisible();
   });
 
   test.describe('with a Vietnamese browser', () => {
@@ -37,6 +37,9 @@ test.describe('localization', () => {
     test('a whole node flow works with Vietnamese labels', async ({ page, api }) => {
       await api.createTag('Học');
       await page.goto('/');
+      const tabs = page.getByRole('navigation', { name: 'Chế độ xem' });
+      // A phone has the node list (and the fields) on tabs of their own.
+      if (isNarrow(page)) await tabs.getByRole('link', { name: 'Node', exact: true }).click();
       await page.getByRole('button', { name: '+ Mới' }).click();
 
       const title = page.getByRole('textbox', { name: 'Tiêu đề' });
@@ -49,12 +52,13 @@ test.describe('localization', () => {
       await expect(
         page.getByRole('group', { name: 'Thẻ của Đồ thị tri thức' }).getByText('Học'),
       ).toBeVisible();
-      // The field gains EXP and shows its level in Vietnamese.
-      const fields = page.getByRole('region', { name: 'Lĩnh vực' });
-      await expect(fields.getByTestId('field-Học')).toContainText('Cấp 1');
-
       await page.getByRole('tab', { name: 'Xem trước' }).click();
       await expect(page.getByTestId('markdown-preview')).toBeVisible();
+
+      // The field gains EXP and shows its level in Vietnamese.
+      if (isNarrow(page)) await tabs.getByRole('link', { name: 'Lĩnh vực', exact: true }).click();
+      const fields = page.getByRole('region', { name: 'Lĩnh vực' });
+      await expect(fields.getByTestId('field-Học')).toContainText('Cấp 1');
     });
 
     test('server errors are shown in Vietnamese', async ({ page, api }) => {

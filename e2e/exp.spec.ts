@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, showFields, test } from './fixtures';
 
 // Default level table (no level-config.json for the test server): a node is
 // worth 10 EXP plus 1 per 20 words (max +50); level 2 at 50, level 3 at 150.
@@ -15,6 +15,7 @@ test.describe('fields and levels', () => {
     await api.createNode({ title: 'Long', tagIds: [cpu.id], content: 'word '.repeat(40) });
 
     await page.goto('/');
+    await showFields(page);
     const cpuRow = fields(page).getByTestId('field-CPU');
     await expect(cpuRow).toContainText('Lv 2');
     await expect(fields(page).getByTestId('field-Computer')).toContainText('Lv 2');
@@ -25,7 +26,11 @@ test.describe('fields and levels', () => {
     );
   });
 
-  test('tagging a node in the editor levels the field up', async ({ page, api }) => {
+  test('tagging a node in the editor levels the field up', async ({ page, api, isMobile }) => {
+    test.skip(
+      isMobile,
+      'Fields beside the editor: the desktop layout (a phone has them on a tab).',
+    );
     const tag = await api.createTag('Embedded');
     for (let i = 0; i < 4; i++) await api.createNode({ title: `N${i}`, tagIds: [tag.id] });
     const node = await api.createNode({ title: 'GPIO' });
@@ -41,7 +46,11 @@ test.describe('fields and levels', () => {
 
   // Which level-ups count (not on load, not a regained level) is unit-tested in
   // levelUps.test.ts; this covers the card itself.
-  test('a level up is congratulated, then the card goes away', async ({ page, api }) => {
+  test('a level up is congratulated, then the card goes away', async ({ page, api, isMobile }) => {
+    test.skip(
+      isMobile,
+      'Fields beside the editor: the desktop layout (a phone has them on a tab).',
+    );
     await page.clock.install();
     const tag = await api.createTag('Rust');
     for (let i = 0; i < 4; i++) await api.createNode({ title: `R${i}`, tagIds: [tag.id] });
@@ -74,6 +83,7 @@ test.describe('fields and levels', () => {
   test('there is no control to change levels', async ({ page, api }) => {
     await api.createTag('Solo');
     await page.goto('/');
+    await showFields(page);
     await expect(fields(page).getByTestId('field-Solo')).toBeVisible();
     // The only button folds the section away; nothing edits a level.
     await expect(fields(page).getByRole('button')).toHaveCount(1);
@@ -92,6 +102,7 @@ test.describe('fields and levels', () => {
     await api.createTag('Math');
 
     await page.goto('/');
+    await showFields(page);
     const tree = fields(page).getByRole('tree');
     const item = (name: string) => tree.getByRole('treeitem', { name, exact: true });
     await expect(item('Cache')).toBeVisible();

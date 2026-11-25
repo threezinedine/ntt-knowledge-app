@@ -1,8 +1,9 @@
-import { expect, test } from './fixtures';
+import { expect, showNodeList, test } from './fixtures';
 
 test.describe('node editing', () => {
   test('a new node opens with its title selected, so typing names it', async ({ page }) => {
     await page.goto('/');
+    await showNodeList(page);
     await page.getByRole('button', { name: '+ New' }).click();
     const title = page.getByRole('textbox', { name: 'Title' });
     await expect(title).toBeFocused();
@@ -25,6 +26,7 @@ test.describe('node editing', () => {
     page,
   }) => {
     await page.goto('/');
+    await showNodeList(page);
     await page.getByRole('button', { name: '+ New' }).click();
 
     await expect(page).toHaveURL(/\/nodes\/[0-9a-f-]{36}$/);
@@ -48,6 +50,7 @@ test.describe('node editing', () => {
       page.getByTestId('markdown-preview').getByRole('heading', { name: 'Property graphs' }),
     ).toBeVisible();
 
+    await showNodeList(page);
     const sidebar = page.getByRole('navigation', { name: 'Nodes' });
     await expect(sidebar.getByRole('link', { name: /Graph databases/ })).toBeVisible();
   });
@@ -74,6 +77,7 @@ test.describe('node editing', () => {
     await page.request.patch(`/api/nodes/${older.id}`, { data: { position: { x: 9, y: 9 } } });
 
     await page.goto('/');
+    await showNodeList(page);
     const links = page.getByRole('navigation', { name: 'Nodes' }).getByRole('link');
     await expect(links).toHaveText([/Newer/, /Older/]);
   });
@@ -82,6 +86,7 @@ test.describe('node editing', () => {
     await api.createNode({ title: 'Rust ownership' });
     await api.createNode({ title: 'Cooking pasta' });
     await page.goto('/');
+    await showNodeList(page);
 
     const sidebar = page.getByRole('navigation', { name: 'Nodes' });
     await page.getByRole('searchbox', { name: 'Search nodes' }).fill('rust');

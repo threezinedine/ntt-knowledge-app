@@ -189,6 +189,14 @@ a `dependencies` entry of `@km/server`, `@km/core` or `@km/engine`, or the image
   there. Asked for so far: the graph's **display**
   settings, on their own activity-bar tab (`/graph-settings`), never over the phone's
   graph view; and **Sync** (pull only), from the title bar.
+- Phone layout (`useNarrowScreen()`, `max-width: 800px`: the Android app and narrow
+  browsers alike), the user's design: **one view per tab** in the bottom bar: Graph,
+  Nodes (`/nodes`: search + list), Fields (`/fields`), Graph settings, plus Tags and
+  Review when editable. No sidebar, no sidebar toggle, no shortcuts tab, no settings
+  gear over the graph. `/nodes` and `/fields` redirect to `/` on a wide screen. New
+  Node is an app-level command (`NewNodeCommand`), so it works on any tab. e2e: use
+  `showNodeList(page)` / `showFields(page)` (fixtures) before touching the list or
+  the fields; they're no-ops on desktop.
 - Graph settings (`features/graph/graphSettings.ts`): per-device look of the 2D graph,
   the forces and the push-on-drag, in localStorage, clamped on read; never synced.
 - Auto layout (`features/graph/forceLayout.ts`, d3-force; the user wanted Obsidian's

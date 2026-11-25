@@ -3,6 +3,8 @@
   "app.nav.label": "Views",
   "app.nav.graph": "Graph",
   "app.nav.tags": "Tags",
+  "app.nav.nodes": "Nodes",
+  "app.nav.fields": "Fields",
   "app.language": "Language",
   "app.notFound": "Page not found.",
   "common.loading": "Loading…",

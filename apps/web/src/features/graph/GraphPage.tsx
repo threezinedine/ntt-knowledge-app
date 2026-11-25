@@ -72,6 +72,7 @@ import {
 import { graph3dFailure, type Graph3DFailure } from './graph3dData';
 import { RelationDialog } from './RelationDialog';
 import { useReadOnly } from '../readOnly';
+import { useNarrowScreen } from '../../hooks/narrowScreen';
 
 // three.js is big: only fetched when someone switches to 3D (and kept out of
 // the service worker's precache, see vite.config.ts).
@@ -112,7 +113,9 @@ export function GraphPage() {
     writeJson(SETTINGS_OPEN_KEY, open);
     if (!open && focusWasInside) gearRef.current?.focus();
   };
-  const canTune = mode === '2d' && !readOnly;
+  // On a phone (narrow) the settings have their own tab instead.
+  const narrow = useNarrowScreen();
+  const canTune = mode === '2d' && !readOnly && !narrow;
   useCommandHandler(
     'km.graph.toggleSettings',
     () => {

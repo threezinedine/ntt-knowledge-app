@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, NavLink, Route, Routes } from 'react-router';
+import { Navigate, NavLink, Route, Routes, useNavigate } from 'react-router';
 import { AppCommands } from './commands/AppCommands';
 import { openQuickInput } from './commands/quickInputStore';
 import { QuickInput } from './commands/QuickInput';
@@ -7,10 +7,12 @@ import { ShortcutsPage } from './commands/ShortcutsPage';
 import { TooltipLayer } from './commands/TooltipLayer';
 import { useCommandTooltip } from './commands/useCommandTooltip';
 import { readJson, writeJson } from './commands/storage';
-import { Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
+import { NewNodeCommand, NodeListPane, Sidebar, SIDEBAR_SEARCH_ID } from './components/Sidebar';
 import {
   GraphIcon,
   KeyboardIcon,
+  LevelsIcon,
+  ListIcon,
   SearchIcon,
   SettingsIcon,
   SidebarIcon,
@@ -31,12 +33,17 @@ import { SettingsCommands } from './settings/SettingsTransfer';
 import { SyncHost, SyncIndicator, useCanSync } from './features/sync/SyncHost';
 import { LanguagePicker } from './i18n/LanguagePicker';
 import { useSyncPendingWikilinks } from './api/queries';
+import { FieldLevels } from './features/exp/FieldLevels';
+import { useNarrowScreen } from './hooks/narrowScreen';
 
 const SIDEBAR_KEY = 'km.sidebarVisible';
 
 export function App() {
   const { t } = useI18n();
   const readOnly = useReadOnly();
+  // A phone-sized screen: one view per tab (graph, nodes, fields, ...), no sidebar.
+  const narrow = useNarrowScreen();
+  const navigate = useNavigate();
   useSyncPendingWikilinks(!readOnly);
   const canSync = useCanSync();
   const graphTip = useCommandTooltip('km.go.graph', { always: true });
@@ -56,13 +63,16 @@ export function App() {
   };
 
   return (
-    <div className={`app${sidebarVisible ? '' : ' sidebar-hidden'}`}>
+    <div
+      className={`app${narrow ? ' narrow' : ''}${!narrow && !sidebarVisible ? ' sidebar-hidden' : ''}`}
+    >
       <AppCommands
         onToggleSidebar={() => {
           setSidebarVisible(!sidebarVisible);
         }}
         onFocusSearch={() => {
-          setSidebarVisible(true);
+          if (narrow) void navigate('/nodes');
+          else setSidebarVisible(true);
           // After the sidebar is shown again (next frame).
           requestAnimationFrame(() => {
             document.getElementById(SIDEBAR_SEARCH_ID)?.focus();
@@ -94,6 +104,16 @@ export function App() {
         <NavLink to="/" end aria-label={t('app.nav.graph')} {...graphTip}>
           <GraphIcon size={22} />
         </NavLink>
+        {narrow && (
+          <NavLink to="/nodes" aria-label={t('app.nav.nodes')}>
+            <ListIcon size={22} />
+          </NavLink>
+        )}
+        {narrow && (
+          <NavLink to="/fields" aria-label={t('app.nav.fields')}>
+            <LevelsIcon size={22} />
+          </NavLink>
+        )}
         {/* The tags page is for editing the tree; read-only mode has none. */}
         {!readOnly && (
           <NavLink to="/tags" aria-label={t('app.nav.tags')} {...tagsTip}>
@@ -111,46 +131,77 @@ export function App() {
             )}
           </NavLink>
         )}
-        {/* The phone app tunes the graph's look on its own tab, not over the graph. */}
-        {readOnly && (
+        {/* On a phone the graph's look is tuned on its own tab, not over the graph. */}
+        {(readOnly || narrow) && (
           <NavLink to="/graph-settings" aria-label={t('graphSettings.title')}>
             <SettingsIcon size={22} />
           </NavLink>
         )}
-        <span className="activity-bar-spacer" />
-        <button
-          type="button"
-          className={`activity-button${sidebarVisible ? ' active' : ''}`}
-          aria-label={t('cmd.toggleSidebar')}
-          aria-pressed={sidebarVisible}
-          {...sidebarTip}
-          onClick={() => {
-            setSidebarVisible(!sidebarVisible);
-          }}
-        >
-          <SidebarIcon size={22} />
-        </button>
-        <NavLink to="/shortcuts" aria-label={t('cmd.openKeybindings')} {...keysTip}>
-          <KeyboardIcon size={22} />
-        </NavLink>
+        {/* No sidebar to hide and no hardware keyboard on a phone. */}
+        {!narrow && <span className="activity-bar-spacer" />}
+        {!narrow && (
+          <button
+            type="button"
+            className={`activity-button${sidebarVisible ? ' active' : ''}`}
+            aria-label={t('cmd.toggleSidebar')}
+            aria-pressed={sidebarVisible}
+            {...sidebarTip}
+            onClick={() => {
+              setSidebarVisible(!sidebarVisible);
+            }}
+          >
+            <SidebarIcon size={22} />
+          </button>
+        )}
+        {!narrow && (
+          <NavLink to="/shortcuts" aria-label={t('cmd.openKeybindings')} {...keysTip}>
+            <KeyboardIcon size={22} />
+          </NavLink>
+        )}
       </nav>
       {/* Hidden, not unmounted: its commands (e.g. New Node) keep working. */}
-      <Sidebar hidden={!sidebarVisible} />
+      {!narrow && <Sidebar hidden={!sidebarVisible} />}
       <main className="app-main">
         <Routes>
           <Route path="/" element={<GraphPage />} />
           <Route path="/nodes/:id" element={<NodePage />} />
+          {/* Phone tabs; on a wide screen these live in the sidebar. */}
+          <Route
+            path="/nodes"
+            element={
+              narrow ? (
+                <div className="phone-pane phone-nodes">
+                  <NodeListPane />
+                </div>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+          <Route
+            path="/fields"
+            element={
+              narrow ? (
+                <div className="phone-pane phone-fields">
+                  <FieldLevels />
+                </div>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
           <Route path="/tags" element={readOnly ? <Navigate to="/" replace /> : <TagsPage />} />
           <Route path="/review" element={readOnly ? <Navigate to="/" replace /> : <ReviewPage />} />
           <Route path="/shortcuts" element={<ShortcutsPage />} />
           <Route
             path="/graph-settings"
-            element={readOnly ? <GraphSettingsPage /> : <Navigate to="/" replace />}
+            element={readOnly || narrow ? <GraphSettingsPage /> : <Navigate to="/" replace />}
           />
           <Route path="/categories" element={<Navigate to="/tags" replace />} />
           <Route path="*" element={<p className="empty">{t('app.notFound')}</p>} />
         </Routes>
       </main>
+      <NewNodeCommand />
       <QuickInput />
       <TooltipLayer />
       <Toast />

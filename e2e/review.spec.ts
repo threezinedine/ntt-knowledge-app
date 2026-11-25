@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, phoneWithCopy, test } from './fixtures';
+import { expect, phoneWithCopy, showNodeList, test } from './fixtures';
 
 const q = (question: string, answer: string, children: unknown[] = []) => ({
   question,
@@ -73,6 +73,7 @@ test.describe('review today (spaced repetition)', () => {
   test('the phone app has no review tab', async ({ page, api }) => {
     await api.createNode({ title: 'Shallow note' });
     await phoneWithCopy(page, api);
+    await showNodeList(page);
     await expect(page.getByRole('navigation', { name: 'Nodes' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Review' })).toHaveCount(0);
     await page.goto('/review');

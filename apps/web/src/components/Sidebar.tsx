@@ -1,7 +1,8 @@
 import { useDeferredValue, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router';
 import { useCreateNode, useNodeList } from '../api/queries';
-import { useCommandHandler } from '../commands/registry';
+import { runCommand, useCommandHandler } from '../commands/registry';
+import { showToast } from './toast';
 import { useCommandTooltip } from '../commands/useCommandTooltip';
 import { FieldLevels } from '../features/exp/FieldLevels';
 import { useNodeContextMenu } from '../features/node/NodeContextMenu';
@@ -12,34 +13,61 @@ import { useReadOnly } from '../features/readOnly';
 /** The search box's id, for the "Search Nodes" command. */
 export const SIDEBAR_SEARCH_ID = 'km-node-search';
 
+/**
+ * The desktop sidebar: the node list on top, the fields below. On a phone
+ * (narrow screen) there is no sidebar: each part is a tab of its own
+ * (`/nodes`, `/fields`).
+ */
 export function Sidebar({ hidden = false }: { hidden?: boolean }) {
-  const [search, setSearch] = useState('');
-  const query = useDeferredValue(search.trim());
-  const nodes = useNodeList(query);
+  return (
+    <aside className="sidebar" hidden={hidden}>
+      <NodeListPane />
+      <FieldLevels />
+    </aside>
+  );
+}
+
+/** Search, New, and the node list (with its context menu and commands). */
+/**
+ * "New Node" (Alt+N, and the list's + New): always available, wherever the
+ * node list is (on a phone it is a tab of its own). Mounted once, by App.
+ */
+export function NewNodeCommand() {
   const createNode = useCreateNode();
   const navigate = useNavigate();
   const { t, errorText } = useI18n();
-
-  const handleCreate = () => {
-    createNode.mutate(
-      { title: t('sidebar.untitled') },
-      { onSuccess: (node) => void navigate(`/nodes/${node.id}`, { state: NEW_NODE_STATE }) },
-    );
-  };
-  const newTip = useCommandTooltip('km.node.new');
-  const nodeMenu = useNodeContextMenu();
-  const searchTip = useCommandTooltip('km.sidebar.focusSearch');
   const readOnly = useReadOnly();
   useCommandHandler(
     'km.node.new',
     () => {
-      if (!createNode.isPending) handleCreate();
+      if (createNode.isPending) return;
+      createNode.mutate(
+        { title: t('sidebar.untitled') },
+        {
+          onSuccess: (node) => void navigate(`/nodes/${node.id}`, { state: NEW_NODE_STATE }),
+          onError: (error) => {
+            showToast(errorText(error));
+          },
+        },
+      );
     },
     !readOnly,
   );
+  return null;
+}
+
+export function NodeListPane() {
+  const [search, setSearch] = useState('');
+  const query = useDeferredValue(search.trim());
+  const nodes = useNodeList(query);
+  const { t, errorText } = useI18n();
+  const newTip = useCommandTooltip('km.node.new');
+  const nodeMenu = useNodeContextMenu();
+  const searchTip = useCommandTooltip('km.sidebar.focusSearch');
+  const readOnly = useReadOnly();
 
   return (
-    <aside className="sidebar" hidden={hidden}>
+    <>
       <div className="sidebar-actions">
         <input
           type="search"
@@ -53,12 +81,17 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
           }}
         />
         {!readOnly && (
-          <button type="button" onClick={handleCreate} disabled={createNode.isPending} {...newTip}>
+          <button
+            type="button"
+            onClick={() => {
+              runCommand('km.node.new');
+            }}
+            {...newTip}
+          >
             {t('sidebar.new')}
           </button>
         )}
       </div>
-      {createNode.isError && <p className="error">{errorText(createNode.error)}</p>}
 
       <nav aria-label={t('sidebar.listLabel')} className="node-list">
         {nodes.isPending && <p className="muted">{t('common.loading')}</p>}
@@ -88,8 +121,7 @@ export function Sidebar({ hidden = false }: { hidden?: boolean }) {
           </NavLink>
         ))}
       </nav>
-      <FieldLevels />
       {nodeMenu.element}
-    </aside>
+    </>
   );
 }

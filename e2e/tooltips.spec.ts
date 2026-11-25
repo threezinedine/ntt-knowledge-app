@@ -1,4 +1,4 @@
-import { expect, test } from './fixtures';
+import { expect, showNodeList, test } from './fixtures';
 
 // Chrome runs these on Windows/Linux, where Mod is Ctrl.
 test.describe('shortcut tooltips', () => {
@@ -98,6 +98,7 @@ test.describe('shortcut tooltips', () => {
 test('touch never shows tooltips', async ({ page, isMobile }) => {
   test.skip(!isMobile, 'Touch profile only.');
   await page.goto('/');
+  await showNodeList(page);
   // Focusing a field by tap: focus would show one synchronously.
   const search = page.getByRole('searchbox', { name: 'Search nodes' });
   await search.tap();

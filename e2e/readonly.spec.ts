@@ -1,4 +1,12 @@
-import { asPhoneApp, expect, hubUrl, openSync, phoneWithCopy, test } from './fixtures';
+import {
+  asPhoneApp,
+  expect,
+  hubUrl,
+  openSync,
+  phoneWithCopy,
+  showNodeList,
+  test,
+} from './fixtures';
 
 test.describe('read-only mode (the phone app)', () => {
   test('a node is shown to read: no editor, no delete, links still navigate', async ({
@@ -36,6 +44,7 @@ test.describe('read-only mode (the phone app)', () => {
   test('no way to create, and no tags editor', async ({ page, api }) => {
     await api.createNode({ title: 'Solo' });
     await phoneWithCopy(page, api);
+    await showNodeList(page);
     await expect(page.getByRole('navigation', { name: 'Nodes' })).toBeVisible();
     await expect(page.getByRole('button', { name: '+ New' })).toHaveCount(0);
     await expect(page.getByRole('form', { name: 'New node' })).toHaveCount(0);
@@ -103,6 +112,7 @@ test.describe('read-only mode (the phone app)', () => {
       return route.abort('internetdisconnected');
     });
     await page.reload();
+    await showNodeList(page);
     await expect(
       page.getByRole('navigation', { name: 'Nodes' }).getByRole('link', { name: /Pocket note/ }),
     ).toBeVisible();

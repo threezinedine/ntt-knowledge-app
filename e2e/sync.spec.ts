@@ -1,6 +1,6 @@
 import type { HubLatest, HubVersion } from '@km/core';
 import type { APIRequestContext, Page } from '@playwright/test';
-import { expect, hubUrl, openSync, test } from './fixtures';
+import { expect, hubUrl, openSync, showNodeList, test } from './fixtures';
 
 // The e2e server is both this device's server and the hub it syncs with.
 
@@ -120,6 +120,7 @@ test.describe('sync with a hub', () => {
 
     await expect(page.locator('.toast', { hasText: 'Pulled version' })).toBeVisible();
     expect((await api.getNode(node.id)).title).toBe('From the laptop');
+    await showNodeList(page);
     const nodes = page.getByRole('navigation', { name: 'Nodes' });
     await expect(nodes.getByRole('link', { name: /From the laptop/ })).toBeVisible();
     await expect(nodes.getByRole('link', { name: /Only here/ })).toHaveCount(0);

@@ -3,6 +3,8 @@
   "app.nav.label": "Chế độ xem",
   "app.nav.graph": "Đồ thị",
   "app.nav.tags": "Thẻ",
+  "app.nav.nodes": "Node",
+  "app.nav.fields": "Lĩnh vực",
   "app.language": "Ngôn ngữ",
   "app.notFound": "Không tìm thấy trang.",
   "common.loading": "Đang tải…",

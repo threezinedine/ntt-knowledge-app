@@ -1,6 +1,6 @@
 import type { GraphNode } from '@km/core';
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, showFields, showNodeList, test } from './fixtures';
 
 const sidebarItem = (page: Page, title: string) =>
   page.getByRole('navigation', { name: 'Nodes' }).getByRole('link', { name: title });
@@ -11,6 +11,7 @@ test.describe('node context menu', () => {
   test('right-click lists the actions; keyboard moves and Escape closes', async ({ page, api }) => {
     await api.createNode({ title: 'Alpha' });
     await page.goto('/');
+    await showNodeList(page);
     await sidebarItem(page, 'Alpha').click({ button: 'right' });
     const m = menu(page, 'Alpha');
     await expect(m.getByRole('menuitem')).toHaveText([
@@ -35,6 +36,7 @@ test.describe('node context menu', () => {
     test.skip(isMobile, 'Keyboard menu key.');
     await api.createNode({ title: 'Keys' });
     await page.goto('/');
+    await showNodeList(page);
     await sidebarItem(page, 'Keys').focus();
     await page.keyboard.press('Shift+F10');
     await expect(menu(page, 'Keys')).toBeVisible();
@@ -45,6 +47,7 @@ test.describe('node context menu', () => {
   test('Rename opens the node with the title selected', async ({ page, api }) => {
     await api.createNode({ title: 'Old name' });
     await page.goto('/');
+    await showNodeList(page);
     await sidebarItem(page, 'Old name').click({ button: 'right' });
     await menu(page, 'Old name')
       .getByRole('menuitem', { name: /^Rename/ })
@@ -59,6 +62,7 @@ test.describe('node context menu', () => {
     await api.createTag('Physics');
     const node = await api.createNode({ title: 'Optics' });
     await page.goto('/');
+    await showNodeList(page);
     await sidebarItem(page, 'Optics').click({ button: 'right' });
     await menu(page, 'Optics').getByRole('menuitem', { name: 'Tags…' }).click();
     const box = page.getByRole('dialog', { name: 'Quick input' });
@@ -70,6 +74,7 @@ test.describe('node context menu', () => {
             .length,
       )
       .toBe(1);
+    await showFields(page);
     await expect(
       page.getByRole('region', { name: 'Fields' }).getByTestId('field-Physics'),
     ).toContainText('Lv 1');
@@ -79,6 +84,7 @@ test.describe('node context menu', () => {
     await api.createNode({ title: 'Doomed' });
     await api.createNode({ title: 'Keeper' });
     await page.goto('/');
+    await showNodeList(page);
     await sidebarItem(page, 'Doomed').click({ button: 'right' });
     await menu(page, 'Doomed').getByRole('menuitem', { name: 'Delete…' }).click();
     const confirm = page.getByRole('dialog', { name: 'Delete node' });
@@ -102,6 +108,7 @@ test.describe('node context menu', () => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await api.createNode({ title: 'Clip me' });
     await page.goto('/');
+    await showNodeList(page);
     await sidebarItem(page, 'Clip me').click({ button: 'right' });
     await menu(page, 'Clip me').getByRole('menuitem', { name: 'Copy Title' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Title copied' })).toBeVisible();

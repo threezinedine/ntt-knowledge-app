@@ -1,6 +1,6 @@
 import type { GraphNode, GraphSnapshot } from '@km/core';
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures';
+import { expect, isNarrow, test } from './fixtures';
 
 /** The quick input (command palette / quick open) and its text box. */
 const quickInput = (page: Page) => page.getByRole('dialog', { name: 'Quick input' });
@@ -188,12 +188,15 @@ test.describe('keyboard shortcuts', () => {
 
   test('Ctrl+B hides and shows the sidebar; Alt+N creates a node', async ({ page }) => {
     await page.goto('/');
-    const sidebar = page.getByRole('navigation', { name: 'Nodes' });
-    await expect(sidebar).toBeVisible();
-    await page.keyboard.press('ControlOrMeta+B');
-    await expect(sidebar).toBeHidden();
-    await page.keyboard.press('ControlOrMeta+B');
-    await expect(sidebar).toBeVisible();
+    if (!isNarrow(page)) {
+      // (A phone has no sidebar: the node list is a tab.)
+      const sidebar = page.getByRole('navigation', { name: 'Nodes' });
+      await expect(sidebar).toBeVisible();
+      await page.keyboard.press('ControlOrMeta+B');
+      await expect(sidebar).toBeHidden();
+      await page.keyboard.press('ControlOrMeta+B');
+      await expect(sidebar).toBeVisible();
+    }
 
     await page.keyboard.press('Alt+N');
     await expect(page).toHaveURL(/\/nodes\/[0-9a-f-]{36}$/);

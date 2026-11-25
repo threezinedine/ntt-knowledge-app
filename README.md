@@ -265,15 +265,19 @@ for fields comes from the hub, so EXP counts the same everywhere. Setting up the
 
 ## Phone
 
+- **One view per tab.** On a phone-sized screen the bar along the bottom switches
+  between whole-screen views: the **graph**, the **notes** (search and the list), the
+  **fields** and their levels, and the graph's **display settings** (plus Tags and
+  Review where you can edit). There is no sidebar squeezed above the graph.
 - **Browser**: open the hub's address and add it to the home screen. It's the full app
-  with a touch-friendly layout, with its own copy like any other device.
+  with that layout, with its own copy like any other device.
 - **Android app**: keeps a **read-only copy** of the graph on the phone, pulled from the
   hub, so you can read notes and follow links without a network or the PC. Pull again
   (title bar, _Sync_) for a newer version; the title bar says when the hub has one, and
   when the phone is offline. Nothing can be created, changed or deleted on the phone,
   and the hub never accepts a push from it. Editing tools such as 5 Whys and Link
-  check are left out to keep it simple. Display settings for the graph have their own
-  tab, and you can import a settings file there.
+  check are left out to keep it simple. You can import a graph settings file on the
+  settings tab.
 
 See [INSTALL.md](INSTALL.md#android-app).
 

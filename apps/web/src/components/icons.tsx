@@ -48,6 +48,23 @@ export const TagIcon = (p: P) => (
   </Icon>
 );
 
+/** A list with bullets: the node list (phone tab). */
+export const ListIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M6 4h7.5M6 8h7.5M6 12h7.5" />
+    <circle cx="3" cy="4" r=".6" />
+    <circle cx="3" cy="8" r=".6" />
+    <circle cx="3" cy="12" r=".6" />
+  </Icon>
+);
+
+/** Rising bars: fields and their levels (phone tab). */
+export const LevelsIcon = (p: P) => (
+  <Icon {...p}>
+    <path d="M3 13.5v-3M6.5 13.5v-6M10 13.5V5M13.5 13.5V2.5" />
+  </Icon>
+);
+
 /** Two stacked cards: spaced repetition. */
 export const ReviewIcon = (p: P) => (
   <Icon {...p}>

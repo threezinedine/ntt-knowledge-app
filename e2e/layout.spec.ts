@@ -1,6 +1,6 @@
 import { expect, test } from './fixtures';
 
-test('the activity bar switches views and toggles the sidebar', async ({ page, isMobile }) => {
+test('the activity bar switches views (a phone: one view per tab)', async ({ page, isMobile }) => {
   await page.goto('/');
   const bar = page.getByRole('navigation', { name: 'Views' });
   const main = page.getByRole('main');
@@ -17,8 +17,28 @@ test('the activity bar switches views and toggles the sidebar', async ({ page, i
 
   await bar.getByRole('link', { name: 'Tags' }).click();
   await expect(page).toHaveURL(/\/tags$/);
-  const sidebarToggle = bar.getByRole('button', { name: 'Toggle Sidebar Visibility' });
   const nodes = page.getByRole('navigation', { name: 'Nodes' });
+  if (isMobile) {
+    // Phone: one view per tab. No sidebar (so no toggle) and no shortcuts tab.
+    await expect(nodes).toHaveCount(0);
+    await expect(bar.getByRole('button', { name: 'Toggle Sidebar Visibility' })).toHaveCount(0);
+    await expect(bar.getByRole('link', { name: 'Open Keyboard Shortcuts' })).toHaveCount(0);
+    await bar.getByRole('link', { name: 'Nodes', exact: true }).click();
+    await expect(page).toHaveURL(/\/nodes$/);
+    await expect(nodes).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Fields' })).toHaveCount(0);
+    await bar.getByRole('link', { name: 'Fields', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Fields' })).toBeVisible();
+    await expect(nodes).toHaveCount(0);
+    await bar.getByRole('link', { name: 'Graph settings' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Graph settings' })).toBeVisible();
+    await bar.getByRole('link', { name: 'Graph', exact: true }).click();
+    // The graph alone: its settings are on their tab, not a gear over it.
+    await expect(page.getByTestId('graph-canvas')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Graph Settings', exact: true })).toHaveCount(0);
+    return;
+  }
+  const sidebarToggle = bar.getByRole('button', { name: 'Toggle Sidebar Visibility' });
   await expect(nodes).toBeVisible();
   await sidebarToggle.click();
   await expect(nodes).toBeHidden();
