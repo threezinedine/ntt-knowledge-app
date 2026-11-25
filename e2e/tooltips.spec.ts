@@ -34,7 +34,8 @@ test.describe('shortcut tooltips', () => {
 
   test('keyboard focus shows it; Escape hides it', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Tags' }).focus();
+    // The last tab of the activity bar (Review comes after Tags).
+    await page.getByRole('link', { name: 'Review' }).focus();
     await page.keyboard.press('Tab');
     // Next in the activity bar: an icon-only button, so it always has a tooltip.
     await expect(page.getByRole('button', { name: 'Toggle Sidebar Visibility' })).toBeFocused();
@@ -84,7 +85,8 @@ test.describe('shortcut tooltips', () => {
 
   test('a keyboard tooltip survives the mouse drifting', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: 'Tags' }).focus();
+    // The last tab of the activity bar (Review comes after Tags).
+    await page.getByRole('link', { name: 'Review' }).focus();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('tooltip')).toHaveText(/Toggle Sidebar Visibility/);
     await page.mouse.move(400, 400);

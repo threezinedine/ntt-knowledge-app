@@ -78,7 +78,12 @@ function DeleteNodeButton({ nodeId }: { nodeId: string }) {
         autoFocus
         disabled={deleteNode.isPending}
         onClick={() => {
-          deleteNode.mutate(nodeId, { onSuccess: () => void navigate('/') });
+          // Not mutate's own onSuccess: the node's query 404s first and this
+          // button unmounts, and TanStack skips callbacks of unmounted callers.
+          void deleteNode.mutateAsync(nodeId).then(
+            () => void navigate('/'),
+            () => undefined, // shown below via deleteNode.isError
+          );
         }}
       >
         {t('node.deleteConfirmButton')}
