@@ -844,8 +844,14 @@ button.small {
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+/* Top-left, clear of the 2D | 3D switch and the gear at the top right (on a
+   phone-wide screen it would slide under them and they'd take its clicks). */
 .graph-panel {
-  max-width: min(420px, calc(100% - 30px));
+  max-width: min(420px, calc(100% - 210px));
+}
+.graph-panel .toolbar input {
+  flex: 1 1 120px;
+  min-width: 0;
 }
 .graph-panel > p {
   margin: 6px 4px 0;

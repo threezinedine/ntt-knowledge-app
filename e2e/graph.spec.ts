@@ -12,6 +12,17 @@ test.describe('graph editor', () => {
     expect(graph.nodes.find((n) => n.title === 'Fresh idea')?.position).not.toBeNull();
   });
 
+  test('on a narrow screen the new-node form stays clear of the top-right controls', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('/');
+    const form = await page.getByRole('form', { name: 'New node' }).boundingBox();
+    const mode = await page.getByRole('group', { name: 'Graph view' }).boundingBox();
+    if (!form || !mode) throw new Error('form or 2D | 3D switch not rendered');
+    expect(form.x + form.width).toBeLessThanOrEqual(mode.x);
+  });
+
   test('connects two nodes by dragging and names the relation', async ({ page, api, isMobile }) => {
     test.skip(isMobile, 'Handle dragging is a pointer interaction; covered on desktop.');
     await api.createNode({ title: 'Source', position: { x: 0, y: 0 } });
