@@ -6,6 +6,7 @@ import type {
   GraphNode,
   GraphSnapshot,
   NodePositionsInput,
+  ReviewAnswerInput,
   SyncConnectInput,
   TaggableKind,
   UpdateEdgeInput,
@@ -43,6 +44,8 @@ export const keys = {
   exp: ['exp'] as const,
   /** Under 'exp': whatever makes EXP stale makes this stale too. */
   nodeExp: ['exp', 'nodes'] as const,
+  /** Under 'exp' (whys, content, node changes); links invalidate it too. */
+  review: ['exp', 'review'] as const,
   sync: ['sync'] as const,
   whys: (nodeId: string) => ['whys', nodeId] as const,
 };
@@ -159,6 +162,23 @@ export function useSyncPull() {
 
 export const useExp = () => useQuery({ queryKey: keys.exp, queryFn: api.exp });
 
+export const useReview = (enabled: boolean) =>
+  useQuery({
+    queryKey: keys.review,
+    queryFn: api.review.today,
+    enabled,
+    // Today's cards change at midnight, even with the window left open.
+    refetchInterval: 5 * 60_000,
+  });
+
+export function useAnswerReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ReviewAnswerInput) => api.review.answer(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.review }),
+  });
+}
+
 /** Only fetched while something needs it (the graph's tag colours). */
 export const useNodeExp = (enabled: boolean) =>
   useQuery({ queryKey: keys.nodeExp, queryFn: api.nodeExp, enabled });
@@ -181,7 +201,8 @@ function useInvalidateGraph({ exp = false } = {}) {
       qc.invalidateQueries({ queryKey: keys.nodes }),
       qc.invalidateQueries({ queryKey: keys.graph }),
       qc.invalidateQueries({ queryKey: keys.relations }),
-      ...(exp ? [qc.invalidateQueries({ queryKey: keys.exp })] : []),
+      // Exp covers review; without it, a new link can still end a link card.
+      qc.invalidateQueries({ queryKey: exp ? keys.exp : keys.review }),
     ]);
 }
 
@@ -210,7 +231,7 @@ export function useUpdateNode() {
       if (labelChanged || patch.content !== undefined || patch.props !== undefined) {
         stale.push(keys.nodeLists);
       }
-      if (labelChanged) stale.push(keys.graph, keys.allNodeEdges); // titles shown there
+      if (labelChanged) stale.push(keys.graph, keys.allNodeEdges, keys.review); // titles shown there
       if (patch.content !== undefined) stale.push(keys.exp); // longer notes earn more
       if (labelChanged || patch.content !== undefined) stale.push(keys.allLocalGraphs);
       if (patch.position !== undefined) {

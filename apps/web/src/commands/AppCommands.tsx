@@ -29,6 +29,7 @@ export function AppCommands({
   useCommandHandler('km.sidebar.focusSearch', onFocusSearch);
   useCommandHandler('km.go.graph', () => void navigate('/'));
   useCommandHandler('km.go.tags', () => void navigate('/tags'));
+  useCommandHandler('km.go.review', () => void navigate('/review'));
   useCommandHandler('km.editor.toggleVim', toggleVimMode);
   useCommandHandler('km.language.change', () => {
     openQuickPick({

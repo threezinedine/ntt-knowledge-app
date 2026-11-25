@@ -465,5 +465,19 @@
   "graphSettings.colorFade": "Colour kept per step",
   "graphSettings.colorReach": "Steps the colour spreads",
   "tags.colorFromParent": "Colour comes from the parent tag",
-  "graphSettings.noTagColours": "No top-level tag has a colour yet. Give one a colour on the Tags page (tags below it get shades of it)."
+  "graphSettings.noTagColours": "No top-level tag has a colour yet. Give one a colour on the Tags page (tags below it get shades of it).",
+  "review.heading": "Review today",
+  "review.empty": "Nothing to review today.",
+  "review.dig": "Dig deeper",
+  "review.digDetail": "{whys} answered whys, {depth} levels deep: run another 5 Whys round.",
+  "review.link": "Link these?",
+  "review.done": "Done",
+  "review.again": "Again",
+  "review.doneFor": "Done: {name}",
+  "review.againFor": "Again: {name}",
+  "review.more": "{count} more waiting.",
+  "app.nav.review": "Review",
+  "cmd.goReview": "Go to Review",
+  "review.help": "Spaced repetition: notes you haven't dug into much ask for another 5 Whys round, and well-dug notes that aren't linked are suggested as pairs. Done brings a card back later (1, 3, 7, 14, 30, 60, 120 days); Again starts it over.",
+  "review.linkDetail": "Both are well dug and not linked yet: is there a relation?"
 }

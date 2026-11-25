@@ -1,4 +1,12 @@
-import type { ApiErrorBody, GraphNode, HubVersion, Snapshot, SyncStatus } from '@km/core';
+import {
+  snapshotSchema,
+  type ApiErrorBody,
+  type GraphNode,
+  type HubVersion,
+  type ReviewToday,
+  type Snapshot,
+  type SyncStatus,
+} from '@km/core';
 import {
   canonicalSnapshotJson,
   readSnapshot,
@@ -259,6 +267,29 @@ describe('the hub', () => {
     expect(res.statusCode).toBe(403);
   });
 
+  it('refuses a card that points at a missing node', async () => {
+    const { token } = (await pair(hub)).body;
+    const snapshot = readSnapshot(a.db);
+    snapshot.tables.review_cards.push({
+      id: 'card',
+      kind: 'dig',
+      node_id: 'missing',
+      other_node_id: null,
+      step: 1,
+      due_at: 0,
+      created_at: 0,
+      updated_at: 0,
+      deleted_at: null,
+    });
+    const res = await hub.app.inject({
+      method: 'POST',
+      url: '/api/hub/versions',
+      headers: asDevice(token),
+      payload: { baseVersion: null, snapshot },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
   it('refuses a snapshot that would not load', async () => {
     const { token } = (await pair(hub)).body;
     const snapshot = readSnapshot(a.db);
@@ -286,6 +317,38 @@ describe('the hub', () => {
     expect(res.headers['content-encoding']).toBe('gzip');
     const head = (await status(a)) as { hub: HubVersion };
     expect(head.hub.version).toBe(1);
+  });
+});
+
+describe('review cards through the hub', () => {
+  const answer = (t: Device, nodeId: string) =>
+    t.request('POST', '/api/review/answer', { kind: 'dig', nodeId, result: 'done' });
+
+  it('a push with cards hashes the same on the hub, and a pull restores them', async () => {
+    await connect(a, 'PC A');
+    await connect(b, 'PC B');
+    const n = await createNode(a, 'Shallow');
+    await answer(a, n.id);
+    expect((await push(a)).status).toBe(200);
+    const after = connected(await status(a));
+    expect(after.localChanged).toBe(false); // the hub's hash is the device's own
+    expect(after.hub?.hash).toBe(snapshotHash(canonicalSnapshotJson(readSnapshot(a.db))));
+
+    expect((await pull(b)).status).toBe(200);
+    expect(b.db.prepare('SELECT COUNT(*) AS n FROM review_cards').get()).toEqual({ n: 1 });
+    // Done today: not due on the other device either.
+    const today = (await b.request<ReviewToday>('GET', '/api/review')).body;
+    expect(today.cards).toEqual([]);
+    expect(connected(await status(b)).localChanged).toBe(false);
+  });
+
+  it('a snapshot from before review cards (no such key) reads and hashes as it was', async () => {
+    await createNode(a, 'Old');
+    const json = canonicalSnapshotJson(readSnapshot(a.db));
+    expect(json).not.toContain('review_cards'); // what every older version looks like
+    const parsed = snapshotSchema.parse(JSON.parse(json));
+    expect(parsed.tables.review_cards).toEqual([]);
+    expect(canonicalSnapshotJson(parsed)).toBe(json);
   });
 });
 

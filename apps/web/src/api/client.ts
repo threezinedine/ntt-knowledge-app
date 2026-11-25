@@ -8,6 +8,8 @@ import type {
   Edge,
   ExpSnapshot,
   NodeExp,
+  ReviewAnswerInput,
+  ReviewToday,
   GraphNode,
   GraphSnapshot,
   LocalGraph,
@@ -121,6 +123,11 @@ export const api = {
   exp: () => request<ExpSnapshot>('GET', '/exp'),
   /** Each node's own EXP (and tags), for the graph's tag colours. */
   nodeExp: () => request<NodeExp[]>('GET', '/exp/nodes'),
+  /** Spaced repetition: today's cards, and answering one. */
+  review: {
+    today: () => request<ReviewToday>('GET', '/review'),
+    answer: (input: ReviewAnswerInput) => request<undefined>('POST', '/review/answer', input),
+  },
   /** This device's sync with a hub (the hub itself is another server). */
   sync: {
     status: () => request<SyncStatus>('GET', '/sync/status'),

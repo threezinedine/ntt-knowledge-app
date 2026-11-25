@@ -1432,6 +1432,65 @@ kbd {
   border-color: var(--warn);
 }
 
+/* ---------- Review (its own tab, spaced repetition) ---------- */
+
+.review-page {
+  padding: 16px;
+}
+.review-page > * {
+  max-width: 720px;
+}
+.review-list {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.review-kind {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.review-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+.review-detail {
+  font-size: 12px;
+}
+.review-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+/* Due cards on the Review tab's icon. */
+.activity-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
 /* ---------- EXP: fields and levels (sidebar) ---------- */
 
 .node-list {

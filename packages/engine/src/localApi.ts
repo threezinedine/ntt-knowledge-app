@@ -11,6 +11,8 @@ import {
   nodeListQuerySchema,
   nodePositionsInputSchema,
   nodeTotalExp,
+  reviewAnswerInputSchema,
+  reviewQuerySchema,
   syncActionInputSchema,
   syncConnectInputSchema,
   updateEdgeInputSchema,
@@ -184,6 +186,15 @@ export function createLocalApi({ repos, sync, readOnly }: LocalApiOptions) {
       tagIds: [...tagIds],
       exp: nodeTotalExp(node, config),
     }));
+  });
+
+  // Spaced repetition: today's cards, and answering one.
+  add('GET', '/review', ({ query }) =>
+    repos.review.today(reviewQuerySchema.parse(query), levelConfig()),
+  );
+  add('POST', '/review/answer', ({ body }) => {
+    repos.review.answer(reviewAnswerInputSchema.parse(body));
+    return undefined;
   });
 
   // Sync with the hub

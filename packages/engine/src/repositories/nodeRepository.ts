@@ -92,6 +92,11 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
     `UPDATE why_sessions SET deleted_at = :ts, updated_at = MAX(updated_at + 1, :ts)
       WHERE node_id = :id AND deleted_at IS NULL`,
   );
+  // Review cards of a deleted node go with it (they'd only ride in snapshots).
+  const softDeleteReviewCards = db.prepare(
+    `UPDATE review_cards SET deleted_at = :ts, updated_at = MAX(updated_at + 1, :ts)
+      WHERE (node_id = :id OR other_node_id = :id) AND deleted_at IS NULL`,
+  );
   const selectAllSummaries = db.prepare(
     `SELECT n.id, n.type, n.title, l.pos_x, l.pos_y
        FROM nodes n LEFT JOIN node_layouts l ON l.node_id = n.id
@@ -251,6 +256,7 @@ export function createNodeRepository({ db, now, newId }: RepoContext, links: Tag
         if (changes === 0) throw new NotFoundError('Node', id);
         softDeleteEdges.run({ id, ts });
         softDeleteWhySessions.run({ id, ts });
+        softDeleteReviewCards.run({ id, ts });
         links.detachAllForOwner('nodes', id, ts);
       });
     },

@@ -8,6 +8,7 @@ import { createWhyRepository } from './whyRepository.js';
 import { createLocalGraphRepository } from './localGraphRepository.js';
 import { createSyncRepository } from './syncRepository.js';
 import { createSettingsRepository } from './settingsRepository.js';
+import { createReviewRepository } from './reviewRepository.js';
 
 export type Repositories = ReturnType<typeof createRepositories>;
 
@@ -26,7 +27,8 @@ export function createRepositories(ctx: RepoContext) {
   const localGraph = createLocalGraphRepository(nodes, edges);
   const sync = createSyncRepository(ctx);
   const settings = createSettingsRepository(ctx);
-  return { nodes, edges, tags, exp, whys, localGraph, sync, settings };
+  const review = createReviewRepository(ctx, { exp, nodes });
+  return { nodes, edges, tags, exp, whys, localGraph, sync, settings, review };
 }
 
 export type { RepoContext } from './context.js';

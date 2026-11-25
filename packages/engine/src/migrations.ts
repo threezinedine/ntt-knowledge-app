@@ -259,4 +259,34 @@ export const migrations: readonly string[] = [
     updated_at  INTEGER NOT NULL
   ) STRICT;
   `,
+
+  /* 12: spaced repetition (see @km/core review.ts). Synced: part of the graph.
+        A dig card names one node, a link card two (node_id < other_node_id).
+        One live card per node or pair. */ `
+  CREATE TABLE review_cards (
+    id             TEXT PRIMARY KEY,
+    kind           TEXT NOT NULL CHECK (kind IN ('dig', 'link')),
+    node_id        TEXT NOT NULL REFERENCES nodes (id),
+    other_node_id  TEXT REFERENCES nodes (id),
+    step           INTEGER NOT NULL CHECK (step >= 0),
+    due_at         INTEGER NOT NULL,
+    created_at     INTEGER NOT NULL,
+    updated_at     INTEGER NOT NULL,
+    deleted_at     INTEGER,
+    CHECK ((kind = 'link') = (other_node_id IS NOT NULL))
+  ) STRICT;
+  CREATE UNIQUE INDEX review_cards_live
+    ON review_cards (kind, node_id, IFNULL(other_node_id, '')) WHERE deleted_at IS NULL;
+  `,
+
+  /* 13: a link card stores its pair smaller id first (reviewRepository's pairOf),
+        so one pair is one row. Migration 12 only said so; this enforces it, also
+        for rows that arrive in a pulled snapshot. */ `
+  CREATE TRIGGER review_cards_pair_order_insert BEFORE INSERT ON review_cards
+    WHEN NEW.kind = 'link' AND NEW.node_id >= NEW.other_node_id
+    BEGIN SELECT RAISE(ABORT, 'review_cards: link pair must be stored smaller id first'); END;
+  CREATE TRIGGER review_cards_pair_order_update BEFORE UPDATE ON review_cards
+    WHEN NEW.kind = 'link' AND NEW.node_id >= NEW.other_node_id
+    BEGIN SELECT RAISE(ABORT, 'review_cards: link pair must be stored smaller id first'); END;
+  `,
 ];

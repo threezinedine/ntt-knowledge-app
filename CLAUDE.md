@@ -40,8 +40,13 @@ Windows-only notes below (Git Bash vitest quirk, Android `JAVA_HOME` paths) don'
 on Linux/macOS; there `npm run check` works from any shell.
 
 Product decisions already made (don't re-ask): the phone app only views graph and nodes
-(see Pairing, secrets and read-only); the 3D graph is parked; tasks are gone; spaced repetition
-(maybe on the phone) is a later idea, not started.
+(see Pairing, secrets and read-only); the 3D graph is parked; tasks are gone. Spaced repetition
+exists (`@km/core` review.ts, its own activity-bar tab `/review`, `features/review/`), the user's design: shallow
+nodes (answered whys < 3 or depth < 3) get a "dig deeper" card, lowest node EXP first;
+two random well-dug, unlinked nodes get a "link these?" card; Done / Again buttons, fixed
+steps 1, 3, 7, 14, 30, 60, 120 days; progress synced; desktop only (not on the phone).
+The graph's tag colours (graph settings) are experimental: only top-level tags pick a
+colour, nested tags get paler shades, big dots stand out.
 
 Architecture and sync (the user's design, don't re-ask): like git + GitHub. **One
 server, the hub** (LAN or WAN) hosts the web app and keeps numbered **versions of the
@@ -108,8 +113,11 @@ or setup step updates INSTALL.md.
   the `page` fixture swaps `page.request` so `/api/...` reaches the engine and
   `/api/hub/*` the server. Hub versions accumulate across tests: never assume version
   numbers. Phone specs use `phoneWithCopy`.
-- A new synced table must join `snapshotRowSchemas` (`@km/core` sync.ts; bump
-  `SNAPSHOT_FORMAT` if the shape changes).
+- A new synced table must join `snapshotRowSchemas` (`@km/core` sync.ts). A purely
+  additive table goes in `OPTIONAL_TABLES` (left out of the JSON while empty, so older
+  versions keep their hash; the user chose this over bumping); changing an existing
+  table's columns still bumps `SNAPSHOT_FORMAT`. An old phone APK can't read a snapshot
+  with a new table's rows: rebuild it.
 
 ## Commands
 
@@ -158,7 +166,7 @@ a `dependencies` entry of `@km/server`, `@km/core` or `@km/engine`, or the image
   new editing control must check `useReadOnly()`. The phone only **views** the graph
   and nodes: feature panels (5 Whys, Link check, anything new) mount only in
   `NodePage`'s editable branch, never in `NodeView`, unless the user asks for one
-  there (e.g. spaced repetition later). Asked for so far: the graph's **display**
+  there. Asked for so far: the graph's **display**
   settings, on their own activity-bar tab (`/graph-settings`), never over the phone's
   graph view; and **Sync** (pull only), from the title bar.
 - Graph settings (`features/graph/graphSettings.ts`): per-device look of the 2D graph,

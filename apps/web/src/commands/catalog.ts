@@ -75,6 +75,13 @@ export const COMMANDS = [
     macKeys: ['Ctrl+2'],
   },
   {
+    id: 'km.go.review',
+    title: 'cmd.goReview',
+    category: 'cmdCategory.go',
+    keys: ['Alt+3'],
+    macKeys: ['Ctrl+3'],
+  },
+  {
     id: 'km.node.new',
     title: 'cmd.newNode',
     category: 'cmdCategory.node',

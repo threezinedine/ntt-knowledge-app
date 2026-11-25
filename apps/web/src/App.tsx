@@ -14,6 +14,7 @@ import {
   SearchIcon,
   SettingsIcon,
   SidebarIcon,
+  ReviewIcon,
   TagIcon,
 } from './components/icons';
 import { Toast } from './components/toast';
@@ -23,6 +24,7 @@ import { GraphPage } from './features/graph/GraphPage';
 import { GraphSettingsPage } from './features/graph/GraphSettingsPanel';
 import { NodePage } from './features/node/NodePage';
 import { TagsPage } from './features/tags/TagsPage';
+import { ReviewPage, useReviewCount } from './features/review/ReviewPage';
 import { useReadOnly } from './features/readOnly';
 import { useI18n } from './i18n/context';
 import { SettingsCommands } from './settings/SettingsTransfer';
@@ -37,6 +39,8 @@ export function App() {
   const canSync = useCanSync();
   const graphTip = useCommandTooltip('km.go.graph', { always: true });
   const tagsTip = useCommandTooltip('km.go.tags', { always: true });
+  const reviewTip = useCommandTooltip('km.go.review', { always: true });
+  const reviewCount = useReviewCount();
   const paletteTip = useCommandTooltip('workbench.action.showCommands', { always: true });
   // Icon-only: they need the tooltip even when unbound.
   const sidebarTip = useCommandTooltip('workbench.action.toggleSidebarVisibility', {
@@ -94,6 +98,17 @@ export function App() {
             <TagIcon size={22} />
           </NavLink>
         )}
+        {/* Answering a card writes, so the phone app has no review. */}
+        {!readOnly && (
+          <NavLink to="/review" aria-label={t('app.nav.review')} {...reviewTip}>
+            <ReviewIcon size={22} />
+            {reviewCount > 0 && (
+              <span className="activity-badge" aria-hidden="true">
+                {reviewCount}
+              </span>
+            )}
+          </NavLink>
+        )}
         {/* The phone app tunes the graph's look on its own tab, not over the graph. */}
         {readOnly && (
           <NavLink to="/graph-settings" aria-label={t('graphSettings.title')}>
@@ -124,6 +139,7 @@ export function App() {
           <Route path="/" element={<GraphPage />} />
           <Route path="/nodes/:id" element={<NodePage />} />
           <Route path="/tags" element={readOnly ? <Navigate to="/" replace /> : <TagsPage />} />
+          <Route path="/review" element={readOnly ? <Navigate to="/" replace /> : <ReviewPage />} />
           <Route path="/shortcuts" element={<ShortcutsPage />} />
           <Route
             path="/graph-settings"

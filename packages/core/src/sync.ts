@@ -80,6 +80,18 @@ export const snapshotRowSchemas = {
     updated_at: ms,
     deleted_at: nullableMs,
   }),
+  /** Spaced repetition (review.ts). Added after format 1: see OPTIONAL_TABLES. */
+  review_cards: z.strictObject({
+    id: text,
+    kind: text,
+    node_id: text,
+    other_node_id: nullableText,
+    step: z.number().int(),
+    due_at: ms,
+    created_at: ms,
+    updated_at: ms,
+    deleted_at: nullableMs,
+  }),
 } as const;
 
 export type SnapshotTable = keyof typeof snapshotRowSchemas;
@@ -93,7 +105,16 @@ export const SNAPSHOT_KEYS: Record<SnapshotTable, readonly string[]> = {
   tags: ['id'],
   node_tags: ['node_id', 'tag_id'],
   why_sessions: ['id'],
+  review_cards: ['id'],
 };
+
+/**
+ * Tables added to format 1 later. Left out of a snapshot's JSON while they
+ * have no rows, so every version made before them keeps its hash (no device
+ * suddenly looks changed after an upgrade). A table that changes an existing
+ * one's shape still needs a new SNAPSHOT_FORMAT.
+ */
+export const OPTIONAL_TABLES: ReadonlySet<SnapshotTable> = new Set(['review_cards']);
 
 export const snapshotSchema = z.strictObject({
   format: z.literal(SNAPSHOT_FORMAT),
@@ -104,6 +125,7 @@ export const snapshotSchema = z.strictObject({
     tags: z.array(snapshotRowSchemas.tags),
     node_tags: z.array(snapshotRowSchemas.node_tags),
     why_sessions: z.array(snapshotRowSchemas.why_sessions),
+    review_cards: z.array(snapshotRowSchemas.review_cards).default([]),
   }),
 });
 export type Snapshot = z.infer<typeof snapshotSchema>;

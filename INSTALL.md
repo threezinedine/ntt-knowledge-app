@@ -196,6 +196,10 @@ the Android app below.
 `apps/mobile` is a Capacitor app that carries the web app and a read-only copy of your
 graph, pulled from the hub. It is meant for sideloading onto your own phone.
 
+The app carries its own copy of the web app, so it doesn't update with the hub. After
+updating the hub, rebuild and reinstall it: an older app may fail to pull data written
+by newer features (for example review progress).
+
 One-time setup: install [Android Studio](https://developer.android.com/studio); it
 brings the Android SDK and a JDK. On the phone, enable developer options (tap _Build
 number_ seven times) and turn on _USB debugging_.

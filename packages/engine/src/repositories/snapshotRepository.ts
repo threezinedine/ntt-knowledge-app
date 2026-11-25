@@ -1,4 +1,5 @@
 import {
+  OPTIONAL_TABLES,
   SNAPSHOT_FORMAT,
   SNAPSHOT_KEYS,
   SNAPSHOT_TABLES,
@@ -28,14 +29,17 @@ const compareRows =
 
 /**
  * The one JSON text of a snapshot: tables in a fixed order, rows sorted by
- * primary key, columns in schema order. Equal data gives equal text (and
+ * primary key, columns in schema order; an empty table added later
+ * (`OPTIONAL_TABLES`) is left out. Equal data gives equal text (and
  * hash) on every machine, whatever order the rows were read or sent in.
  */
 export function canonicalSnapshotJson(snapshot: Snapshot): string {
   const tables: Record<string, Row[]> = {};
   for (const table of SNAPSHOT_TABLES) {
+    const rows = snapshot.tables[table] as Row[];
+    if (rows.length === 0 && OPTIONAL_TABLES.has(table)) continue;
     const cols = columns(table);
-    tables[table] = (snapshot.tables[table] as Row[])
+    tables[table] = rows
       .map((row) => Object.fromEntries(cols.map((c) => [c, row[c]])))
       .sort(compareRows(SNAPSHOT_KEYS[table]));
   }

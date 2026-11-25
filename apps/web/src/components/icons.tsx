@@ -48,6 +48,14 @@ export const TagIcon = (p: P) => (
   </Icon>
 );
 
+/** Two stacked cards: spaced repetition. */
+export const ReviewIcon = (p: P) => (
+  <Icon {...p}>
+    <rect x="4" y="2.5" width="9.5" height="8" rx="1" />
+    <path d="M2.5 5v7.5a1 1 0 0 0 1 1h8" />
+  </Icon>
+);
+
 export const KeyboardIcon = (p: P) => (
   <Icon {...p}>
     <rect x="1.5" y="4" width="13" height="8" rx="1" />

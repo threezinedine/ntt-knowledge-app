@@ -465,5 +465,19 @@
   "graphSettings.colorFade": "Màu giữ lại mỗi bước",
   "graphSettings.colorReach": "Số bước màu loang ra",
   "tags.colorFromParent": "Màu lấy từ thẻ cha",
-  "graphSettings.noTagColours": "Chưa thẻ gốc nào có màu. Đặt màu cho thẻ gốc ở trang Thẻ (thẻ con sẽ lấy sắc độ từ đó)."
+  "graphSettings.noTagColours": "Chưa thẻ gốc nào có màu. Đặt màu cho thẻ gốc ở trang Thẻ (thẻ con sẽ lấy sắc độ từ đó).",
+  "review.heading": "Ôn hôm nay",
+  "review.empty": "Hôm nay không có gì để ôn.",
+  "review.dig": "Đào sâu thêm",
+  "review.digDetail": "{whys} câu why đã trả lời, sâu {depth} tầng: chạy thêm một vòng 5 Whys.",
+  "review.link": "Nối hai nút này?",
+  "review.done": "Xong",
+  "review.again": "Lại",
+  "review.doneFor": "Xong: {name}",
+  "review.againFor": "Lại: {name}",
+  "review.more": "Còn {count} thẻ đang chờ.",
+  "app.nav.review": "Ôn tập",
+  "cmd.goReview": "Đi tới Ôn tập",
+  "review.help": "Ôn ngắt quãng: nút chưa đào sâu sẽ đòi thêm một vòng 5 Whys, còn hai nút đã đào sâu mà chưa nối sẽ được gợi ý nối. Xong thì thẻ quay lại sau (1, 3, 7, 14, 30, 60, 120 ngày); Lại thì làm lại từ đầu.",
+  "review.linkDetail": "Cả hai đã đào sâu mà chưa nối: có liên quan gì không?"
 }

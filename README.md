@@ -21,6 +21,7 @@ Setup and configuration: **[INSTALL.md](INSTALL.md)**.
 - [Graph view](#graph-view)
 - [Tags and fields](#tags-and-fields)
 - [5 Whys](#5-whys)
+- [Review today](#review-today)
 - [Link check](#link-check)
 - [Finding things](#finding-things)
 - [Keyboard and commands](#keyboard-and-commands)
@@ -133,6 +134,22 @@ why they dig into) with a summary and a conclusion. You can edit every question,
 and takeaway, add or remove whys, or edit the session as JSON. Answered whys add EXP to
 the note's fields.
 
+## Review today
+
+Spaced repetition on its own tab (the stacked-cards icon, `Alt+3`), built around how
+deeply you have dug into each note. The icon shows how many cards are due.
+
+- **Dig deeper**: a note with few answered whys (fewer than 3, or none 3 levels deep)
+  asks for another 5 Whys round. Notes with the least EXP come first.
+- **Link these?**: two well-dug notes that aren't linked yet are suggested as a pair, to
+  see whether they relate. The pairs change each day.
+- Answer a card with **Done** or **Again**. Done brings it back after 1, 3, 7, 14, 30, 60
+  and then 120 days; Again starts it over (tomorrow). Linking a suggested pair, or
+  digging a note deep enough, ends its card.
+
+Review progress is part of your data, so it travels with push and pull. The phone app
+only views, so it has no review tab.
+
 ## Link check
 
 Copies a prompt (`Alt+Shift+L`) that asks an AI chat to fact-check the links around a
@@ -166,7 +183,7 @@ or reset any binding, including two-step chords such as `Ctrl+K V`. Conflicts ar
 | 5 Whys / copy its prompt     | `Alt+W` / `Alt+Shift+W`      |
 | Copy link check prompt       | `Alt+Shift+L`                |
 | Toggle preview / to the side | `Ctrl+K Ctrl+V` / `Ctrl+K V` |
-| Graph / Tags page            | `Alt+1` / `Alt+2`            |
+| Graph / Tags / Review        | `Alt+1` / `Alt+2` / `Alt+3`  |
 | Fit graph, zoom in, zoom out | `Shift+1`, `=`, `-`          |
 | Toggle sidebar               | `Ctrl+B`                     |
 
